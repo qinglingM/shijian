@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: oklch(0.55 0.20 25);
+}
+
+/*
+ * 档位配色（无混白）：
+ * — 实心 `--color-tier-*`：六档左侧方块（TierLabelBlock）满饱和底色。
+ * — `--color-tier-*-soft`：与实心相同，供 TOKEN 引用保持一致。
+ * — `--color-tier-*-slot`：同行的无封面店铺格 — 同色，饱和度降为 40%（降低 60%），用 oklch 相对语法。
+ */
+:root {
+  --color-tier-boom: #A11A00;
+  --color-tier-hang: #cf5329;
+  --color-tier-top: #e39032;
+  --color-tier-upper: #eddb39;
+  --color-tier-npc: #ede0b9;
+  --color-tier-bad: #f2f1ed;
+
+  --color-tier-boom-soft: var(--color-tier-boom);
+  --color-tier-hang-soft: var(--color-tier-hang);
+  --color-tier-top-soft: var(--color-tier-top);
+  --color-tier-upper-soft: var(--color-tier-upper);
+  --color-tier-npc-soft: var(--color-tier-npc);
+  --color-tier-bad-soft: var(--color-tier-bad);
+
+  --color-tier-boom-slot: oklch(from var(--color-tier-boom) l calc(c * 0.4) h);
+  --color-tier-hang-slot: oklch(from var(--color-tier-hang) l calc(c * 0.4) h);
+  --color-tier-top-slot: oklch(from var(--color-tier-top) l calc(c * 0.4) h);
+  --color-tier-upper-slot: oklch(from var(--color-tier-upper) l calc(c * 0.4) h);
+  --color-tier-npc-slot: oklch(from var(--color-tier-npc) l calc(c * 0.4) h);
+  --color-tier-bad-slot: oklch(from var(--color-tier-bad) l calc(c * 0.4) h);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+    "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  background: oklch(0.98 0 0);
+  color: oklch(0.18 0 0);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

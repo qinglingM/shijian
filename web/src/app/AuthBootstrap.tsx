@@ -1,0 +1,86 @@
+import { useEffect, useRef, type ReactNode } from 'react'
+import { CityGeolocationBootstrap } from '@/features/city-picker/CityGeolocationBootstrap'
+import { isSupabaseConfigured, getSupabase } from '@/lib/supabase'
+import { AUTH_LAX_DEV, ensureLaxDevAuthenticated } from '@/lib/laxDevAuth'
+import { useAuthStore } from '@/stores/authStore'
+
+const FIXTURE_EMAIL = import.meta.env.VITE_FIXTURE_EMAIL as string | undefined
+const FIXTURE_PASSWORD = import.meta.env.VITE_FIXTURE_PASSWORD as string | undefined
+/** 显式为 true 时才自动 fixture 登录，避免与真实登录流程冲突 */
+const FIXTURE_AUTO_LOGIN = import.meta.env.VITE_FIXTURE_AUTO_LOGIN === 'true'
+
+/**
+ * 在 App 启动时：
+ * 1. 读取当前 session
+ * 2. 开发环境（非 PROD）且未显式关闭时：无 session 则尝试 fixture 或匿名登录
+ * 3. 若未登录且 VITE_FIXTURE_AUTO_LOGIN=true 且配置了 fixture 凭据，自动登录
+ * 4. 订阅 supabase auth 状态变更
+ * 5. 标记 ready=true
+ *
+ * 这是 P0 跳过登录页方案的核心：dev 阶段始终以 fixture 用户身份发请求。
+ */
+export function AuthBootstrap({ children }: { children: ReactNode }) {
+  const setSession = useAuthStore((s) => s.setSession)
+  const setReady = useAuthStore((s) => s.setReady)
+  const ready = useAuthStore((s) => s.ready)
+  const didInit = useRef(false)
+
+  useEffect(() => {
+    if (didInit.current) return
+    didInit.current = true
+
+    if (!isSupabaseConfigured) {
+      setReady(true)
+      return
+    }
+
+    const supabase = getSupabase()
+
+    async function init() {
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        setSession(data.session)
+      } else if (AUTH_LAX_DEV) {
+        const ok = await ensureLaxDevAuthenticated()
+        if (ok) {
+          const { data: again } = await supabase.auth.getSession()
+          if (again.session) setSession(again.session)
+        }
+      } else if (FIXTURE_AUTO_LOGIN && FIXTURE_EMAIL && FIXTURE_PASSWORD) {
+        const { data: signIn, error } = await supabase.auth.signInWithPassword({
+          email: FIXTURE_EMAIL,
+          password: FIXTURE_PASSWORD,
+        })
+        if (error) {
+          console.warn('[shijian] fixture sign-in failed:', error.message)
+        } else {
+          setSession(signIn.session)
+        }
+      }
+      setReady(true)
+    }
+
+    void init()
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+    return () => {
+      sub.subscription.unsubscribe()
+    }
+  }, [setSession, setReady])
+
+  if (!ready) {
+    return (
+      <div className="flex h-screen items-center justify-center text-sm text-neutral-400">
+        载入中…
+      </div>
+    )
+  }
+
+  return (
+    <CityGeolocationBootstrap>
+      {children}
+    </CityGeolocationBootstrap>
+  )
+}

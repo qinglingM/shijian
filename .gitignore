@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+web/dist/
+web/dist-ssr/
+
+# Local env
+.env
+.env.local
+.env.*.local
+web/.env
+web/.env.local
+web/.env.*.local
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache
+web/.vite/
+web/.tsbuildinfo
+**/.tsbuildinfo
+.cursor/
+supabase/.temp/
+
+# Temporary scripts output
+.scripts/__pycache__/
+
+# Local-only debug / credential scripts
+supabase/migrations/0013_set_auth_password_for_phone_137.sql
