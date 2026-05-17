@@ -103,12 +103,15 @@ export function PracticeStep3Page() {
 
   const hasDraftDishes = draft.dishes.length > 0
 
+  const isExistingPracticeUpdate =
+    draft.will_replace_existing_practice && draft.submission_baseline_locked_from_server
+
   const primaryCtaLabel = !baselineReady
     ? hasDraftDishes
       ? '鉴定完毕'
       : '仅鉴定餐厅'
     : submissionDirty
-      ? draft.submission_baseline_locked_from_server
+      ? isExistingPracticeUpdate
         ? '提交修改'
         : '提交'
       : hasDraftDishes
@@ -118,16 +121,14 @@ export function PracticeStep3Page() {
   function handlePrimaryClick() {
     if (!canSubmit || !baselineReady) return
 
-    const baselineFromServer = draft.submission_baseline_locked_from_server
-
     if (submissionDirty) {
-      setSubmitPreviewVariant(baselineFromServer ? 'modify' : 'submit_full')
+      setSubmitPreviewVariant(isExistingPracticeUpdate ? 'modify' : 'submit_full')
       setSubmitOpen(true)
       return
     }
 
     // 本地基线仅是进第三步时的快照，不代表「已与服务器存档一致」；首次提交应直接走提交预览
-    if (!baselineFromServer) {
+    if (!isExistingPracticeUpdate) {
       setSubmitPreviewVariant('submit_full')
       setSubmitOpen(true)
       return
