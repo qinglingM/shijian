@@ -246,9 +246,18 @@ function BottomSheet({
           <>
             <div className="h-px bg-neutral-100 mx-4" />
             <div className="px-4 py-3">
-              <p className="text-[11px] text-neutral-400 mb-1.5">
-                睿评 · <span className="text-neutral-600 font-medium">{r.top_reviewer_nickname}</span>
-              </p>
+              <div className="flex items-center gap-2 mb-1.5">
+                {r.top_reviewer_avatar_url ? (
+                  <img src={r.top_reviewer_avatar_url} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-neutral-200 shrink-0 flex items-center justify-center text-[10px] text-neutral-500 font-medium">
+                    {r.top_reviewer_nickname?.[0] ?? '?'}
+                  </div>
+                )}
+                <p className="text-[11px] text-neutral-400">
+                  睿评 · <span className="text-neutral-600 font-medium">{r.top_reviewer_nickname}</span>
+                </p>
+              </div>
               <p className="text-[13px] text-neutral-700 leading-relaxed line-clamp-3">
                 {r.top_store_comment}
               </p>
@@ -364,10 +373,11 @@ export function HomeMap() {
           {TIER_ORDER.map((tier) => (
             <button
               key={tier}
-              className="pointer-events-auto shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-md ring-1 ring-black/[0.06]"
+              className="pointer-events-auto shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-md"
               style={{
-                background: selectedTier === tier ? TIER_HEX[tier] : 'rgba(255,255,255,0.95)',
-                color: selectedTier === tier ? TIER_TEXT_COLOR[tier] : '#737373',
+                background: TIER_HEX[tier],
+                color: TIER_TEXT_COLOR[tier],
+                opacity: selectedTier !== null && selectedTier !== tier ? 0.4 : 1,
               }}
               onClick={() => setSelectedTier((t) => (t === tier ? null : tier))}
             >

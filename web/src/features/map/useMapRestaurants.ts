@@ -12,6 +12,7 @@ export interface MapRestaurant {
   cover_image_url: string | null
   tier: Tier | null
   top_reviewer_nickname: string | null
+  top_reviewer_avatar_url: string | null
   top_store_comment: string | null
 }
 
@@ -40,6 +41,7 @@ interface VoteRow {
 interface ProfileRow {
   id: string
   nickname: string | null
+  avatar_url: string | null
 }
 
 function modeTier(counts: Map<Tier, number>): Tier | null {
@@ -99,6 +101,7 @@ export function useMapRestaurants() {
           cover_image_url: r.cover_image_url,
           tier: null,
           top_reviewer_nickname: null,
+          top_reviewer_avatar_url: null,
           top_store_comment: null,
         }))
       }
@@ -131,15 +134,15 @@ export function useMapRestaurants() {
         votes = (vraw ?? []) as VoteRow[]
       }
 
-      const profMap = new Map<string, string>()
+      const profMap = new Map<string, { nickname: string; avatar_url: string | null }>()
       if (userIds.length) {
         const { data: profRaw, error: e4 } = await sb
           .from('profiles')
-          .select('id, nickname')
+          .select('id, nickname, avatar_url')
           .in('id', userIds)
         if (e4) throw e4
         for (const p of (profRaw ?? []) as ProfileRow[]) {
-          profMap.set(p.id, p.nickname?.trim() || '食鉴用户')
+          profMap.set(p.id, { nickname: p.nickname?.trim() || '食鉴用户', avatar_url: p.avatar_url ?? null })
         }
       }
 
@@ -170,7 +173,8 @@ export function useMapRestaurants() {
           district_name: r.district_name,
           cover_image_url: r.cover_image_url,
           tier: tierCounts ? modeTier(tierCounts) : null,
-          top_reviewer_nickname: top ? (profMap.get(top.user_id) ?? '食鉴用户') : null,
+          top_reviewer_nickname: top ? (profMap.get(top.user_id)?.nickname ?? '食鉴用户') : null,
+          top_reviewer_avatar_url: top ? (profMap.get(top.user_id)?.avatar_url ?? null) : null,
           top_store_comment: top?.store_comment ?? null,
         }
       })
