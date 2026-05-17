@@ -20,6 +20,8 @@ export interface RestaurantDishReviewItem {
   my_vote: VoteType | null
 }
 
+const ANONYMOUS_REVIEWER = '匿名食客'
+
 export function useRestaurantDishReviews(restaurantId: string | null) {
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
   return useQuery<RestaurantDishReviewItem[]>({
@@ -59,17 +61,6 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
         .limit(80)
 
       if (e2) throw e2
-
-      const userIds = [...new Set(prs.map((p) => p.user_id))]
-      const { data: nickRaw, error: e3 } = await sb
-        .from('profiles')
-        .select('id,nickname')
-        .in('id', userIds)
-
-      if (e3) throw e3
-
-      type NickRow = { id: string; nickname: string | null }
-      const nickBy = new Map((nickRaw as NickRow[] | null)?.map((n) => [n.id, n.nickname]))
 
       interface DrSel {
         id: string
@@ -123,7 +114,7 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
           dish_id: r.dish_id,
           dish_name: dishName,
           dish_cover_image_url: dishCover,
-          reviewer_nickname: (nickBy.get(pr.user_id) ?? '食鉴用户').trim() || '食鉴用户',
+          reviewer_nickname: ANONYMOUS_REVIEWER,
           score: r.score,
           comment: r.comment,
           image_url: r.image_url,

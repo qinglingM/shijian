@@ -87,6 +87,24 @@ interface PracticeDraftState {
     existingRestaurantId: string | null,
     willReplaceExistingPractice?: boolean,
   ) => void
+  setExistingRestaurant: (
+    restaurant: {
+      id: string
+      display_name: string
+      address_text: string | null
+      location_hint: string | null
+      latitude: number | null
+      longitude: number | null
+      city_id: string | null
+      city_name: string | null
+      district_id: string | null
+      district_name: string | null
+      cover_image_url: string | null
+      category_id: string | null
+      category_name: string | null
+    },
+    willReplaceExistingPractice?: boolean,
+  ) => void
   setManual: (manual: ManualRestaurantInfo) => void
   setTier: (tier: Tier | null) => void
   setStoreComment: (text: string) => void
@@ -168,6 +186,34 @@ export const usePracticeDraft = create<PracticeDraftState>()(
           submission_baseline_locked_from_server: false,
           submission_baseline_practice_public_snapshot: null,
         }),
+      setExistingRestaurant: (restaurant, willReplaceExistingPractice = false) =>
+        set({
+          selected_poi: null,
+          manual_restaurant: {
+            brand_name: restaurant.display_name,
+            city_id: restaurant.city_id,
+            city_name: restaurant.city_name?.trim() || '',
+            district_id: restaurant.district_id,
+            district_name: restaurant.district_name,
+            location_hint: restaurant.location_hint,
+            address_text: restaurant.address_text,
+            latitude: restaurant.latitude,
+            longitude: restaurant.longitude,
+            cover_image_url: restaurant.cover_image_url,
+            category_id: restaurant.category_id,
+            category_name: restaurant.category_name,
+          },
+          existing_restaurant_id: restaurant.id,
+          will_replace_existing_practice: willReplaceExistingPractice,
+          tier: null,
+          store_comment: '',
+          is_public: true,
+          dishes: [],
+          good_review_guidance: false,
+          submission_baseline: null,
+          submission_baseline_locked_from_server: false,
+          submission_baseline_practice_public_snapshot: null,
+        }),
       setManual: (manual) =>
         set({
           manual_restaurant: manual,
@@ -213,6 +259,13 @@ export function everyDishRowHasName(state: PracticeDraftState): boolean {
 }
 
 /**
+ * 只要菜品卡已存在，每一道菜都必须完成评分。
+ */
+export function everyDishRowHasScore(state: PracticeDraftState): boolean {
+  return state.dishes.every((d) => d.score !== null)
+}
+
+/**
  * 是否允许提交食鉴第三步：有店 + 已订六档；若列出了菜品则每行须有菜名。
  * 有效实践的最小单元为「餐厅订档」；菜品评测为可选。
  */
@@ -220,7 +273,8 @@ export function isValidPractice(state: PracticeDraftState): boolean {
   const hasStore = !!state.selected_poi || !!state.manual_restaurant
   const hasTier = state.tier !== null
   const allNamed = everyDishRowHasName(state)
-  return hasStore && hasTier && allNamed
+  const allScored = everyDishRowHasScore(state)
+  return hasStore && hasTier && allNamed && allScored
 }
 
 export function getDraftRestaurantDisplay(state: PracticeDraftState): {

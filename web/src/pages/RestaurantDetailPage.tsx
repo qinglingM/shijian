@@ -1,7 +1,9 @@
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
-import { Bookmark, ChevronDown, MapPin, Search, Utensils, UserRound } from 'lucide-react'
+import { Bookmark, ChevronDown, MapPin, Utensils, UserRound } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
+import { lookupExistingRestaurantByPoi } from '@/features/poi-search/usePoiSearch'
+import { fetchExistingPracticeHydration } from '@/features/practice/hydratePracticeDraftFromServer'
 import {
   getDemoStoreReviews,
   lookupDemoRestaurant,
@@ -31,8 +33,9 @@ import { useRestaurantGuidanceSummary } from '@/features/restaurants/useRestaura
 import { useInsertMarkMutation, useDeleteMarkMutation } from '@/features/marks/useRestaurantMarkMutations'
 import { useRestaurantMarkStatus } from '@/features/marks/useRestaurantMarkStatus'
 import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, type Tier } from '@/lib/db'
-import { isSupabaseConfigured } from '@/lib/supabase'
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { usePracticeDraft } from '@/stores/practiceDraft'
 import type { PoiCandidate } from '@/lib/poi/types'
 
 type TabKey = 'store' | 'dish'
@@ -75,6 +78,9 @@ export function RestaurantDetailPage() {
   const guidanceQ = useRestaurantGuidanceSummary(governanceRid)
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
   const navigate = useNavigate()
+  const setPoiDraft = usePracticeDraft((s) => s.setPoi)
+  const setExistingRestaurantDraft = usePracticeDraft((s) => s.setExistingRestaurant)
+  const applyHydratedDraft = usePracticeDraft((s) => s.applyHydratedPracticeFromServer)
 
   const restaurantQ = useRestaurant(isUuid ? id : null)
   const storeRQ = useStoreReviewsByRestaurant(isUuid ? id : null)
@@ -137,8 +143,6 @@ export function RestaurantDetailPage() {
   let cityDistrictText: string | null = null
   let addressText: string | null = null
   let categoryText: string | null = null
-  let boleText: string | null = null
-
   if (isDemo && demoMeta) {
     title = demoMeta.display_name
     coverUrl = demoMeta.cover_image_url
@@ -157,7 +161,6 @@ export function RestaurantDetailPage() {
     cityDistrictText = [poi.city_name, poi.district_name].filter(Boolean).join(' ') || null
     addressText = poi.address_text?.trim() || null
     categoryText = poi.category?.trim() || null
-    boleText = `食鉴伯乐 由 @食鉴用户 于 ${compactDate(new Date().toISOString(), 'yyyyMMdd')} 首次完成鉴定`
   }
 
   const storeList = isDemo
@@ -165,6 +168,22 @@ export function RestaurantDetailPage() {
     : (storeRQ.data ?? []).filter(Boolean)
   const dishFeed: RestaurantDishReviewItem[] = isDemo ? [] : (dishRQ.data ?? [])
   const dishes = isDemo ? [] : (dishesQ.data ?? [])
+  const fallbackPoi =
+    !poi && isPoiRoute && poiSource && poiId
+      ? ({
+          poi_source: poiSource,
+          poi_id: poiId,
+          poi_name: title,
+          address_text: addressText ?? '',
+          latitude: null,
+          longitude: null,
+          province_name: null,
+          city_name: cityDistrictText?.split(' ')[0] ?? null,
+          district_name: cityDistrictText?.split(' ').slice(1).join(' ') || null,
+          category: categoryText,
+          cover_image_url: coverUrl,
+        } satisfies PoiCandidate)
+      : null
 
   const dominantPublicTier = dominantTierFromReviewList(storeList)
   const headerTierShown =
@@ -199,6 +218,72 @@ export function RestaurantDetailPage() {
         </div>
       </>
     )
+  }
+
+  async function beginPracticeFromDetail() {
+    if (isDemo) {
+      navigate('/practice/step1')
+      return
+    }
+
+    const practicePoi = poi ?? fallbackPoi
+    const targetRestaurantId =
+      isUuid && id
+        ? id
+        : practicePoi
+          ? await lookupExistingRestaurantByPoi(practicePoi.poi_source, practicePoi.poi_id)
+          : null
+
+    let willReplace = false
+    if (viewerId && targetRestaurantId) {
+      const { data, error } = await getSupabase()
+        .from('practice_records')
+        .select('id')
+        .eq('user_id', viewerId)
+        .eq('restaurant_id', targetRestaurantId)
+        .eq('is_active', true)
+        .maybeSingle()
+      if (!error) willReplace = !!data
+    }
+
+    if (practicePoi) {
+      setPoiDraft(practicePoi, targetRestaurantId, willReplace)
+    } else if (isUuid && restaurantQ.data && id) {
+      setExistingRestaurantDraft(
+        {
+          id,
+          display_name: restaurantQ.data.display_name,
+          address_text: restaurantQ.data.address_text,
+          location_hint: restaurantQ.data.location_hint,
+          latitude: restaurantQ.data.latitude,
+          longitude: restaurantQ.data.longitude,
+          city_id: restaurantQ.data.city_id,
+          city_name: restaurantQ.data.city_name,
+          district_id: restaurantQ.data.district_id,
+          district_name: restaurantQ.data.district_name,
+          cover_image_url: restaurantQ.data.cover_image_url,
+          category_id: restaurantQ.data.category_id,
+          category_name: restaurantQ.data.category_name,
+        },
+        willReplace,
+      )
+    } else {
+      navigate('/practice/step1')
+      return
+    }
+
+    if (willReplace && viewerId && targetRestaurantId) {
+      try {
+        const payload = await fetchExistingPracticeHydration(viewerId, targetRestaurantId)
+        if (payload) applyHydratedDraft(payload)
+      } catch (e) {
+        console.warn('[shijian] hydrate practice draft failed:', e)
+      }
+    }
+
+    navigate('/practice/step2', {
+      state: { poi: practicePoi, from: location.pathname },
+    })
   }
 
   return (
@@ -402,7 +487,7 @@ export function RestaurantDetailPage() {
           <p className="mt-2 px-2 text-[11px] leading-relaxed text-neutral-500">
             {tab === 'store'
               ? '每条店评底部固定两颗表态键「有品 / 野榜」。登录后与数据库投票表同步；再点已选一侧为撤回，点另一侧为改投（同一账号对同一条店评仅保留一种立场）。'
-              : '展示这家店已入库菜品的公开菜评流，并可进入上架菜品条目查看详情（含用户对菜品的分项评价）。'}
+              : '展示这家店已入库菜品的匿名菜评流，并可进入上架菜品条目查看详情（含用户对菜品的分项评价）。'}
           </p>
         </div>
 
@@ -423,7 +508,6 @@ export function RestaurantDetailPage() {
               dishesPending={Boolean(isUuid && !isDemo && dishesQ.isPending)}
               dishReviews={dishFeed}
               dishes={dishes}
-              emptyReviews={emptyReviews}
             />
           )}
         </div>
@@ -431,7 +515,7 @@ export function RestaurantDetailPage() {
         <div className="mt-auto border-t border-neutral-100 bg-white px-4 py-4">
           <button
             type="button"
-            onClick={() => navigate('/practice/step2', { state: { poi } })}
+            onClick={() => void beginPracticeFromDetail()}
             className="flex w-full items-center justify-center rounded-full bg-gradient-to-r from-orange-600 to-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-orange-700/20 active:from-orange-700 active:to-rose-700"
           >
             写评价
@@ -589,7 +673,7 @@ function StoreTab({
   )
 
   if (loading) {
-    return <p className="py-14 text-center text-sm text-neutral-400">载入店铺公开评价…</p>
+    return <p className="py-14 text-center text-sm text-neutral-400">载入店铺匿名评价…</p>
   }
   if (reviews.length === 0) {
     return (
@@ -599,7 +683,7 @@ function StoreTab({
             ? '本条示例暂只挂载少量店评。'
             : emptyReviews
               ? '这里还没有人完成首评。'
-              : '还没有用户公开这间店的食鉴档位或店铺锐评。'}
+              : '还没有用户匿名发布这间店的食鉴档位或店铺锐评。'}
         </p>
         {emptyReviews ? (
           <p className="text-center text-[12px] leading-6 text-neutral-500">
@@ -950,7 +1034,6 @@ function DishTabFeed({
   isDemo,
   dishFeedPending,
   dishesPending,
-  emptyReviews,
 }: {
   restaurantId: string | null
   dishReviews: RestaurantDishReviewItem[]
@@ -958,7 +1041,6 @@ function DishTabFeed({
   isDemo: boolean
   dishFeedPending: boolean
   dishesPending: boolean
-  emptyReviews?: boolean
 }) {
   const user = useAuthStore((s) => s.user)
   const voteMut = useDishReviewVoteMutation(!isDemo ? restaurantId : null)
@@ -967,7 +1049,7 @@ function DishTabFeed({
       <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm leading-6 text-neutral-500">
         示例模式下没有后端菜品实体。
         <br />
-        完成提交食鉴或使用真实 UUID 后即可查看收录菜品与公开菜评。
+        完成提交食鉴或使用真实 UUID 后即可查看收录菜品与匿名菜评。
       </p>
     )
   }
@@ -982,7 +1064,7 @@ function DishTabFeed({
       {dishReviews.length > 0 ? (
         <div>
           <h2 className="mb-2 text-[12px] font-semibold tracking-tight text-neutral-600">
-            公开菜品评价（按时间倒序）
+            匿名菜品评价（按时间倒序）
           </h2>
           <ul className="space-y-3">
             {dishReviews.map((r) => {

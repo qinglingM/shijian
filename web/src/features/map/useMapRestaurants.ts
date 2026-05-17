@@ -38,11 +38,7 @@ interface VoteRow {
   target_id: string
 }
 
-interface ProfileRow {
-  id: string
-  nickname: string | null
-  avatar_url: string | null
-}
+const ANONYMOUS_REVIEWER = '匿名食客'
 
 function modeTier(counts: Map<Tier, number>): Tier | null {
   let best: Tier | null = null
@@ -120,8 +116,6 @@ export function useMapRestaurants() {
       // 有品最高的睿评：只取有 store_comment 的实践
       const practicesWithComment = practices.filter((p) => p.store_comment)
       const practiceIds = practicesWithComment.map((p) => p.id)
-      const userIds = [...new Set(practicesWithComment.map((p) => p.user_id))]
-
       let votes: VoteRow[] = []
       if (practiceIds.length) {
         const { data: vraw, error: e3 } = await sb
@@ -132,18 +126,6 @@ export function useMapRestaurants() {
           .eq('vote_type', 'youpin')
         if (e3) throw e3
         votes = (vraw ?? []) as VoteRow[]
-      }
-
-      const profMap = new Map<string, { nickname: string; avatar_url: string | null }>()
-      if (userIds.length) {
-        const { data: profRaw, error: e4 } = await sb
-          .from('profiles')
-          .select('id, nickname, avatar_url')
-          .in('id', userIds)
-        if (e4) throw e4
-        for (const p of (profRaw ?? []) as ProfileRow[]) {
-          profMap.set(p.id, { nickname: p.nickname?.trim() || '食鉴用户', avatar_url: p.avatar_url ?? null })
-        }
       }
 
       const youPinCount = new Map<string, number>()
@@ -173,8 +155,8 @@ export function useMapRestaurants() {
           district_name: r.district_name,
           cover_image_url: r.cover_image_url,
           tier: tierCounts ? modeTier(tierCounts) : null,
-          top_reviewer_nickname: top ? (profMap.get(top.user_id)?.nickname ?? '食鉴用户') : null,
-          top_reviewer_avatar_url: top ? (profMap.get(top.user_id)?.avatar_url ?? null) : null,
+          top_reviewer_nickname: top ? ANONYMOUS_REVIEWER : null,
+          top_reviewer_avatar_url: null,
           top_store_comment: top?.store_comment ?? null,
         }
       })

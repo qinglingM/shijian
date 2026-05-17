@@ -110,6 +110,227 @@ body {
   text-align: center;
   white-space: nowrap;
 }
+
+/* 滑块和彩虹条样式 */
+.slider-container {
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.slider-preview {
+  min-height: 80px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 12px;
+  padding: 12px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.04);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.slider-preview .tier-badge {
+  font-size: 13px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 20px;
+  color: white;
+  margin-bottom: 6px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+.slider-preview .tier-quote {
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+  transition: all 0.3s ease;
+}
+
+.slider-track-wrapper {
+  position: relative;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  margin: 0 10px;
+  user-select: none;
+}
+.slider-track-bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  z-index: 1;
+}
+.slider-track-fill {
+  position: absolute;
+  left: 0;
+  height: 8px;
+  background: #cbd5e1;
+  border-radius: 4px;
+  z-index: 2;
+  transition: width 0.1s ease, background-color 0.3s ease;
+}
+.slider-ticks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  z-index: 3;
+  pointer-events: none;
+}
+.slider-tick {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+.slider-tick.active {
+  border-color: #475569;
+  background: #475569;
+  transform: translateY(-2px) scale(1.2);
+}
+.slider-thumb {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 0 4px rgba(255,255,255,0.8);
+  cursor: grab;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: white;
+  transform: translate(-16px, 0);
+  transition: transform 0.1s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+}
+.slider-thumb:active {
+  cursor: grabbing;
+  transform: translate(-16px, 0) scale(1.15);
+}
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -4px;
+  padding: 0 2px;
+}
+.slider-label {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-align: center;
+  width: 40px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+.slider-label.active {
+  color: #1e293b;
+  font-weight: 800;
+}
+
+/* 彩虹条样式 */
+.rainbow-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 10px 4px;
+}
+.rainbow-bar {
+  display: flex;
+  height: 52px;
+  background: #f1f5f9;
+  border-radius: 26px;
+  padding: 4px;
+  gap: 4px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+.rainbow-segment {
+  flex: 1;
+  border-radius: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+.rainbow-segment-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.85;
+  transition: opacity 0.3s ease;
+}
+.rainbow-segment:hover .rainbow-segment-bg {
+  opacity: 1;
+}
+.rainbow-segment-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: white;
+  font-weight: 800;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.rainbow-segment-emoji {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+.rainbow-segment-label {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: width 0.3s ease, opacity 0.2s ease;
+}
+.rainbow-segment.active {
+  flex: 2.8;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15), inset 0 0 0 1.5px rgba(255,255,255,0.25);
+}
+.rainbow-segment.active .rainbow-segment-bg {
+  opacity: 1;
+}
+.rainbow-segment.active .rainbow-segment-label {
+  width: 45px;
+  opacity: 1;
+}
+.rainbow-segment.active .rainbow-segment-emoji {
+  transform: scale(1.2) rotate(6deg);
+}
+.rainbow-segment.muted {
+  flex: 0.7;
+  opacity: 0.4;
+  box-shadow: none;
+}
+.rainbow-desc {
+  min-height: 48px;
+  font-size: 12px;
+  color: #64748b;
+  text-align: center;
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.4);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(0,0,0,0.06);
+}
 </style>
 </head>
 <body>
@@ -160,6 +381,24 @@ body {
     <span class="section-desc">最柔和，视觉层次感</span>
   </div>
   <div class="rows-wrap" id="rows-d"></div>
+</div>
+
+<div class="section" id="sec-slider">
+  <div class="section-header">
+    <span class="section-tag" style="background: linear-gradient(135deg, #ff007f, #7f00ff);">创新方案 1</span>
+    <span class="section-title">横向高颜值滑块 (Horizontal Premium Slider)</span>
+    <span class="section-desc">无级滑动/精细吸附，炫彩响应</span>
+  </div>
+  <div id="slider-playground-container"></div>
+</div>
+
+<div class="section" id="sec-rainbow">
+  <div class="section-header">
+    <span class="section-tag" style="background: linear-gradient(135deg, #00f2fe, #4facfe);">创新方案 2</span>
+    <span class="section-title">点选彩虹条 (Rainbow Segment Control)</span>
+    <span class="section-desc">轻触律动，视觉饱满且趣味性高</span>
+  </div>
+  <div id="rainbow-playground-container"></div>
 </div>
 
 <script>
@@ -368,6 +607,222 @@ function dNo(t) {
   </div>`
 }
 document.getElementById('rows-d').innerHTML = rows(dWith, dNo)
+
+// ====================
+// 创新方案 1: 横向滑块
+// ====================
+const sliderContainer = document.getElementById('slider-playground-container');
+const sliderQuotes = {
+  boom: '选择夯爆了的时候：把盘子通通给我舔干净！ 🍽️🔥',
+  hang: '选择夯的时候说：好吃到抽耳光都不放手！ 🖐️😜',
+  top: '顶级的话就是：永远我心中的白月光。 🌙✨',
+  upper: '人上人的就是：至少不是一个错误的选择。 👍',
+  npc: 'NPC就是：至少没浪费钱和卡路里。 😐',
+  bad: '拉完了就是：说好吃的拉出去斩了。 ☠️💩'
+};
+
+sliderContainer.innerHTML = `
+  <div class="slider-container">
+    <div class="slider-preview" id="sl-preview">
+      <span class="tier-badge" id="sl-badge" style="background: ${TIERS[2].color}; color: ${TIERS[2].text}">${TIERS[2].label}</span>
+      <span class="tier-quote" id="sl-quote">${sliderQuotes[TIERS[2].key]}</span>
+    </div>
+    
+    <div class="slider-track-wrapper" id="sl-track-wrapper">
+      <div class="slider-track-bg"></div>
+      <div class="slider-track-fill" id="sl-fill"></div>
+      <div class="slider-ticks" id="sl-ticks"></div>
+      <div class="slider-thumb" id="sl-thumb">🍽️</div>
+    </div>
+    
+    <div class="slider-labels" id="sl-labels"></div>
+  </div>
+`;
+
+const slThumb = document.getElementById('sl-thumb');
+const slFill = document.getElementById('sl-fill');
+const slTicks = document.getElementById('sl-ticks');
+const slLabels = document.getElementById('sl-labels');
+const slPreview = document.getElementById('sl-preview');
+const slBadge = document.getElementById('sl-badge');
+const slQuote = document.getElementById('sl-quote');
+const slTrackWrapper = document.getElementById('sl-track-wrapper');
+
+// 渲染刻度和标签（从低到高排序：bad -> npc -> upper -> top -> hang -> boom）
+const sortedTiers = [...TIERS].reverse(); // 拉完了 -> NPC -> 人上人 -> 顶级 -> 夯 -> 夯爆了
+const stepCount = sortedTiers.length - 1;
+
+let ticksHtml = '';
+let labelsHtml = '';
+sortedTiers.forEach((t, i) => {
+  ticksHtml += `<div class="slider-tick" id="sl-tick-${i}"></div>`;
+  labelsHtml += `<div class="slider-label" id="sl-label-${i}" onclick="jumpToStep(${i})">${t.label}</div>`;
+});
+slTicks.innerHTML = ticksHtml;
+slLabels.innerHTML = labelsHtml;
+
+let currentStep = 3; // 默认：顶级 (i = 3)
+let isDraggingSlider = false;
+
+function updateSliderUI(step, animate = true) {
+  const percent = (step / stepCount) * 100;
+  
+  if (animate) {
+    slThumb.style.transition = 'left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s ease, box-shadow 0.3s ease';
+    slFill.style.transition = 'width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s ease';
+  } else {
+    slThumb.style.transition = 'none';
+    slFill.style.transition = 'none';
+  }
+  
+  slThumb.style.left = `${percent}%`;
+  slFill.style.width = `${percent}%`;
+  
+  const activeTier = sortedTiers[step];
+  
+  slThumb.style.backgroundColor = activeTier.color;
+  slThumb.style.color = activeTier.text;
+  slThumb.style.boxShadow = `0 4px 14px ${activeTier.glow}, 0 0 0 4px rgba(255,255,255,0.9)`;
+  slFill.style.backgroundColor = activeTier.color;
+  
+  // 更新刻度和标签状态
+  sortedTiers.forEach((_, i) => {
+    const tick = document.getElementById(`sl-tick-${i}`);
+    const label = document.getElementById(`sl-label-${i}`);
+    if (i <= step) {
+      tick.classList.add('active');
+      tick.style.backgroundColor = activeTier.color;
+      tick.style.borderColor = activeTier.color;
+    } else {
+      tick.classList.remove('active');
+      tick.style.backgroundColor = '#fff';
+      tick.style.borderColor = '#cbd5e1';
+    }
+    
+    if (i === step) {
+      label.classList.add('active');
+      label.style.color = activeTier.color;
+    } else {
+      label.classList.remove('active');
+      label.style.color = '#94a3b8';
+    }
+  });
+  
+  // 更新上方展示卡片
+  slBadge.style.backgroundColor = activeTier.color;
+  slBadge.style.color = activeTier.text;
+  slBadge.innerHTML = activeTier.label;
+  slQuote.innerHTML = sliderQuotes[activeTier.key];
+  slPreview.style.boxShadow = `0 4px 20px rgba(0,0,0,0.02), 0 0 0 1px ${activeTier.color}22`;
+}
+
+window.jumpToStep = function(step) {
+  currentStep = step;
+  updateSliderUI(step, true);
+};
+
+// 触摸/鼠标拖拽逻辑
+function handleSliderPointer(e) {
+  const rect = slTrackWrapper.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  let offsetX = clientX - rect.left;
+  offsetX = Math.max(0, Math.min(rect.width, offsetX));
+  const percent = offsetX / rect.width;
+  
+  // 找最近的档位
+  const step = Math.round(percent * stepCount);
+  if (step !== currentStep) {
+    currentStep = step;
+    updateSliderUI(step, false);
+  }
+}
+
+slThumb.addEventListener('pointerdown', (e) => {
+  isDraggingSlider = true;
+  slThumb.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+
+slThumb.addEventListener('pointermove', (e) => {
+  if (!isDraggingSlider) return;
+  handleSliderPointer(e);
+});
+
+const stopDrag = (e) => {
+  if (!isDraggingSlider) return;
+  isDraggingSlider = false;
+  try { slThumb.releasePointerCapture(e.pointerId); } catch(err){}
+  updateSliderUI(currentStep, true); // 吸附定位
+};
+
+slThumb.addEventListener('pointerup', stopDrag);
+slThumb.addEventListener('pointercancel', stopDrag);
+
+// 点轨道也可以直接跳
+slTrackWrapper.addEventListener('click', (e) => {
+  if (e.target === slThumb) return;
+  handleSliderPointer(e);
+  updateSliderUI(currentStep, true);
+});
+
+// 初始化滑块
+updateSliderUI(currentStep);
+
+
+// ====================
+// 创新方案 2: 点选彩虹条
+// ====================
+const rainbowContainer = document.getElementById('rainbow-playground-container');
+const emojiList = {
+  boom: '🔥',
+  hang: '😜',
+  top: '👑',
+  upper: '⭐',
+  npc: '😐',
+  bad: '💩'
+};
+
+rainbowContainer.innerHTML = `
+  <div class="rainbow-container">
+    <div class="rainbow-bar" id="rb-bar"></div>
+    <div class="rainbow-desc" id="rb-desc"></div>
+  </div>
+`;
+
+const rbBar = document.getElementById('rb-bar');
+const rbDesc = document.getElementById('rb-desc');
+
+let activeRainbowKey = 'top';
+
+function updateRainbowUI() {
+  rbBar.innerHTML = TIERS.map(t => {
+    const isActive = t.key === activeRainbowKey;
+    const isMuted = activeRainbowKey && !isActive;
+    const className = `rainbow-segment ${isActive ? 'active' : ''} ${isMuted ? 'muted' : ''}`;
+    
+    return `
+      <div class="${className}" onclick="selectRainbow('${t.key}')" style="color: ${t.text}">
+        <div class="rainbow-segment-bg" style="background: ${t.color}"></div>
+        <div class="rainbow-segment-content">
+          <span class="rainbow-segment-emoji">${emojiList[t.key]}</span>
+          <span class="rainbow-segment-label">${t.label}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  const activeTier = TIERS.find(t => t.key === activeRainbowKey);
+  rbDesc.innerHTML = `<span style="font-weight: 700; color: ${activeTier.color}; margin-right: 6px;">${activeTier.label}</span>: ${sliderQuotes[activeRainbowKey]}`;
+}
+
+window.selectRainbow = function(key) {
+  activeRainbowKey = key;
+  updateRainbowUI();
+};
+
+// 初始化彩虹条
+updateRainbowUI();
+
 </script>
 </body>
 </html>

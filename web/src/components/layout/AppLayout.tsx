@@ -121,25 +121,33 @@ export function BackHeader({ title, backTo = '/' }: { title: string; backTo?: st
   )
 }
 
-export function PracticeProgress({ current }: { current: 1 | 2 | 3 }) {
+type PracticeProgressStep = {
+  step: number
+  label: string
+}
+
+export function PracticeProgress({
+  current,
+  steps = PRACTICE_STEPS,
+}: {
+  current: number
+  steps?: readonly PracticeProgressStep[]
+}) {
   return (
     <div
       className="border-b border-neutral-100 bg-white px-4 py-2.5"
       aria-label={`食鉴流程，第 ${current} 步`}
     >
       <div className="mx-auto flex max-w-[20rem] items-stretch justify-center sm:max-w-none -space-x-6">
-        {PRACTICE_STEPS.map(({ step, label }, i) => {
+        {steps.map(({ step, label }, i) => {
           const done = step < current
           const active = step === current
           const state = active ? 'active' : done ? 'done' : 'todo'
           return (
             <div
               key={step}
-              className={cn(
-                'relative flex min-w-0 flex-1 flex-col items-center',
-                i === 1 && 'z-[11]',
-                i === 2 && 'z-[12]',
-              )}
+              className="relative flex min-w-0 flex-1 flex-col items-center"
+              style={{ zIndex: 10 + i }}
               aria-current={active ? 'step' : undefined}
             >
               <div

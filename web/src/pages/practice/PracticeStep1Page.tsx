@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Check, MapPin, Search } from 'lucide-react'
 import { BackHeader, PracticeProgress } from '@/components/layout/AppLayout'
+import { PRACTICE_MERGED_STEPS } from '@/components/layout/practiceProgress'
 import { CityPicker } from '@/features/city-picker/CityPicker'
 import { useCityStore } from '@/features/city-picker/cityStore'
 import {
@@ -78,7 +79,7 @@ export function PracticeStep1Page() {
   return (
     <div className="flex min-h-[calc(100dvh-6rem)] flex-col">
       <BackHeader title="搜索确认店铺" />
-      <PracticeProgress current={1} />
+      <PracticeProgress current={1} steps={PRACTICE_MERGED_STEPS} />
 
       {/* 搜索区：背景固定不变，与下方结果区区分 */}
       <section className="shrink-0 bg-[radial-gradient(120%_85%_at_50%_0%,#f9fafb_0%,#f1f5f9_45%,#e8eef5_100%)] px-4 pt-5 pb-4">
@@ -144,7 +145,7 @@ export function PracticeStep1Page() {
               <div>
                 <p className="text-sm font-semibold text-neutral-900">可能就是它</p>
                 <p className="mt-0.5 text-[11px] text-neutral-400">
-                  选中后进入定档，不会立即公开
+                  选中后进入写评价，不会立即公开
                 </p>
               </div>
               <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-semibold text-orange-900">

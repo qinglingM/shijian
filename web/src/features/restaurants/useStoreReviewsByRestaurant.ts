@@ -30,11 +30,7 @@ interface VoteSel {
   user_id: string
 }
 
-interface ProfileMini {
-  id: string
-  nickname: string | null
-  avatar_url: string | null
-}
+const ANONYMOUS_REVIEWER = '匿名食客'
 
 export function useStoreReviewsByRestaurant(restaurantId: string | null) {
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
@@ -59,24 +55,16 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
       const prs = (prow ?? []) as PracticeSel[]
       if (!prs.length) return []
 
-      const uids = [...new Set(prs.map((r) => r.user_id))]
-      const [{ data: profsRaw, error: e2 }, { data: votesRaw, error: e3 }] = await Promise.all([
-        sb.from('profiles').select('id,nickname,avatar_url').in('id', uids),
-        sb
-          .from('review_votes')
-          .select('target_id, vote_type, user_id')
-          .eq('target_type', 'store_review')
-          .in(
-            'target_id',
-            prs.map((p) => p.id),
-          ),
-      ])
+      const { data: votesRaw, error: e3 } = await sb
+        .from('review_votes')
+        .select('target_id, vote_type, user_id')
+        .eq('target_type', 'store_review')
+        .in(
+          'target_id',
+          prs.map((p) => p.id),
+        )
 
-      if (e2) throw e2
       if (e3) throw e3
-
-      const profById = new Map<string, ProfileMini>()
-      for (const p of (profsRaw ?? []) as ProfileMini[]) profById.set(p.id, p)
 
       const yCount = new Map<string, number>()
       const bCount = new Map<string, number>()
@@ -88,11 +76,10 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
       }
 
       return prs.map((r) => {
-        const prof = profById.get(r.user_id)
         return {
           id: r.id,
-          nickname: prof?.nickname?.trim() || '食鉴用户',
-          avatar_url: prof?.avatar_url ?? null,
+          nickname: ANONYMOUS_REVIEWER,
+          avatar_url: null,
           tier: r.tier as Tier,
           store_comment: r.store_comment,
           created_at: r.created_at,

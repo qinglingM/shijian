@@ -16,6 +16,8 @@ export interface DishReviewFeedItem {
   my_vote: VoteType | null
 }
 
+const ANONYMOUS_REVIEWER = '匿名食客'
+
 interface DrMini {
   id: string
   score: number | null
@@ -65,14 +67,6 @@ export function useDishReviewsByDish(dishId: string | null) {
       if (e2) throw e2
 
       const practices = new Map(((prv ?? []) as PrMini[]).map((p) => [p.id, p]))
-      const uids = [...new Set([...practices.values()].map((p) => p.user_id))]
-      const { data: pok, error: e3 } = await sb.from('profiles').select('id,nickname').in('id', uids)
-
-      if (e3) throw e3
-
-      type P = { id: string; nickname: string | null }
-      const nib = new Map<string, string | null>((pok as P[])?.map((p) => [p.id, p.nickname]))
-
       const reviewIds = revs.map((r) => r.id)
       const { data: voteRaw, error: e4 } = await sb
         .from('review_votes')
@@ -100,7 +94,7 @@ export function useDishReviewsByDish(dishId: string | null) {
 
         items.push({
           id: r.id,
-          reviewer_nickname: (nib.get(pr.user_id) ?? '食鉴用户').trim() || '食鉴用户',
+          reviewer_nickname: ANONYMOUS_REVIEWER,
           created_at: r.created_at,
           store_tier: pr.tier as Tier,
           score: r.score,

@@ -45,3 +45,7 @@ supabase/.temp/
 
 # Local-only debug / credential scripts
 supabase/migrations/0013_set_auth_password_for_phone_137.sql
+
+# Scratch directory
+scratch/
+

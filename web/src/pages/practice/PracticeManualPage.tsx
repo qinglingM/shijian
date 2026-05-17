@@ -2,6 +2,7 @@ import { useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Camera, ChevronRight, Loader2, LocateFixed } from 'lucide-react'
 import { BackHeader, PracticeProgress } from '@/components/layout/AppLayout'
+import { PRACTICE_MERGED_STEPS } from '@/components/layout/practiceProgress'
 import { CurrentLocationCitySection } from '@/features/city-picker/CurrentLocationCitySection'
 import { useCities } from '@/features/city-picker/useCities'
 import { useDistricts } from '@/features/city-picker/useDistricts'
@@ -22,7 +23,7 @@ export function PracticeManualPage() {
   return (
     <>
       <BackHeader title="手动补充店铺" backTo="/practice/step1" />
-      <PracticeProgress current={1} />
+      <PracticeProgress current={1} steps={PRACTICE_MERGED_STEPS} />
       {!confirmed ? (
         <ManualWarning
           onContinue={() => setConfirmed(true)}
@@ -395,4 +396,3 @@ async function reverseGeocode(longitude: number, latitude: number) {
     district: data.regeocode.addressComponent?.district || '',
   }
 }
-

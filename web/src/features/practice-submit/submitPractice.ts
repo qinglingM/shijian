@@ -49,6 +49,9 @@ export async function submitPractice(
   if (draft.dishes.some((d) => d.name.trim() === '')) {
     throw new Error('请为每道菜填写菜名，或删除未填写的菜品')
   }
+  if (draft.dishes.some((d) => d.score === null)) {
+    throw new Error('请为每道菜完成评分')
+  }
 
   const payload = {
     existing_restaurant_id: draft.existing_restaurant_id,
