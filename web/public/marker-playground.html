@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>标记点方案 · Playground</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  background-color: #eae6df;
+  background-image:
+    linear-gradient(rgba(200,195,185,0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,195,185,0.5) 1px, transparent 1px);
+  background-size: 40px 40px;
+  min-height: 100vh;
+  padding: 28px 16px 60px;
+}
+
+.page-title {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  letter-spacing: -0.3px;
+}
+
+.page-sub {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 28px;
+}
+
+.section {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 18px;
+  padding: 18px 16px 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.section-tag {
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  background: #1a1a1a;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.section-desc {
+  font-size: 11px;
+  color: #aaa;
+  margin-left: auto;
+}
+
+.rows-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.row-label {
+  font-size: 10px;
+  color: #bbb;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.markers-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.marker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.tier-name {
+  font-size: 10px;
+  color: #888;
+  text-align: center;
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<p class="page-title">标记点等级展示 · 方案对比</p>
+<p class="page-sub">每组上排：有封面图 / 下排：无封面图</p>
+
+<div class="section" id="sec-current">
+  <div class="section-header">
+    <span class="section-tag">现在</span>
+    <span class="section-title">纯背景色（基准）</span>
+    <span class="section-desc">有图时完全看不出等级</span>
+  </div>
+  <div class="rows-wrap" id="rows-current"></div>
+</div>
+
+<div class="section" id="sec-a">
+  <div class="section-header">
+    <span class="section-tag">方案 A</span>
+    <span class="section-title">彩色边框</span>
+    <span class="section-desc">最克制，不遗图</span>
+  </div>
+  <div class="rows-wrap" id="rows-a"></div>
+</div>
+
+<div class="section" id="sec-b">
+  <div class="section-header">
+    <span class="section-tag">方案 B</span>
+    <span class="section-title">底部标签条</span>
+    <span class="section-desc">图文并存，直接显字</span>
+  </div>
+  <div class="rows-wrap" id="rows-b"></div>
+</div>
+
+<div class="section" id="sec-c">
+  <div class="section-header">
+    <span class="section-tag">方案 C</span>
+    <span class="section-title">右上角 Badge</span>
+    <span class="section-desc">不遗图，醒目感强</span>
+  </div>
+  <div class="rows-wrap" id="rows-c"></div>
+</div>
+
+<div class="section" id="sec-d">
+  <div class="section-header">
+    <span class="section-tag">方案 D</span>
+    <span class="section-title">彩色光晕阴影</span>
+    <span class="section-desc">最柔和，视觉层次感</span>
+  </div>
+  <div class="rows-wrap" id="rows-d"></div>
+</div>
+
+<script>
+const TIERS = [
+  {
+    key: 'boom', label: '夯爆了', short: '爆',
+    color: '#A11A00', text: '#fff',
+    glow: 'rgba(161,26,0,0.55)',
+    photo: 'linear-gradient(135deg,#ff6b6b,#c0392b,#922b21)',
+  },
+  {
+    key: 'hang', label: '夯', short: '夯',
+    color: '#cf5329', text: '#fff',
+    glow: 'rgba(207,83,41,0.55)',
+    photo: 'linear-gradient(135deg,#f7971e,#e74c3c,#cf5329)',
+  },
+  {
+    key: 'top', label: '顶级', short: '顶',
+    color: '#e39032', text: '#fff',
+    glow: 'rgba(227,144,50,0.55)',
+    photo: 'linear-gradient(135deg,#f6d365,#fda085,#e39032)',
+  },
+  {
+    key: 'upper', label: '人上人', short: '上',
+    color: '#eddb39', text: '#5a4a00',
+    glow: 'rgba(237,219,57,0.55)',
+    photo: 'linear-gradient(135deg,#a1c4fd,#c2e9fb,#a8edea)',
+  },
+  {
+    key: 'npc', label: 'NPC', short: 'N',
+    color: '#ede0b9', text: '#6b5a3a',
+    glow: 'rgba(180,165,120,0.45)',
+    photo: 'linear-gradient(135deg,#d4d3dd,#8e9eab,#bdc3c7)',
+  },
+  {
+    key: 'bad', label: '拉完了', short: '差',
+    color: '#f2f1ed', text: '#999',
+    glow: 'rgba(180,180,175,0.4)',
+    photo: 'linear-gradient(135deg,#8e9eab,#606c88,#3f4c6b)',
+  },
+]
+
+function item(markerHtml, label) {
+  return `<div class="marker-item">${markerHtml}<span class="tier-name">${label}</span></div>`
+}
+
+function rows(withCoverFn, noCoverFn) {
+  const withCover = TIERS.map(t => item(withCoverFn(t), t.label)).join('')
+  const noCover  = TIERS.map(t => item(noCoverFn(t),  t.label)).join('')
+  return `
+    <div>
+      <p class="row-label">▸ 有封面图</p>
+      <div class="markers-row">${withCover}</div>
+    </div>
+    <div>
+      <p class="row-label">▸ 无封面图（显示默认图标）</p>
+      <div class="markers-row">${noCover}</div>
+    </div>`
+}
+
+function baseWith(t) {
+  return `<div style="
+    width:44px;height:44px;border-radius:10px;
+    border:2.5px solid #fff;
+    box-shadow:0 2px 10px rgba(0,0,0,0.28);
+    background:${t.color};overflow:hidden;">
+    <div style="width:100%;height:100%;background:${t.photo}"></div>
+  </div>`
+}
+function baseNo(t) {
+  return `<div style="
+    width:44px;height:44px;border-radius:10px;
+    border:2.5px solid #fff;
+    box-shadow:0 2px 10px rgba(0,0,0,0.28);
+    background:${t.color};
+    display:flex;align-items:center;justify-content:center;font-size:20px;">
+    🍽
+  </div>`
+}
+document.getElementById('rows-current').innerHTML = rows(baseWith, baseNo)
+
+function aWith(t) {
+  return `<div style="
+    width:44px;height:44px;border-radius:10px;
+    border:3px solid ${t.color};
+    box-shadow:0 2px 10px rgba(0,0,0,0.28);
+    background:#fff;overflow:hidden;">
+    <div style="width:100%;height:100%;background:${t.photo}"></div>
+  </div>`
+}
+function aNo(t) {
+  return `<div style="
+    width:44px;height:44px;border-radius:10px;
+    border:3px solid ${t.color};
+    box-shadow:0 2px 10px rgba(0,0,0,0.28);
+    background:${t.color};
+    display:flex;align-items:center;justify-content:center;font-size:20px;">
+    🍽
+  </div>`
+}
+document.getElementById('rows-a').innerHTML = rows(aWith, aNo)
+
+function bWith(t) {
+  return `<div style="
+    border-radius:10px;border:2.5px solid #fff;
+    box-shadow:0 2px 10px rgba(0,0,0,0.28);
+    overflow:hidden;display:flex;flex-direction:column;width:44px;">
+    <div style="width:44px;height:34px;flex-shrink:0;background:${t.photo}"></div>
+    <div style="
+      height:14px;background:${t.color};flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      font-size:8.5px;font-weight:800;color:${t.text};
+      letter-spacing:0.2px;white-space:nowrap;overflow:hidden;
+      font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;">
+      ${t.label}
+    </div>
+  </div>`
+}
+function bNo(t) {
+  return `<div style="
+    border-radius:10px;border:2.5px solid #fff;
+    box-shadow:0 2px 10px rgba(0,0,0,0.28);
+    overflow:hidden;display:flex;flex-direction:column;width:44px;">
+    <div style="
+      width:44px;height:34px;flex-shrink:0;
+      background:${t.color};
+      display:flex;align-items:center;justify-content:center;font-size:18px;">
+      🍽
+    </div>
+    <div style="
+      height:14px;background:${t.color};flex-shrink:0;filter:brightness(0.85);
+      display:flex;align-items:center;justify-content:center;
+      font-size:8.5px;font-weight:800;color:${t.text};
+      letter-spacing:0.2px;white-space:nowrap;overflow:hidden;
+      font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;">
+      ${t.label}
+    </div>
+  </div>`
+}
+document.getElementById('rows-b').innerHTML = rows(bWith, bNo)
+
+function cWith(t) {
+  return `<div style="position:relative;display:inline-block;width:44px;height:44px;">
+    <div style="
+      width:44px;height:44px;border-radius:10px;
+      border:2.5px solid #fff;
+      box-shadow:0 2px 10px rgba(0,0,0,0.28);
+      overflow:hidden;">
+      <div style="width:100%;height:100%;background:${t.photo}"></div>
+    </div>
+    <div style="
+      position:absolute;top:-7px;right:-7px;
+      width:22px;height:22px;border-radius:50%;
+      background:${t.color};border:2.5px solid #fff;
+      display:flex;align-items:center;justify-content:center;
+      font-size:9px;font-weight:800;color:${t.text};
+      box-shadow:0 1px 5px rgba(0,0,0,0.22);line-height:1;
+      font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;
+      z-index:10;">
+      ${t.short}
+    </div>
+  </div>`
+}
+function cNo(t) {
+  return `<div style="position:relative;display:inline-block;width:44px;height:44px;">
+    <div style="
+      width:44px;height:44px;border-radius:10px;
+      border:2.5px solid #fff;
+      box-shadow:0 2px 10px rgba(0,0,0,0.28);
+      background:${t.color};
+      display:flex;align-items:center;justify-content:center;font-size:20px;">
+      🍽
+    </div>
+    <div style="
+      position:absolute;top:-7px;right:-7px;
+      width:22px;height:22px;border-radius:50%;
+      background:${t.color};border:2.5px solid #fff;filter:brightness(0.82);
+      display:flex;align-items:center;justify-content:center;
+      font-size:9px;font-weight:800;color:${t.text};
+      box-shadow:0 1px 5px rgba(0,0,0,0.22);line-height:1;
+      font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;
+      z-index:10;">
+      ${t.short}
+    </div>
+  </div>`
+}
+document.getElementById('rows-c').innerHTML = rows(cWith, cNo)
+
+function dWith(t) {
+  return `<div style="
+    width:44px;height:44px;border-radius:10px;
+    border:2.5px solid #fff;
+    box-shadow:0 2px 8px rgba(0,0,0,0.18), 0 0 18px 5px ${t.glow};
+    overflow:hidden;">
+    <div style="width:100%;height:100%;background:${t.photo}"></div>
+  </div>`
+}
+function dNo(t) {
+  return `<div style="
+    width:44px;height:44px;border-radius:10px;
+    border:2.5px solid #fff;
+    box-shadow:0 2px 8px rgba(0,0,0,0.18), 0 0 18px 5px ${t.glow};
+    background:${t.color};
+    display:flex;align-items:center;justify-content:center;font-size:20px;">
+    🍽
+  </div>`
+}
+document.getElementById('rows-d').innerHTML = rows(dWith, dNo)
+</script>
+</body>
+</html>
