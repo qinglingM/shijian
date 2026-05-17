@@ -1,14 +1,20 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { BookOpen, Plus, User } from 'lucide-react'
+import { BookOpen, Map, Plus, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const TABS = [
   {
+    to: '/map',
+    label: '美食地图',
+    icon: Map,
+    match: (p: string) => p.startsWith('/map'),
+    primary: false,
+  },
+  {
     to: '/',
     label: '食鉴图',
     icon: BookOpen,
-    match: (p: string) =>
-      p === '/' || p.startsWith('/search') || p.startsWith('/map'),
+    match: (p: string) => p === '/' || p.startsWith('/search'),
     primary: false,
   },
   {
@@ -63,7 +69,7 @@ export function AppLayout() {
 
       {!hideTabs && (
         <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur">
-          <ul className="grid grid-cols-3">
+          <ul className="grid grid-cols-4">
             {TABS.map(({ to, label, icon: Icon, match, primary }) => {
               const active = match(pathname)
               return (
