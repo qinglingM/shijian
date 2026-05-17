@@ -33,10 +33,13 @@ interface MeSummary {
     | 'phone'
     | 'phone_verified_at'
     | 'phone_binding_exempt'
+    | 'is_profile_public'
   > | null
   practiceCount: number
   markCount: number
   titleCount: number
+  followersCount: number
+  followingCount: number
 }
 
 export function MePage() {
@@ -50,11 +53,11 @@ export function MePage() {
     enabled: !!userId,
     queryFn: async () => {
       const supabase = getSupabase()
-      const [profileResult, practiceResult, markResult, titleResult] = await Promise.all([
+      const [profileResult, practiceResult, markResult, titleResult, followersResult, followingResult] = await Promise.all([
         supabase
           .from('profiles')
           .select(
-            'id, user_code, nickname, avatar_url, bio, created_at, phone, phone_verified_at, phone_binding_exempt',
+            'id, user_code, nickname, avatar_url, bio, created_at, phone, phone_verified_at, phone_binding_exempt, is_profile_public',
           )
           .eq('id', userId!)
           .maybeSingle(),
@@ -71,23 +74,37 @@ export function MePage() {
           .from('user_titles')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', userId!),
+        supabase
+          .from('user_follows')
+          .select('id', { count: 'exact', head: true })
+          .eq('following_id', userId!),
+        supabase
+          .from('user_follows')
+          .select('id', { count: 'exact', head: true })
+          .eq('follower_id', userId!),
       ])
 
       if (profileResult.error) throw profileResult.error
       if (practiceResult.error) throw practiceResult.error
       if (markResult.error) throw markResult.error
       if (titleResult.error) throw titleResult.error
+      if (followersResult.error) throw followersResult.error
+      if (followingResult.error) throw followingResult.error
 
       return {
         profile: profileResult.data as MeSummary['profile'],
         practiceCount: practiceResult.count ?? 0,
         markCount: markResult.count ?? 0,
         titleCount: titleResult.count ?? 0,
+        followersCount: followersResult.count ?? 0,
+        followingCount: followingResult.count ?? 0,
       }
     },
   })
 
   const profile = data?.profile
+  const followersCount = data?.followersCount ?? 0
+  const followingCount = data?.followingCount ?? 0
   const nickname = profile?.nickname || '食鉴用户'
   const userCode = profile?.user_code || 'SJ000000'
   const joinedDays: number | null = isLoading
@@ -214,9 +231,11 @@ export function MePage() {
           </Link>
         </div>
 
-        <div className="relative mt-5 grid grid-cols-2 gap-2 text-center">
+        <div className="relative mt-4 grid grid-cols-4 gap-2 text-center">
           <StatCard label="食鉴" value={data?.practiceCount ?? null} loading={isLoading} />
           <StatCard label="来食鉴" value={joinedDays} suffix="天" loading={isLoading} />
+          <StatCard label="粉丝" value={followersCount} loading={isLoading} />
+          <StatCard label="关注" value={followingCount} loading={isLoading} />
         </div>
       </section>
 
@@ -343,9 +362,9 @@ function StatCard({
   const text = loading || value === null ? '—' : `${value}${suffix}`
 
   return (
-    <div className="rounded-2xl border border-orange-100 bg-white/80 px-2 py-3 shadow-sm">
-      <p className="text-lg font-semibold text-neutral-950">{text}</p>
-      <p className="mt-0.5 text-[11px] text-orange-600">{label}</p>
+    <div className="rounded-2xl border border-orange-100 bg-white/80 px-2 py-2 shadow-sm">
+      <p className="text-base font-semibold leading-none text-neutral-950">{text}</p>
+      <p className="mt-0.5 text-[10px] leading-none text-orange-600">{label}</p>
     </div>
   )
 }

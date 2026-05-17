@@ -11,6 +11,7 @@ import { RestaurantDetailPage } from '@/pages/RestaurantDetailPage'
 import { TierBucketPage } from '@/pages/TierBucketPage'
 import { DishDetailPage } from '@/pages/DishDetailPage'
 import { MePage } from '@/pages/MePage'
+import { UserProfilePage } from '@/pages/UserProfilePage'
 import { MarksPage } from '@/pages/MarksPage'
 import { BolePage } from '@/pages/BolePage'
 import { SearchRestaurantsPage } from '@/pages/SearchRestaurantsPage'
@@ -69,8 +70,10 @@ export function AppRouter() {
           }
         />
         <Route path="/tiers/:tier" element={<TierBucketPage />} />
+        <Route path="/restaurants/poi/:source/:poiId" element={<RestaurantDetailPage />} />
         <Route path="/restaurants/:id" element={<RestaurantDetailPage />} />
         <Route path="/dishes/:id" element={<DishDetailPage />} />
+        <Route path="/users/:slug" element={<UserProfilePage />} />
         <Route path="/me" element={<MePage />} />
         <Route
           path="/me/edit"

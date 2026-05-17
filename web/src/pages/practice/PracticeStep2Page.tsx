@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 
 import { createPortal } from 'react-dom'
 
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { ChevronRight } from 'lucide-react'
 
@@ -35,6 +35,7 @@ import {
 import { usePracticeRestaurantCardDisplay } from '@/features/practice/usePracticeRestaurantCardDisplay'
 
 import { usePracticeDraft } from '@/stores/practiceDraft'
+import type { PoiCandidate } from '@/lib/poi/types'
 
 
 
@@ -77,14 +78,22 @@ type DragFloating = {
 export function PracticeStep2Page() {
 
   const navigate = useNavigate()
+  const location = useLocation()
 
   const draft = usePracticeDraft()
+  const locationPoi = (location.state as { poi?: PoiCandidate } | null)?.poi ?? null
 
   const display = usePracticeRestaurantCardDisplay()
 
   const { map: tierCountsMap } = useDisplayedTierMap()
 
   const consensusQ = useRestaurantPublicTierMode(draft.existing_restaurant_id)
+
+  useEffect(() => {
+    if (locationPoi && !draft.selected_poi) {
+      draft.setPoi(locationPoi, null, false)
+    }
+  }, [draft, locationPoi])
 
 
 

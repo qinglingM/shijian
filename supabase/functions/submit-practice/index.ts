@@ -145,6 +145,35 @@ function validatePayload(payload: SubmitPayload) {
   }
 }
 
+async function resolveCityIdByName(
+  admin: ReturnType<typeof createClient>,
+  cityName: string | null | undefined,
+): Promise<string | null> {
+  const name = typeof cityName === 'string' ? cityName.trim() : ''
+  if (!name) return null
+
+  const { data, error } = await admin
+    .from('cities')
+    .select('id, name, province_name')
+    .eq('is_active', true)
+    .or(`name.eq.${name},province_name.eq.${name}`)
+    .limit(50)
+
+  if (error) throw error
+  const rows = (data ?? []) as Array<{ id: string; name: string; province_name: string | null }>
+  if (rows.length === 0) return null
+
+  const exact = rows.find((r) => r.name === name)
+  if (exact) return exact.id
+
+  return rows[0]?.id ?? null
+}
+
+function extractCityNameFromPoi(poi: SubmitPayload['selected_poi']): string | null {
+  if (!poi) return null
+  return [poi.city_name, poi.province_name].find((v) => typeof v === 'string' && v.trim())?.trim() ?? null
+}
+
 /** 仅当库内封面仍为空时补图（搜索图 / 首提交流程） */
 async function maybeMergeRestaurantCover(
   admin: ReturnType<typeof createClient>,
@@ -194,6 +223,8 @@ async function resolveRestaurant(
     }
 
     const displayName = poi.poi_name.trim()
+    const cityName = extractCityNameFromPoi(poi)
+    const cityId = await resolveCityIdByName(admin, cityName)
     const { data, error } = await admin
       .from('restaurants')
       .insert({
@@ -207,6 +238,7 @@ async function resolveRestaurant(
         longitude: poi.longitude,
         province_name: poi.province_name,
         city_name: poi.city_name,
+        city_id: cityId,
         district_name: poi.district_name,
         cover_image_url: poi.cover_image_url?.trim() || null,
         created_by: userId,
