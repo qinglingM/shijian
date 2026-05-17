@@ -2,31 +2,29 @@ import { useCallback, useEffect, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Search } from 'lucide-react'
+import { Search, UtensilsCrossed } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useMapRestaurants, type MapRestaurant } from './useMapRestaurants'
-import { TIER_LABEL, type Tier } from '@/lib/db'
 
 const ChinaCenter: L.LatLngExpression = [35.86, 104.19]
 
-function createAvatarIcon(avatarUrl: string | null, nickname: string): L.DivIcon {
-  const initial = (nickname || '食').slice(0, 1)
-  const inner = avatarUrl
-    ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
-    : `<span style="font-size:15px;font-weight:700;color:#fff;">${initial}</span>`
+function createRestaurantIcon(coverImageUrl: string | null): L.DivIcon {
+  const inner = coverImageUrl
+    ? `<img src="${coverImageUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextSibling.style.display='flex'" /><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:18px;">🍽</span>`
+    : `<span style="font-size:20px;line-height:1;">🍽</span>`
 
   return L.divIcon({
     html: `<div style="
-      width:40px;height:40px;border-radius:50%;
+      width:44px;height:44px;border-radius:10px;
       border:2.5px solid #fff;
       box-shadow:0 2px 10px rgba(0,0,0,0.28);
-      background:#f97316;
+      background:#fed7aa;
       display:flex;align-items:center;justify-content:center;
       overflow:hidden;cursor:pointer;
     ">${inner}</div>`,
     className: '',
-    iconSize: [40, 40],
-    iconAnchor: [20, 20],
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
   })
 }
 
@@ -50,15 +48,6 @@ function GeolocateOnMount() {
   return null
 }
 
-const TIER_BG: Record<Tier, string> = {
-  boom: 'bg-red-50 text-red-700',
-  hang: 'bg-orange-50 text-orange-700',
-  top: 'bg-amber-50 text-amber-700',
-  upper: 'bg-yellow-50 text-yellow-700',
-  npc: 'bg-neutral-100 text-neutral-500',
-  bad: 'bg-neutral-100 text-neutral-400',
-}
-
 function BottomSheet({
   restaurant: r,
   onClose,
@@ -68,21 +57,26 @@ function BottomSheet({
 }) {
   return (
     <>
-      <div
-        className="absolute inset-0 z-[401]"
-        onClick={onClose}
-        aria-hidden
-      />
+      <div className="absolute inset-0 z-[401]" onClick={onClose} aria-hidden />
 
       <div
         className="absolute bottom-3 left-3 right-3 z-[402] rounded-2xl bg-white shadow-2xl overflow-hidden"
         style={{ animation: 'shijian-slide-up 0.22s ease-out' }}
       >
+        {/* 拖拽把手 */}
         <div className="flex justify-center pt-2.5 pb-1">
           <div className="w-9 h-1 rounded-full bg-neutral-200" />
         </div>
 
-        <div className="flex items-start gap-3 px-4 pt-1 pb-3">
+        {/* 店铺封面 + 基本信息 */}
+        <div className="flex items-center gap-3 px-4 pt-1 pb-3">
+          <div className="shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-orange-100 flex items-center justify-center">
+            {r.cover_image_url ? (
+              <img src={r.cover_image_url} alt={r.display_name} className="w-full h-full object-cover" />
+            ) : (
+              <UtensilsCrossed size={24} className="text-orange-300" />
+            )}
+          </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-[15px] text-neutral-900 truncate leading-snug">
               {r.display_name}
@@ -91,61 +85,31 @@ function BottomSheet({
               {[r.city_name, r.district_name].filter(Boolean).join(' · ')}
             </p>
           </div>
-          {r.tier && (
-            <span
-              className={`shrink-0 mt-0.5 px-2 py-0.5 rounded-full text-[11px] font-semibold ${TIER_BG[r.tier]}`}
-            >
-              {TIER_LABEL[r.tier]}
-            </span>
-          )}
         </div>
 
-        <div className="h-px bg-neutral-100 mx-4" />
-
-        <div className="px-4 py-3 flex gap-3">
-          <div className="shrink-0 w-9 h-9 rounded-full overflow-hidden bg-orange-100 flex items-center justify-center">
-            {r.creator_avatar_url ? (
-              <img
-                src={r.creator_avatar_url}
-                alt={r.creator_nickname}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-sm font-bold text-orange-500">
-                {r.creator_nickname.slice(0, 1)}
-              </span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-neutral-400 mb-1">
-              首评 · <span className="text-neutral-600 font-medium">{r.creator_nickname}</span>
-            </p>
-            {r.store_comment ? (
-              <p className="text-[13px] text-neutral-700 leading-relaxed line-clamp-3">
-                {r.store_comment}
+        {/* 最高有品睿评 */}
+        {r.top_store_comment && (
+          <>
+            <div className="h-px bg-neutral-100 mx-4" />
+            <div className="px-4 py-3">
+              <p className="text-[11px] text-neutral-400 mb-1.5">
+                睿评 · <span className="text-neutral-600 font-medium">{r.top_reviewer_nickname}</span>
               </p>
-            ) : (
-              <p className="text-[13px] text-neutral-400 italic">Ta 没有留下评论</p>
-            )}
-          </div>
-        </div>
+              <p className="text-[13px] text-neutral-700 leading-relaxed line-clamp-3">
+                {r.top_store_comment}
+              </p>
+            </div>
+          </>
+        )}
 
-        <div className="px-4 pb-4">
-          {r.practice_id ? (
-            <Link
-              to={`/practice/${r.practice_id}`}
-              className="block w-full py-2.5 rounded-xl bg-neutral-900 text-white text-[13px] font-semibold text-center"
-            >
-              查看完整评价
-            </Link>
-          ) : (
-            <button
-              disabled
-              className="block w-full py-2.5 rounded-xl bg-neutral-100 text-neutral-400 text-[13px] font-semibold text-center cursor-default"
-            >
-              暂无评价详情
-            </button>
-          )}
+        {/* 进入店铺详情 */}
+        <div className="px-4 pb-4 pt-1">
+          <Link
+            to={`/restaurants/${r.id}`}
+            className="block w-full py-2.5 rounded-xl bg-neutral-900 text-white text-[13px] font-semibold text-center"
+          >
+            查看店铺详情
+          </Link>
         </div>
       </div>
     </>
@@ -204,7 +168,7 @@ export function HomeMap() {
           <Marker
             key={r.id}
             position={[r.latitude, r.longitude]}
-            icon={createAvatarIcon(r.creator_avatar_url, r.creator_nickname)}
+            icon={createRestaurantIcon(r.cover_image_url)}
             eventHandlers={{ click: () => handleMarkerClick(r) }}
           />
         ))}
