@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { BookOpen, Map, Plus, User } from 'lucide-react'
+import { useState } from 'react'
+import { BookOpen, Map, Plus, User, Sparkles, ArrowUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const TABS = [
@@ -19,11 +20,16 @@ const TABS = [
     primary: false,
   },
   {
-    to: '/practice/step1',
     label: '食鉴',
     icon: Plus,
-    match: (p: string) => p.startsWith('/practice'),
     primary: true,
+  },
+  {
+    to: '/square',
+    label: '广场',
+    icon: Sparkles,
+    match: (p: string) => p.startsWith('/square'),
+    primary: false,
   },
   {
     to: '/me',
@@ -47,6 +53,7 @@ const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_
 
 export function AppLayout() {
   const { pathname } = useLocation()
+  const [sheetOpen, setSheetOpen] = useState(false)
   const isHome = pathname === '/' || pathname === '/map' || pathname === '/tier-map'
   const hideTabs =
     pathname.startsWith('/restaurants/') ||
@@ -70,34 +77,38 @@ export function AppLayout() {
 
       {!hideTabs && (
         <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur">
-          <ul className="grid grid-cols-4">
+          <ul className="grid grid-cols-5">
             {TABS.map(({ to, label, icon: Icon, match, primary }) => {
-              const active = match(pathname)
+              const active = to ? match?.(pathname) : false
+              if (primary) {
+                return (
+                  <li key="publish" className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setSheetOpen(true)}
+                      className="flex flex-col items-center gap-1 -mt-5 pb-2 pt-0 text-xs text-neutral-400"
+                      aria-label="开始食鉴"
+                    >
+                      <span className="flex size-12 items-center justify-center rounded-full bg-neutral-900 text-white shadow-lg ring-4 ring-white">
+                        <Icon size={26} strokeWidth={2.4} />
+                      </span>
+                      <span>{label}</span>
+                    </button>
+                  </li>
+                )
+              }
               return (
                 <li key={to}>
                   <NavLink
-                    to={to}
+                    to={to!}
                     className={cn(
                       'flex flex-col items-center gap-1 text-xs',
-                      primary ? '-mt-5 pb-2 pt-0' : 'py-2.5',
-                      active && !primary ? 'text-neutral-900' : 'text-neutral-400',
+                      'py-2.5',
+                      active ? 'text-neutral-900' : 'text-neutral-400',
                     )}
-                    aria-label={primary ? '开始食鉴' : label}
+                    aria-label={label}
                   >
-                    {primary ? (
-                      <span
-                        className={cn(
-                          'flex size-12 items-center justify-center rounded-full shadow-lg ring-4 ring-white',
-                          active
-                            ? 'bg-neutral-900 text-white'
-                            : 'bg-neutral-900 text-white',
-                        )}
-                      >
-                        <Icon size={26} strokeWidth={2.4} />
-                      </span>
-                    ) : (
-                      <Icon size={20} strokeWidth={active ? 2.2 : 1.6} />
-                    )}
+                    <Icon size={20} strokeWidth={active ? 2.2 : 1.6} />
                     <span>{label}</span>
                   </NavLink>
                 </li>
@@ -106,6 +117,35 @@ export function AppLayout() {
           </ul>
         </nav>
       )}
+
+      {sheetOpen ? <PublishSheet onClose={() => setSheetOpen(false)} /> : null}
+    </div>
+  )
+}
+
+function PublishSheet({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-30 bg-black/40" onClick={onClose}>
+      <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md rounded-t-3xl bg-white px-4 pb-6 pt-3" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-neutral-200" />
+        <p className="text-center text-sm font-semibold text-neutral-900">选择发布类型</p>
+        <div className="mt-4 space-y-3">
+          <Link to="/practice/step1" className="flex items-center justify-between rounded-2xl border border-neutral-200 px-4 py-6" onClick={onClose}>
+            <span>
+              <span className="block text-sm font-semibold text-neutral-900">发食鉴</span>
+              <span className="block text-xs text-neutral-500">公开食鉴会自动变成广场封面卡片</span>
+            </span>
+            <ArrowUp size={16} className="text-neutral-400" />
+          </Link>
+          <Link to="/square/post/new" className="flex items-center justify-between rounded-2xl border border-neutral-200 px-4 py-4" onClick={onClose}>
+            <span>
+              <span className="block text-sm font-semibold text-neutral-900">发帖子</span>
+              <span className="block text-xs text-neutral-500">上传首图，填标题和内容</span>
+            </span>
+            <ArrowUp size={16} className="text-neutral-400" />
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }

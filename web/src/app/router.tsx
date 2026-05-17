@@ -16,6 +16,9 @@ import { MarksPage } from '@/pages/MarksPage'
 import { BolePage } from '@/pages/BolePage'
 import { SearchRestaurantsPage } from '@/pages/SearchRestaurantsPage'
 import { HomeMap } from '@/features/map/HomeMap'
+import { SquarePage } from '@/pages/SquarePage'
+import { SquarePublishPage } from '@/pages/square/SquarePublishPage'
+import { PostDetailPage } from '@/pages/square/PostDetailPage'
 import { AuthPage } from '@/pages/AuthPage'
 import { MeProfileEditPage } from '@/pages/MeProfileEditPage'
 import { LegalDocPage } from '@/pages/LegalDocPage'
@@ -30,6 +33,13 @@ export function AppRouter() {
         <Route path="/tier-map" element={<HomePage />} />
         <Route path="/search" element={<SearchRestaurantsPage />} />
         <Route path="/map" element={<HomeMap />} />
+        <Route path="/square" element={<SquarePage />} />
+        <Route path="/square/post/:id" element={<PostDetailPage />} />
+        <Route path="/square/publish" element={
+          <RequireAuth>
+            <SquarePublishPage />
+          </RequireAuth>
+        } />
         <Route
           path="/practice/step1"
           element={

@@ -218,24 +218,24 @@ export function MePage() {
                   <span className="text-amber-700">（待短信验证）</span>
                 )}
               </p>
-            ) : profile && !profile.phone_binding_exempt ? (
-              <p className="mt-2 text-[11px] text-neutral-400">未绑定手机号 · 正式版将支持短信验证</p>
             ) : null}
+          </div>
+        </div>
+
+        <div className="relative mt-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-7 text-center">
+            <StatCard label="食鉴" value={data?.practiceCount ?? null} loading={isLoading} plain />
+            <StatCard label="有品" value={null} loading={isLoading} plain />
+            <StatCard label="粉丝" value={followersCount} loading={isLoading} plain />
+            <StatCard label="关注" value={followingCount} loading={isLoading} plain />
           </div>
           <Link
             to="/me/edit"
-            className="relative rounded-full border border-orange-200 bg-white p-2 text-orange-600 shadow-sm active:bg-orange-50"
+            className="relative flex h-8 shrink-0 items-center justify-center rounded-full border border-orange-200 bg-white px-3 text-[11px] font-medium text-orange-600 shadow-sm active:bg-orange-50"
             aria-label="编辑资料"
           >
-            <Edit3 size={16} />
+            编辑资料
           </Link>
-        </div>
-
-        <div className="relative mt-4 grid grid-cols-4 gap-2 text-center">
-          <StatCard label="食鉴" value={data?.practiceCount ?? null} loading={isLoading} />
-          <StatCard label="来食鉴" value={joinedDays} suffix="天" loading={isLoading} />
-          <StatCard label="粉丝" value={followersCount} loading={isLoading} />
-          <StatCard label="关注" value={followingCount} loading={isLoading} />
         </div>
       </section>
 
@@ -353,16 +353,18 @@ function StatCard({
   value,
   suffix = '',
   loading,
+  plain = false,
 }: {
   label: string
   value: number | null
   suffix?: string
   loading: boolean
+  plain?: boolean
 }) {
   const text = loading || value === null ? '—' : `${value}${suffix}`
 
   return (
-    <div className="rounded-2xl border border-orange-100 bg-white/80 px-2 py-2 shadow-sm">
+    <div className={plain ? 'px-1 py-1' : 'rounded-2xl border border-orange-100 bg-white/80 px-2 py-2 shadow-sm'}>
       <p className="text-base font-semibold leading-none text-neutral-950">{text}</p>
       <p className="mt-0.5 text-[10px] leading-none text-orange-600">{label}</p>
     </div>
