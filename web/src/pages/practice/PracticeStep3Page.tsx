@@ -108,7 +108,9 @@ export function PracticeStep3Page() {
       ? '鉴定完毕'
       : '仅鉴定餐厅'
     : submissionDirty
-      ? '提交修改'
+      ? draft.submission_baseline_locked_from_server
+        ? '提交修改'
+        : '提交'
       : hasDraftDishes
         ? '鉴定完毕'
         : '仅鉴定餐厅'
@@ -473,7 +475,6 @@ function SubmitPreview({
         queryClient,
         userId,
         navigate,
-        brandNameSnapshot: display?.brand_name ?? undefined,
         onBeforeReset: onClose,
       })
     } catch (err) {
@@ -533,6 +534,7 @@ function SubmitPreview({
         {variant === 'submit_full' && (
           <SubmitFullPreviewContent
             brandName={display?.brand_name}
+            restaurantImageUrl={display?.cover_image_url}
             tier={draft.tier}
             isPublic={draft.is_public}
             storeComment={draft.store_comment}

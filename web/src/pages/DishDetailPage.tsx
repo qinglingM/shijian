@@ -3,16 +3,14 @@ import { BackHeader } from '@/components/layout/AppLayout'
 import { useDishDetail } from '@/features/dishes/useDishDetail'
 import { useDishReviewsByDish } from '@/features/dishes/useDishReviewsByDish'
 import { isRestaurantUuid, useRestaurant } from '@/features/restaurants/useRestaurant'
-import { TIER_COLOR_VAR, TIER_LABEL, type Tier } from '@/lib/db'
+import { useDishReviewVoteMutation } from '@/features/restaurants/useDishReviewVoteMutation'
+import { intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
 import { isSupabaseConfigured } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
 
 const dateFmt = new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'medium',
 })
-
-function tierInk(tier: Tier) {
-  return tier === 'bad' ? '#171717' : TIER_COLOR_VAR[tier]
-}
 
 export function DishDetailPage() {
   const { id: rawId } = useParams()
@@ -23,6 +21,8 @@ export function DishDetailPage() {
   const dish = dishQ.data
   const reviewsQ = useDishReviewsByDish(isUuid ? id : null)
   const restaurantQ = useRestaurant(dish?.restaurant_id ?? null)
+  const user = useAuthStore((s) => s.user)
+  const voteMut = useDishReviewVoteMutation(dish?.restaurant_id ?? null)
 
   if (!id) return <Navigate to="/" replace />
 
@@ -156,42 +156,90 @@ export function DishDetailPage() {
             <p className="py-10 text-center text-sm text-neutral-400">载入评价列表…</p>
           ) : reviewsQ.data && reviewsQ.data.length > 0 ? (
             <ul className="space-y-3">
-              {reviewsQ.data.map((rv) => (
-                <li
-                  key={rv.id}
-                  className="rounded-2xl border border-orange-100 bg-white px-4 py-3 shadow-sm shadow-orange-500/6"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-semibold text-neutral-900">
-                      {rv.reviewer_nickname}
-                    </span>
-                    <span className="shrink-0 text-[11px] text-neutral-400">
-                      {dateFmt.format(new Date(rv.created_at))}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <span
-                      className="text-[11px] font-bold"
-                      style={{ color: tierInk(rv.store_tier) }}
-                    >
-                      {TIER_LABEL[rv.store_tier]}档
-                    </span>
-                    <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[12px] font-black text-orange-800">
-                      {rv.score !== null ? `${rv.score}` : '—'} 分
-                    </span>
-                  </div>
-                  {rv.comment ? (
-                    <p className="mt-2 text-[14px] leading-6 text-neutral-800">{rv.comment}</p>
-                  ) : null}
-                  {rv.image_url ? (
-                    <img
-                      src={rv.image_url}
-                      alt=""
-                      className="mt-2 max-h-48 w-full rounded-xl object-cover"
-                    />
-                  ) : null}
-                </li>
-              ))}
+              {reviewsQ.data.map((rv) => {
+                const votingThis =
+                  voteMut.isPending && voteMut.variables?.dishReviewId === rv.id
+                const guestBlocked = !user
+
+                function onTap(which: 'youpin' | 'yebang') {
+                  if (!user) {
+                    window.alert('请先登录后再参与有品 / 野榜投票')
+                    return
+                  }
+                  const next = intentAfterVoteTap(rv.my_vote, which)
+                  voteMut.mutate({ dishReviewId: rv.id, dishId: id!, next })
+                }
+
+                return (
+                  <li
+                    key={rv.id}
+                    className="rounded-2xl border border-orange-100 bg-white px-3 py-3 shadow-sm shadow-orange-500/6"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[13px] font-semibold text-neutral-900">
+                          {rv.reviewer_nickname}
+                        </span>
+                        <span className="ml-2 text-[11px] text-neutral-400">
+                          {dateFmt.format(new Date(rv.created_at))}
+                        </span>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[12px] font-black text-orange-800">
+                        {rv.score !== null ? `${rv.score}` : '—'} 分
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-start gap-2">
+                      <p className="min-w-0 flex-1 text-[14px] leading-6 text-neutral-800">
+                        {rv.comment?.trim() || '（未填写菜品锐评）'}
+                      </p>
+                      {rv.image_url ? (
+                        <img
+                          src={rv.image_url}
+                          alt=""
+                          className="size-16 shrink-0 rounded-xl object-cover ring-1 ring-neutral-200/80"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="mt-2 flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        disabled={votingThis || guestBlocked}
+                        title={guestBlocked ? '请先登录' : '觉得这条菜评中肯、有参考价值'}
+                        aria-pressed={rv.my_vote === 'youpin'}
+                        onClick={() => onTap('youpin')}
+                        className={`inline-flex min-w-[4.75rem] items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                          rv.my_vote === 'youpin'
+                            ? 'bg-orange-50 text-orange-950 shadow-[inset_0_0_0_2px_rgb(251_146_60)]'
+                            : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-orange-50/60'
+                        }`}
+                      >
+                        有品
+                        <span className="tabular-nums opacity-85">{rv.youpin_count}</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={votingThis || guestBlocked}
+                        title={guestBlocked ? '请先登录' : '觉得这条菜评离谱、参考价值低'}
+                        aria-pressed={rv.my_vote === 'yebang'}
+                        onClick={() => onTap('yebang')}
+                        className={`inline-flex min-w-[4.75rem] items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                          rv.my_vote === 'yebang'
+                            ? 'bg-violet-50 text-violet-950 shadow-[inset_0_0_0_2px_rgb(167_139_250)]'
+                            : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-violet-50/55'
+                        }`}
+                      >
+                        野榜
+                        <span className="tabular-nums opacity-85">{rv.yebang_count}</span>
+                      </button>
+                    </div>
+                    {voteMut.isError && voteMut.variables?.dishReviewId === rv.id ? (
+                      <p className="mt-2 px-1 text-[10px] text-rose-600">
+                        {(voteMut.error as Error)?.message ?? '投票失败'}
+                      </p>
+                    ) : null}
+                  </li>
+                )
+              })}
             </ul>
           ) : (
             <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm text-neutral-500">

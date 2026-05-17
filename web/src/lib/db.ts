@@ -137,6 +137,7 @@ export interface ProfileRow {
   phone_verified_at: string | null
   /** 研发预留邮箱注册时为 true，产品可不强制走手机号绑定 */
   phone_binding_exempt: boolean
+  is_profile_public: boolean
   city_id: string | null
   district_id: string | null
   current_title_id: string | null
@@ -259,6 +260,13 @@ export interface UserTitleRow {
   title_id: string
   is_equipped: boolean
   obtained_at: string
+}
+
+export interface FollowRow {
+  id: string
+  follower_id: string
+  following_id: string
+  created_at: string
 }
 
 export interface RestaurantAliasRow {

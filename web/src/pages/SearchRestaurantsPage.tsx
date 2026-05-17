@@ -1,22 +1,21 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronRight, Search as SearchIcon } from 'lucide-react'
+import { ChevronRight, MapPin, Search as SearchIcon } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { CityPicker } from '@/features/city-picker/CityPicker'
-import type { Tier } from '@/lib/db'
-import { TIER_LABEL, TIER_SOFT_VAR } from '@/lib/db'
-import { useDisplayedTierMap } from '@/features/tier-map/useTierMap'
-import { useCategories } from '@/features/categories/useCategories'
-
-type Hit = {
-  id: string
-  display_name: string
-  tier: Tier
-  category_name: string | null
-}
+import { usePoiSearch } from '@/features/poi-search/usePoiSearch'
+import type { PoiCandidate } from '@/lib/poi/types'
 
 function normalize(s: string) {
   return s.trim().toLowerCase()
+}
+
+function regionLine(poi: PoiCandidate) {
+  return [poi.city_name, poi.district_name].filter(Boolean).join(' ').trim() || '区域未知'
+}
+
+function addressLine(poi: PoiCandidate) {
+  return poi.address_text?.trim() || '地址未录入'
 }
 
 export function SearchRestaurantsPage() {
@@ -25,38 +24,13 @@ export function SearchRestaurantsPage() {
   const qParam = params.get('q') ?? ''
   const [draft, setDraft] = useState(qParam)
 
-  const { map, showingDemo, isLoading, error } = useDisplayedTierMap()
-  const categoriesQ = useCategories()
-
-  const flat = useMemo(() => {
-    const out: Hit[] = []
-    for (const b of map.buckets) {
-      for (const r of b.restaurants) {
-        out.push({
-          id: r.id,
-          display_name: r.display_name,
-          tier: b.tier,
-          category_name: r.category_name ?? null,
-        })
-      }
-    }
-    return out
-  }, [map.buckets])
-
   const needle = normalize(qParam)
-  const results = useMemo(() => {
-    if (!needle) return []
-    return flat.filter((h) => {
-      const nm = normalize(h.display_name)
-      const cat = h.category_name ? normalize(h.category_name) : ''
-      return nm.includes(needle) || cat.includes(needle)
-    })
-  }, [flat, needle])
+  const { data: pois = [], isLoading, isFetching, error } = usePoiSearch(needle, undefined)
+  const results = pois
 
-  const catalogNames = useMemo(() => {
-    const rows = categoriesQ.data ?? []
-    return rows.map((r) => r.name).filter(Boolean)
-  }, [categoriesQ.data])
+  useEffect(() => {
+    setDraft(qParam)
+  }, [qParam])
 
   function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -70,7 +44,7 @@ export function SearchRestaurantsPage() {
 
       <div className="border-b border-neutral-100 px-4 pb-3 pt-2">
         <div className="mb-2 flex items-center gap-2">
-          <CityPicker />
+          <CityPicker variant="field" />
         </div>
         <form onSubmit={onSubmit} className="flex gap-2">
           <div className="relative min-w-0 flex-1">
@@ -81,7 +55,7 @@ export function SearchRestaurantsPage() {
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="店名或美食分类关键字"
+              placeholder="搜店名、区域、地址"
               className="w-full rounded-full bg-neutral-100 py-2.5 pr-10 pl-10 text-sm outline-none placeholder:text-neutral-400"
               autoComplete="off"
               enterKeyHint="search"
@@ -96,47 +70,21 @@ export function SearchRestaurantsPage() {
           </button>
         </form>
         <p className="mt-2 text-[11px] text-neutral-500">
-          {showingDemo
-            ? '当前含示例餐馆，可搜「火锅」「烧烤」或店名节选。连接 Supabase 后将包含你的真实足迹。'
-            : '从我的食鉴图里匹配店名与分类关键词。'}
+          输入关键词后显示高德 POI 结果，点击卡片可进入店铺详情。
         </p>
-
-        {!needle ? (
-          <div className="mt-4 space-y-2">
-            <p className="text-[12px] font-semibold text-neutral-700">快捷：美食分类词</p>
-            <div className="flex flex-wrap gap-1.5">
-              {(catalogNames.length > 0
-                ? catalogNames.slice(0, 12)
-                : ['火锅', '烧烤', '饭馆', '粉面', '小吃', '饮甜', '简餐']
-              ).map((kw) => (
-                <button
-                  key={kw}
-                  type="button"
-                  onClick={() => {
-                    setDraft(kw)
-                    setParams({ q: kw })
-                  }}
-                  className="rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-medium text-orange-900 ring-1 ring-orange-100 active:bg-orange-100"
-                >
-                  {kw}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
 
-      {error && !showingDemo ? (
+      {error ? (
         <p className="px-4 pt-8 text-center text-sm text-rose-500">
           {(error as Error).message}
         </p>
       ) : null}
 
-      {isLoading && !showingDemo && !error ? (
-        <p className="py-14 text-center text-sm text-neutral-400">载入食鉴数据中…</p>
+      {isLoading || isFetching ? (
+        <p className="py-14 text-center text-sm text-neutral-400">搜索中…</p>
       ) : null}
 
-      {needle && (
+      {needle && !error && !isLoading && !isFetching && (
         <section className="px-4 pt-4">
           <p className="text-[12px] font-medium text-neutral-600">
             与「{qParam.trim()}」相关 ·{' '}
@@ -144,39 +92,56 @@ export function SearchRestaurantsPage() {
           </p>
           {results.length === 0 ? (
             <div className="mt-10 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm text-neutral-500">
-              没有匹配的门店。换一个词试试，或在食鉴图中确认该店已在某档位出现。
+              没有匹配的门店。换一个词试试。
               <button
                 type="button"
                 onClick={() => navigate('/')}
                 className="mt-4 inline-block text-sm font-medium text-orange-600"
               >
-                回吐鉴图看看
+                回食鉴图看看
               </button>
             </div>
           ) : (
-            <ul className="mt-3 space-y-2">
-              {results.map((h) => (
-                <li key={`${h.tier}-${h.id}`}>
-                  <Link
-                    to={`/restaurants/${h.id}`}
-                    className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-white px-3 py-3 active:bg-neutral-50"
-                  >
-                    <div
-                      className="size-11 shrink-0 rounded-lg ring-1 ring-black/10"
-                      style={{ background: TIER_SOFT_VAR[h.tier] }}
-                      aria-hidden
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-semibold text-neutral-900">{h.display_name}</p>
-                      <p className="mt-0.5 text-[11px] text-neutral-500">
-                        {TIER_LABEL[h.tier]}档
-                        {h.category_name ? ` · ${h.category_name}` : ''}
-                      </p>
-                    </div>
-                    <ChevronRight className="size-4 shrink-0 text-neutral-300" aria-hidden />
-                  </Link>
-                </li>
-              ))}
+            <ul className="mt-3 space-y-3">
+              {results.map((poi) => {
+                const region = regionLine(poi)
+                const address = addressLine(poi)
+                return (
+                  <li key={`${poi.poi_source}-${poi.poi_id}`}>
+                    <Link
+                      to={`/restaurants/poi/${poi.poi_source}/${poi.poi_id}`}
+                      state={{ poi }}
+                      className="block rounded-2xl border border-neutral-100 bg-white p-3 shadow-sm active:bg-neutral-50"
+                    >
+                      <div className="flex gap-3">
+                        <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 ring-1 ring-orange-100">
+                          {poi.cover_image_url ? (
+                            <img src={poi.cover_image_url} alt="" className="size-full object-cover" />
+                          ) : (
+                            <MapPin className="size-6 text-orange-500" aria-hidden />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="min-w-0 flex-1 truncate text-[15px] font-bold text-neutral-950">
+                              {poi.poi_name}
+                            </h3>
+                            <ChevronRight className="mt-0.5 size-4 shrink-0 text-neutral-300" aria-hidden />
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
+                              {region}
+                            </span>
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-neutral-500">
+                            {address}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </section>

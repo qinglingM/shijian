@@ -7,6 +7,7 @@ import type { ProfileRow } from '@/lib/db'
 import { maskPhoneDisplay } from '@/lib/maskPhone'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useProfilePrivacyMutation } from '@/features/profile/useProfilePrivacyMutation'
 
 /** 与用户资料 gender 校验一致（空串→存 null） */
 const GENDER_SELECT: { value: string; label: string }[] = [
@@ -217,6 +218,8 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url)
+  const privacyMut = useProfilePrivacyMutation(userId)
+  const [errorText, setErrorText] = useState<string | null>(null)
 
   const mutation = useMutation({
     mutationFn: async (payload: {
@@ -246,6 +249,13 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
       await queryClient.invalidateQueries({ queryKey: ['me-profile-edit'] })
       navigate('/me')
     },
+    onError: (err) => {
+      const message =
+        err && typeof err === 'object' && 'message' in err && typeof (err as { message: unknown }).message === 'string'
+          ? (err as { message: string }).message
+          : String(err)
+      setErrorText(message)
+    },
   })
 
   const [nickname, setNickname] = useState(initial.nickname ?? '')
@@ -256,6 +266,7 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
   const [birthDate, setBirthDate] = useState(
     initial.birth_date ? initial.birth_date.slice(0, 10) : '',
   )
+  const [profilePublic, setProfilePublic] = useState<boolean>(initial.is_profile_public)
 
   const baselineBirth = initial.birth_date ? initial.birth_date.slice(0, 10) : ''
   const isDirty =
@@ -264,18 +275,20 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
     (gender || null) !== (initial.gender ?? null) ||
     (zodiacSign || null) !== (initial.zodiac_sign ?? null) ||
     hometown.trim() !== (initial.hometown ?? '').trim() ||
-    (birthDate.trim() || '') !== baselineBirth
+    (birthDate.trim() || '') !== baselineBirth ||
+    profilePublic !== initial.is_profile_public
 
   const nicknameOk = nickname.trim().length > 0
   const canSubmit = isDirty && nicknameOk
 
   return (
     <form
-      className="mx-auto flex max-w-lg flex-col gap-4 px-4 py-5 pb-10"
+      className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-lg flex-col gap-4 px-4 py-5 pb-24"
       onSubmit={(e) => {
         e.preventDefault()
         const n = nickname.trim()
         if (!isDirty || !n) return
+        setErrorText(null)
         mutation.mutate({
           nickname: n,
           bio,
@@ -284,6 +297,7 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
           hometown: hometown.trim() || null,
           birth_date: birthDate.trim() || null,
         })
+        void privacyMut.mutateAsync(profilePublic)
       }}
     >
       <AvatarUpload avatarUrl={avatarUrl} userId={userId} onUploaded={setAvatarUrl} />
@@ -340,7 +354,7 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
             onChange={(e) => setBirthDate(e.target.value)}
             max={new Date().toISOString().slice(0, 10)}
             min="1920-01-01"
-            className={`${settingsControlRight} [-webkit-appearance:none] [&::-webkit-calendar-picker-indicator]:ml-0 [&::-webkit-calendar-picker-indicator]:opacity-60`}
+            className={`${settingsControlRight} ml-auto w-auto [-webkit-appearance:none] [&::-webkit-calendar-picker-indicator]:ml-0 [&::-webkit-calendar-picker-indicator]:opacity-60`}
           />
         </SettingsRow>
 
@@ -363,6 +377,21 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
           />
         </SettingsRow>
 
+        <SettingsRow label="主页公开">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setProfilePublic((v) => !v)}
+              className={`inline-flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors ${profilePublic ? 'bg-orange-500' : 'bg-neutral-300'}`}
+              aria-pressed={profilePublic}
+            >
+              <span
+                className={`size-6 rounded-full bg-white shadow-sm transition-transform duration-200 ${profilePublic ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+        </SettingsRow>
+
         <SettingsRow label="绑定手机号">
           <span
             className="block truncate text-right text-sm text-neutral-800"
@@ -383,24 +412,26 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
         </SettingsRow>
       </div>
 
-      {mutation.isError && (
+      {errorText ? (
         <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-red-800">
-          保存失败，请检查网络或稍后重试。
+          保存失败：{errorText}
         </p>
-      )}
-      <button
-        type="submit"
-        disabled={mutation.isPending || !canSubmit}
-        className={
-          mutation.isPending
-            ? 'mt-1 w-full cursor-wait rounded-2xl bg-gradient-to-r from-orange-600 to-rose-600 py-3.5 text-sm font-medium text-white opacity-85 shadow-md shadow-orange-700/20'
-            : canSubmit
-              ? 'mt-1 w-full rounded-2xl bg-gradient-to-r from-orange-600 to-rose-600 py-3.5 text-sm font-medium text-white shadow-md shadow-orange-700/20 active:opacity-95'
-              : 'mt-1 w-full cursor-default rounded-2xl bg-neutral-200 py-3.5 text-sm font-medium text-neutral-500'
-        }
-      >
-        {mutation.isPending ? '保存中…' : isDirty ? (nicknameOk ? '保存更改' : '昵称不能为空') : '无更改'}
-      </button>
+      ) : null}
+      <div className="mt-auto pb-4">
+        <button
+          type="submit"
+          disabled={mutation.isPending || !canSubmit}
+          className={
+            mutation.isPending
+              ? 'w-full cursor-wait rounded-2xl bg-gradient-to-r from-orange-600 to-rose-600 py-3.5 text-sm font-medium text-white opacity-85 shadow-md shadow-orange-700/20'
+              : canSubmit
+                ? 'w-full rounded-2xl bg-gradient-to-r from-orange-600 to-rose-600 py-3.5 text-sm font-medium text-white shadow-md shadow-orange-700/20 active:opacity-95'
+                : 'w-full cursor-default rounded-2xl bg-neutral-200 py-3.5 text-sm font-medium text-neutral-500'
+          }
+          >
+          {mutation.isPending ? '保存中…' : isDirty ? (nicknameOk ? '保存更改' : '昵称不能为空') : '无更改'}
+        </button>
+      </div>
     </form>
   )
 }

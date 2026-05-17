@@ -130,12 +130,14 @@ export function PreviewDiffUnitShell({
 /** 首次评价的「提交预览」：单列紧凑概览（无对照数据，不搞左右分栏）。 */
 export function SubmitFullPreviewContent({
   brandName,
+  restaurantImageUrl,
   tier,
   isPublic,
   storeComment,
   dishes,
 }: {
   brandName: string | null | undefined
+  restaurantImageUrl?: string | null
   tier: Tier | null
   isPublic: boolean
   storeComment: string
@@ -147,11 +149,20 @@ export function SubmitFullPreviewContent({
   return (
     <div className="mt-3 rounded-lg border border-neutral-200/80 bg-neutral-50/50 px-3 py-2.5 text-sm leading-relaxed">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold tracking-wide text-neutral-600">店铺名称：</p>
-          <p className="mt-1 break-words text-base font-semibold leading-snug text-neutral-900">
-            {brandName?.trim() || '（未选店铺）'}
-          </p>
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-neutral-100 text-[10px] font-semibold text-neutral-400 ring-1 ring-neutral-200/80">
+            {restaurantImageUrl ? (
+              <img src={restaurantImageUrl} alt="" className="size-full object-cover" />
+            ) : (
+              <span>{(brandName?.trim().slice(0, 2) || '店铺')}</span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold tracking-wide text-neutral-600">店铺名称：</p>
+            <p className="mt-1 break-words text-base font-semibold leading-snug text-neutral-900">
+              {brandName?.trim() || '（未选店铺）'}
+            </p>
+          </div>
         </div>
         <SubmitPreviewTierBlock selectedTier={tier} />
       </div>
@@ -177,24 +188,34 @@ export function SubmitFullPreviewContent({
               const name = d.name.trim() || '未命名'
               const scoreBefore = d.score === null ? '--分' : `${d.score} 分`
               const cmt = d.comment.trim()
-              const hasImg = !!(d.image_url ?? '').trim()
+              const img = (d.image_url ?? '').trim()
               return (
-                <li key={d.client_id} className="min-w-0">
-                  <p className="text-[15px] leading-snug text-neutral-900">
-                    <span className="tabular-nums font-semibold text-orange-600">{idx + 1}.</span>{' '}
-                    <span className="font-medium text-neutral-700">{scoreBefore}</span>{' '}
-                    <span className="font-semibold">{name}</span>
-                  </p>
-                  <p
-                    className={`mt-1 line-clamp-2 whitespace-pre-wrap break-words leading-snug ${
-                      cmt ? 'text-[14px] text-neutral-600' : 'text-[14px] text-neutral-400'
-                    }`}
-                  >
-                    评价：{cmt || '（未填）'}
-                  </p>
-                  {hasImg ? (
-                    <p className="mt-1 text-xs text-neutral-500">含配图</p>
-                  ) : null}
+                <li key={d.client_id} className="flex min-w-0 items-start gap-2">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-orange-600 text-[11px] font-bold leading-none text-white">
+                    {idx + 1}
+                  </span>
+                  <div className="flex min-w-0 flex-1 gap-2">
+                    {img ? (
+                      <img
+                        src={img}
+                        alt=""
+                        className="size-11 shrink-0 rounded-lg object-cover ring-1 ring-neutral-200/80"
+                      />
+                    ) : null}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[15px] leading-snug text-neutral-900">
+                        <span className="font-medium text-neutral-700">{scoreBefore}</span>{' '}
+                        <span className="font-semibold">{name}</span>
+                      </p>
+                      <p
+                        className={`mt-1 line-clamp-2 whitespace-pre-wrap break-words leading-snug ${
+                          cmt ? 'text-[14px] text-neutral-600' : 'text-[14px] text-neutral-400'
+                        }`}
+                      >
+                        评价：{cmt || '（未填）'}
+                      </p>
+                    </div>
+                  </div>
                 </li>
               )
             })}

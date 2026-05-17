@@ -1,6 +1,6 @@
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
-import { Bookmark, ChevronDown, MapPin, UserRound } from 'lucide-react'
+import { Bookmark, ChevronDown, MapPin, Search, Utensils, UserRound } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import {
   getDemoStoreReviews,
@@ -25,13 +25,15 @@ import {
   type StoreReviewItem,
 } from '@/features/restaurants/useStoreReviewsByRestaurant'
 import { useStoreReviewVoteMutation } from '@/features/restaurants/useStoreReviewVoteMutation'
-import { useRestaurantBole } from '@/features/restaurants/useRestaurantBole'
+import { useDishReviewVoteMutation } from '@/features/restaurants/useDishReviewVoteMutation'
+import { useRestaurantBole, type RestaurantBoleView } from '@/features/restaurants/useRestaurantBole'
 import { useRestaurantGuidanceSummary } from '@/features/restaurants/useRestaurantGuidanceSummary'
 import { useInsertMarkMutation, useDeleteMarkMutation } from '@/features/marks/useRestaurantMarkMutations'
 import { useRestaurantMarkStatus } from '@/features/marks/useRestaurantMarkStatus'
-import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, type PoiSource, type Tier } from '@/lib/db'
+import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, type Tier } from '@/lib/db'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import type { PoiCandidate } from '@/lib/poi/types'
 
 type TabKey = 'store' | 'dish'
 
@@ -39,13 +41,28 @@ const dateFmt = new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'medium',
 })
 
+const compactDateFmt = new Intl.DateTimeFormat('zh-CN', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
 function tierInk(tier: Tier) {
   return tier === 'bad' ? '#171717' : TIER_COLOR_VAR[tier]
 }
 
+function compactDate(dateLike: string, digits: 'yyyyMMdd' | 'yyMMdd') {
+  const full = compactDateFmt.format(new Date(dateLike)).replace(/\D/g, '')
+  return digits === 'yyMMdd' ? full.slice(2) : full
+}
+
 export function RestaurantDetailPage() {
-  const { id: rawId } = useParams()
-  const id = rawId ?? null
+  const location = useLocation()
+  const { id: rawId, source: poiSource, poiId } = useParams()
+  const poiState = location.state as { poi?: PoiCandidate } | null
+  const poi = poiState?.poi ?? null
+  const isPoiRoute = Boolean(poiSource && poiId)
+  const id = rawId ?? (isPoiRoute ? `poi:${poiSource}:${poiId}` : null)
   const [tab, setTab] = useState<TabKey>('store')
 
   const demoMeta = id ? lookupDemoRestaurant(id) : null
@@ -57,6 +74,7 @@ export function RestaurantDetailPage() {
   const boleQ = useRestaurantBole(governanceRid)
   const guidanceQ = useRestaurantGuidanceSummary(governanceRid)
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
+  const navigate = useNavigate()
 
   const restaurantQ = useRestaurant(isUuid ? id : null)
   const storeRQ = useStoreReviewsByRestaurant(isUuid ? id : null)
@@ -67,13 +85,15 @@ export function RestaurantDetailPage() {
     () => (isDemo && id && demoMeta ? getDemoStoreReviews(id, demoMeta.tier) : []),
     [isDemo, id, demoMeta],
   )
+  const detailKnown = Boolean(isDemo || (isUuid && restaurantQ.data))
+  const emptyReviews = !isDemo && isPoiRoute
 
   if (!id) return <Navigate to="/" replace />
 
-  if (!isDemo && !isUuid) {
+  if (!isDemo && !isUuid && !isPoiRoute) {
     return (
       <>
-        <BackHeader title="餐厅详情" />
+        <BackHeader title="店铺详情" />
         <div className="px-5 py-16 text-center text-sm text-neutral-500">
           无法识别门店链接，返回食鉴首页再进入。
           <Link to="/" className="mt-4 inline-block font-medium text-orange-600">
@@ -100,7 +120,7 @@ export function RestaurantDetailPage() {
     )
   }
 
-  const notConfigured = isUuid && !isDemo && !isSupabaseConfigured
+  const notConfigured = isUuid && !isDemo && !isPoiRoute && !isSupabaseConfigured
   if (notConfigured) {
     return (
       <>
@@ -112,15 +132,32 @@ export function RestaurantDetailPage() {
     )
   }
 
-  let title = '餐厅详情'
+  let title = '店铺详情'
   let coverUrl: string | null = null
+  let cityDistrictText: string | null = null
+  let addressText: string | null = null
+  let categoryText: string | null = null
+  let boleText: string | null = null
 
   if (isDemo && demoMeta) {
     title = demoMeta.display_name
     coverUrl = demoMeta.cover_image_url
+    cityDistrictText = [demoMeta.city_name, demoMeta.district_name].filter(Boolean).join(' ') || null
+    addressText = demoMeta.address_detail || null
+    categoryText = demoMeta.category_name
   } else if (isUuid && restaurantQ.data) {
     title = restaurantQ.data.display_name
     coverUrl = restaurantQ.data.cover_image_url
+    cityDistrictText = restaurantCityDistrictLine(restaurantQ.data)
+    addressText = restaurantStreetLine(restaurantQ.data)
+    categoryText = restaurantQ.data.category_name?.trim() || null
+  } else if (poi) {
+    title = poi.poi_name
+    coverUrl = poi.cover_image_url ?? null
+    cityDistrictText = [poi.city_name, poi.district_name].filter(Boolean).join(' ') || null
+    addressText = poi.address_text?.trim() || null
+    categoryText = poi.category?.trim() || null
+    boleText = `食鉴伯乐 由 @食鉴用户 于 ${compactDate(new Date().toISOString(), 'yyyyMMdd')} 首次完成鉴定`
   }
 
   const storeList = isDemo
@@ -132,6 +169,7 @@ export function RestaurantDetailPage() {
   const dominantPublicTier = dominantTierFromReviewList(storeList)
   const headerTierShown =
     dominantPublicTier ?? (isDemo && demoMeta ? demoMeta.tier : null)
+  const headerTierFallback = emptyReviews ? null : headerTierShown
   const storeTierLoading = Boolean(isUuid && !isDemo && storeRQ.isPending)
 
   const uuidNotFound =
@@ -152,7 +190,7 @@ export function RestaurantDetailPage() {
   if (uuidNotFound) {
     return (
       <>
-        <BackHeader title="门店未找到" />
+        <BackHeader title="店铺详情" />
         <div className="px-5 py-10 text-center text-sm text-neutral-500">
           该门店不存在或你已无权查看。
           <Link to="/" className="mt-4 inline-block font-medium text-orange-600">
@@ -165,183 +203,178 @@ export function RestaurantDetailPage() {
 
   return (
     <>
-      <BackHeader title={title} />
+      <BackHeader title="店铺详情" />
       <div className="min-h-[calc(100vh-3rem)] bg-white pb-8">
-        {(isDemo && demoMeta) || (isUuid && restaurantQ.data) ? (
+        {detailKnown ? (
           <section className="border-b border-neutral-100 px-4 pt-4 pb-4">
-            <div className="flex flex-col gap-3 rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-sm shadow-black/[0.04]">
+            <div className="relative flex flex-col gap-3 rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-sm shadow-black/[0.04]">
+              {!isDemo && isUuid && isSupabaseConfigured && id ? (
+                <RestaurantMarkActions restaurantId={id} viewerId={viewerId ?? null} />
+              ) : null}
               <div className="flex gap-4">
-              <div className="relative h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-xl bg-neutral-100">
-                {coverUrl ? (
-                  <img src={coverUrl} alt="" className="size-full object-cover" />
-                ) : (
-                  <div className="flex size-full items-center justify-center bg-neutral-100 text-center text-xs font-semibold tracking-widest text-neutral-500">
-                    {(title.slice(0, 4).replace(/\s/g, '') || '门店').slice(0, 4)}
-                  </div>
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start gap-3">
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                      <h1 className="text-[18px] font-black leading-snug tracking-tight text-neutral-950">
-                        {title}
-                      </h1>
-                      {isDemo && demoMeta ? (
-                        <>
-                          <span className="text-neutral-300" aria-hidden>
-                            ·
-                          </span>
-                          <span className="text-[13px] font-semibold text-neutral-700">
-                            {[demoMeta.city_name, demoMeta.district_name]
-                              .filter(Boolean)
-                              .join(' ') || '—'}
-                          </span>
-                          <span className="text-neutral-300" aria-hidden>
-                            ·
-                          </span>
-                          <span className="text-[13px] text-neutral-600">
-                            {demoMeta.category_name}
-                          </span>
-                        </>
-                      ) : null}
-                      {!isDemo && isUuid && restaurantQ.data ? (
-                        <>
-                          <span className="text-neutral-300" aria-hidden>
-                            ·
-                          </span>
-                          {restaurantCityDistrictLine(restaurantQ.data) ? (
-                            <span className="text-[13px] font-semibold text-neutral-700">
-                              {restaurantCityDistrictLine(restaurantQ.data)}
-                            </span>
-                          ) : (
-                            <span className="text-[13px] text-neutral-400">城市未录入</span>
-                          )}
-                          <span className="text-neutral-300" aria-hidden>
-                            ·
-                          </span>
-                          <span className="text-[13px] text-neutral-600">
-                            {restaurantQ.data.category_name?.trim() || '未录入分类'}
-                          </span>
-                        </>
-                      ) : null}
+                <div className="relative mt-1 h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-xl bg-neutral-100">
+                  {coverUrl ? (
+                    <img src={coverUrl} alt="" className="size-full object-cover" />
+                  ) : (
+                    <div className="flex size-full items-center justify-center bg-neutral-100 text-center text-xs font-semibold tracking-widest text-neutral-500">
+                      {(title.slice(0, 4).replace(/\s/g, '') || '门店').slice(0, 4)}
                     </div>
+                  )}
+                </div>
 
-                    {isDemo && demoMeta && demoMeta.address_detail ? (
-                      <p className="flex items-start gap-1.5 pt-0.5 text-[13px] leading-snug text-neutral-700">
-                        <MapPin
-                          className="mt-0.5 size-3.5 shrink-0 text-neutral-400"
-                          aria-hidden
-                        />
-                        <span>{demoMeta.address_detail}</span>
-                      </p>
-                    ) : null}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <h1 className="text-[18px] font-black leading-snug tracking-tight text-neutral-950">
+                          {title}
+                        </h1>
+                        {cityDistrictText ? (
+                          <>
+                            <span className="text-neutral-300" aria-hidden>
+                              ·
+                            </span>
+                            <span className="text-[13px] font-semibold text-neutral-700">
+                              {cityDistrictText}
+                            </span>
+                          </>
+                        ) : null}
+                        {categoryText ? (
+                          <>
+                            <span className="text-neutral-300" aria-hidden>
+                              ·
+                            </span>
+                            <span className="text-[13px] text-neutral-600">{categoryText}</span>
+                          </>
+                        ) : null}
+                      </div>
 
-                    {!isDemo && isUuid && restaurantQ.data ? (
-                      restaurantStreetLine(restaurantQ.data) ? (
+                      {isDemo && demoMeta && demoMeta.address_detail ? (
                         <p className="flex items-start gap-1.5 pt-0.5 text-[13px] leading-snug text-neutral-700">
                           <MapPin
                             className="mt-0.5 size-3.5 shrink-0 text-neutral-400"
                             aria-hidden
                           />
-                          <span>{restaurantStreetLine(restaurantQ.data)}</span>
+                          <span>{demoMeta.address_detail}</span>
                         </p>
-                      ) : !restaurantCityDistrictLine(restaurantQ.data) ? (
+                      ) : null}
+
+                      {addressText ? (
+                        <p className="flex items-start gap-1.5 pt-0.5 text-[13px] leading-snug text-neutral-700">
+                          <MapPin
+                            className="mt-0.5 size-3.5 shrink-0 text-neutral-400"
+                            aria-hidden
+                          />
+                          <span>{addressText}</span>
+                        </p>
+                      ) : isUuid && !isDemo ? (
                         <p className="pt-0.5 text-[12px] text-neutral-400">暂未录入城市与地址</p>
-                      ) : (
-                        <p className="pt-0.5 text-[12px] text-neutral-400">
-                          暂无门牌或补充位置信息
-                        </p>
-                      )
-                    ) : null}
+                      ) : null}
 
-                    {!isDemo && isUuid && restaurantQ.data
-                      ? (() => {
-                          const subline = [
-                            poiSourceLabel(restaurantQ.data.poi_source),
-                            restaurantQ.data.branch_name
-                              ? `${restaurantQ.data.brand_name} · ${restaurantQ.data.branch_name}`
-                              : restaurantQ.data.brand_name,
-                          ]
-                            .filter((x): x is string => Boolean(x?.trim()))
-                            .join(' · ')
-                          return subline ? (
-                            <p className="text-[11px] leading-snug text-neutral-400">{subline}</p>
-                          ) : null
-                        })()
-                      : isDemo ? (
-                          <p className="text-[11px] text-neutral-400">示例数据 · 仅供界面预览</p>
-                        ) : null}
-                  </div>
+                      {isDemo ? (
+                        <p className="text-[11px] text-neutral-400">示例数据 · 仅供界面预览</p>
+                      ) : null}
+                    </div>
 
-                  <div className="flex shrink-0 flex-col items-end gap-2">
-                    {!isDemo && isUuid && isSupabaseConfigured && id ? (
-                      <RestaurantMarkActions restaurantId={id} viewerId={viewerId ?? null} />
-                    ) : null}
-                    <HeaderTierPanel
-                      tier={headerTierShown}
-                      loading={storeTierLoading}
-                      isDemo={Boolean(isDemo)}
-                    />
+                    <div className="flex shrink-0 flex-col items-end gap-2 pt-9">
+                      <HeaderTierPanel
+                        tier={headerTierFallback}
+                        loading={storeTierLoading}
+                        isDemo={Boolean(isDemo)}
+                        emptyLabel={emptyReviews ? '暂无评级' : undefined}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+          </section>
+        ) : null}
+
+        {emptyReviews ? (
+          <section className="border-b border-neutral-100 px-4 pt-4 pb-4">
+            <div className="relative flex flex-col gap-3 rounded-2xl border border-orange-100 bg-white p-4 shadow-sm shadow-black/[0.04]">
+              <div className="flex gap-4">
+                <div className="relative mt-1 h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-xl bg-neutral-100">
+                  <div className="flex size-full items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100 text-center text-xs font-semibold tracking-widest text-orange-700">
+                    待评价
+                  </div>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <h1 className="text-[18px] font-black leading-snug tracking-tight text-neutral-950">
+                          {title}
+                        </h1>
+                        <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700 ring-1 ring-orange-100">
+                          待首评
+                        </span>
+                      </div>
+                      <p className="flex items-start gap-1.5 pt-0.5 text-[13px] leading-snug text-neutral-700">
+                        <MapPin className="mt-0.5 size-3.5 shrink-0 text-neutral-400" aria-hidden />
+                        <span>{addressText || '地址暂未录入'}</span>
+                      </p>
+                      <p className="text-[11px] text-neutral-400">快来成为第一个伯乐吧</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         ) : null}
 
-        {governanceRid && restaurantQ.data ? (
-          (() => {
-            const g = guidanceQ.data
-            const guidanceLine =
-              !guidanceQ.isPending &&
-              !guidanceQ.isError &&
-              g &&
-              g.feedback_count > 0 &&
-              g.guidance_rate_pct !== null
+        {(() => {
+          const g = guidanceQ.data
+          const guidanceLine =
+            !guidanceQ.isPending &&
+            !guidanceQ.isError &&
+            g &&
+            g.feedback_count > 0 &&
+            g.guidance_rate_pct !== null
 
-            if (!boleQ.isPending && !boleQ.data && !guidanceLine) return null
+          if (!emptyReviews && !governanceRid && !boleQ.data && !guidanceLine) return null
+          if (!emptyReviews && !governanceRid) return null
 
-            return (
-              <section className="border-b border-neutral-100 px-4 pb-3 pt-0.5">
-                {boleQ.isPending ? (
-                  <p className="text-[11px] text-neutral-400">载入伯乐信息…</p>
-                ) : boleQ.data ? (
-                  <p className="text-[11px] leading-relaxed text-neutral-600">
-                    <span className="font-semibold text-neutral-800">食鉴伯乐</span>
-                    ：{boleQ.data.nickname ?? '食鉴用户'}
-                    <span className="text-neutral-400">
-                      {' '}
-                      · {dateFmt.format(new Date(boleQ.data.awarded_at))}
+          return (
+            <section className="border-b border-neutral-100 px-4 pb-3 pt-0.5">
+              <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-neutral-600">
+                <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 font-semibold text-orange-700 ring-1 ring-orange-100">
+                  食鉴伯乐
+                </span>
+                <span className="min-w-0 flex-1">
+                  {emptyReviews
+                    ? '暂未被任何伯乐发现'
+                    : boleQ.isPending
+                      ? '载入伯乐信息…'
+                      : boleQ.data
+                        ? formatBoleText(boleQ.data)
+                        : null}
+                </span>
+              </p>
+              {guidanceLine && g ? (
+                <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[11px] leading-relaxed text-neutral-600">
+                  <span>
+                    <span className="font-semibold text-neutral-800">好评诱导反馈</span>
+                    ：约{' '}
+                    <span className="tabular-nums font-semibold text-neutral-900">
+                      {g.guidance_rate_pct}%
+                    </span>{' '}
+                    的实践用户反馈该店存在诱导写好评。
+                  </span>
+                  <details className="inline text-neutral-400">
+                    <summary className="-ml-0.5 cursor-pointer select-none tabular-nums">
+                      ⓘ
+                    </summary>
+                    <span className="mt-1 block text-[10px] leading-relaxed text-neutral-500">
+                      {g.guidance_rate_pct}% 的实践用户反馈：该店存在好评诱导。包括写好评送东西、返现、打折、送菜、送饮料、小物品等情况。不显示具体是谁勾选。
                     </span>
-                  </p>
-                ) : null}
-                {guidanceLine && g ? (
-                  <p className="mt-1 flex flex-wrap items-baseline gap-x-1.5 text-[11px] leading-relaxed text-neutral-600">
-                    <span>
-                      <span className="font-semibold text-neutral-800">好评诱导反馈</span>
-                      ：约{' '}
-                      <span className="tabular-nums font-semibold text-neutral-900">
-                        {g.guidance_rate_pct}%
-                      </span>{' '}
-                      的实践用户反馈该店存在诱导写好评。
-                    </span>
-                    <details className="inline text-neutral-400">
-                      <summary className="-ml-0.5 cursor-pointer select-none tabular-nums">
-                        ⓘ
-                      </summary>
-                      <span className="mt-1 block text-[10px] leading-relaxed text-neutral-500">
-                        {g.guidance_rate_pct}% 的实践用户反馈：该店存在好评诱导。包括写好评送东西、返现、打折、送菜、送饮料、小物品等情况。不显示具体是谁勾选。
-                      </span>
-                    </details>
-                  </p>
-                ) : null}
-              </section>
-            )
-          })()
-        ) : null}
+                  </details>
+                </p>
+              ) : null}
+            </section>
+          )
+        })()}
 
         <div className="mt-4 px-4">
           <div className="flex rounded-full bg-neutral-100 p-1">
@@ -380,16 +413,29 @@ export function RestaurantDetailPage() {
               restaurantId={isUuid ? id ?? null : null}
               loading={Boolean(isUuid && !isDemo && storeRQ.isPending)}
               reviews={storeList}
+              emptyReviews={emptyReviews}
             />
           ) : (
             <DishTabFeed
+              restaurantId={isUuid ? id ?? null : null}
               isDemo={isDemo}
               dishFeedPending={Boolean(isUuid && !isDemo && dishRQ.isPending)}
               dishesPending={Boolean(isUuid && !isDemo && dishesQ.isPending)}
               dishReviews={dishFeed}
               dishes={dishes}
+              emptyReviews={emptyReviews}
             />
           )}
+        </div>
+
+        <div className="mt-auto border-t border-neutral-100 bg-white px-4 py-4">
+          <button
+            type="button"
+            onClick={() => navigate('/practice/step2', { state: { poi } })}
+            className="flex w-full items-center justify-center rounded-full bg-gradient-to-r from-orange-600 to-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-orange-700/20 active:from-orange-700 active:to-rose-700"
+          >
+            写评价
+          </button>
         </div>
       </div>
     </>
@@ -410,10 +456,12 @@ function HeaderTierPanel({
   tier,
   loading,
   isDemo,
+  emptyLabel,
 }: {
   tier: Tier | null
   loading: boolean
   isDemo: boolean
+  emptyLabel?: string
 }) {
   return (
     <div className="shrink-0 text-right leading-none">
@@ -428,7 +476,7 @@ function HeaderTierPanel({
         </p>
       ) : (
         <p className="text-[12px] font-medium text-neutral-400">
-          {isDemo ? '示例' : '暂无店评'}
+          {emptyLabel || (isDemo ? '示例' : '暂无店评')}
         </p>
       )}
     </div>
@@ -478,16 +526,22 @@ function filterAndSortStoreReviews(
   return sorted
 }
 
-function poiSourceLabel(poi: PoiSource | null | undefined) {
-  if (!poi) return null
-  const map = {
-    amap: '高德地图',
-    manual: '手动补充',
-    tencent: '腾讯地图',
-    baidu: '百度地图',
-    apple: 'Apple 地图',
-  } as Record<string, string>
-  return map[poi] ?? String(poi)
+function formatBoleText(bole: RestaurantBoleView) {
+  const nickname = bole.nickname?.trim() || '食鉴用户'
+  if (bole.created_from === 'manual') {
+    return (
+      <>
+        被 <span className="font-semibold text-neutral-900">@{nickname}</span> 于
+        {compactDate(bole.awarded_at, 'yyMMdd')} 发现并收录在册
+      </>
+    )
+  }
+  return (
+    <>
+      由 <span className="font-semibold text-neutral-900">@{nickname}</span> 于
+      {compactDate(bole.awarded_at, 'yyyyMMdd')} 首次完成鉴定
+    </>
+  )
 }
 
 function StoreTab({
@@ -495,11 +549,13 @@ function StoreTab({
   loading,
   demo,
   restaurantId,
+  emptyReviews,
 }: {
   reviews: StoreReviewItem[]
   loading: boolean
   demo?: boolean
   restaurantId: string | null
+  emptyReviews?: boolean
 }) {
   const user = useAuthStore((s) => s.user)
   const voteMut = useStoreReviewVoteMutation(!demo ? restaurantId : null)
@@ -537,9 +593,20 @@ function StoreTab({
   }
   if (reviews.length === 0) {
     return (
-      <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm text-neutral-500">
-        {demo ? '本条示例暂只挂载少量店评。' : '还没有用户公开这间店的食鉴档位或店铺锐评。'}
-      </p>
+      <div className="space-y-3">
+        <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm text-neutral-500">
+          {demo
+            ? '本条示例暂只挂载少量店评。'
+            : emptyReviews
+              ? '这里还没有人完成首评。'
+              : '还没有用户公开这间店的食鉴档位或店铺锐评。'}
+        </p>
+        {emptyReviews ? (
+          <p className="text-center text-[12px] leading-6 text-neutral-500">
+            无人评价，快来成为第一个伯乐吧。
+          </p>
+        ) : null}
+      </div>
     )
   }
 
@@ -787,7 +854,7 @@ function RestaurantMarkActions({
     return (
       <Link
         to={`/auth?redirect=/restaurants/${restaurantId}`}
-        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-2.5 text-[11px] font-semibold text-neutral-600 ring-1 ring-neutral-200 active:bg-neutral-200"
+        className="absolute right-4 top-4 inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-2.5 text-[11px] font-semibold text-neutral-600 ring-1 ring-neutral-200 active:bg-neutral-200"
         title="登录后可标记想去"
       >
         <Bookmark className="size-3.5" aria-hidden />
@@ -798,7 +865,7 @@ function RestaurantMarkActions({
 
   if (statusQ.isPending) {
     return (
-      <span className="inline-flex h-8 shrink-0 items-center rounded-full bg-neutral-100 px-2.5 text-[11px] font-semibold text-neutral-400">
+      <span className="absolute right-4 top-4 inline-flex h-8 shrink-0 items-center rounded-full bg-neutral-100 px-2.5 text-[11px] font-semibold text-neutral-400">
         载入…
       </span>
     )
@@ -807,7 +874,7 @@ function RestaurantMarkActions({
   if (statusQ.isError) {
     return (
       <span
-        className="inline-flex h-8 shrink-0 items-center rounded-full bg-rose-50 px-2.5 text-[11px] font-semibold text-rose-600 ring-1 ring-rose-100"
+        className="absolute right-4 top-4 inline-flex h-8 shrink-0 items-center rounded-full bg-rose-50 px-2.5 text-[11px] font-semibold text-rose-600 ring-1 ring-rose-100"
         title={(statusQ.error as Error)?.message ?? '无法读取标记状态'}
       >
         标记失败
@@ -819,7 +886,7 @@ function RestaurantMarkActions({
 
   if (st === 'reviewed') {
     return (
-      <span className="inline-flex h-8 shrink-0 items-center rounded-full bg-emerald-50 px-2.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-100">
+      <span className="absolute bottom-4 right-4 inline-flex h-8 shrink-0 items-center rounded-full bg-emerald-50 px-2.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-100">
         已食鉴
       </span>
     )
@@ -836,7 +903,7 @@ function RestaurantMarkActions({
         aria-pressed={marked}
         title="再次点击取消标记"
         onClick={() => deleteM.mutate()}
-        className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-orange-600 px-2.5 text-[11px] font-semibold text-white shadow-sm shadow-orange-900/20 active:bg-orange-700 disabled:opacity-50"
+        className="absolute right-4 top-4 inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-orange-600 px-2.5 text-[11px] font-semibold text-white shadow-sm shadow-orange-900/20 active:bg-orange-700 disabled:opacity-50"
       >
         <Bookmark className="size-3.5 fill-current" aria-hidden />
         {busy ? '处理中…' : '已标记'}
@@ -851,7 +918,7 @@ function RestaurantMarkActions({
       aria-pressed={marked}
       title="标记到想去"
       onClick={() => insertM.mutate()}
-      className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-orange-50 px-2.5 text-[11px] font-semibold text-orange-800 ring-1 ring-orange-200/80 active:bg-orange-100 disabled:opacity-50"
+      className="absolute right-4 top-4 inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-orange-50 px-2.5 text-[11px] font-semibold text-orange-800 ring-1 ring-orange-200/80 active:bg-orange-100 disabled:opacity-50"
     >
       <Bookmark className="size-3.5" aria-hidden />
       {busy ? '处理中…' : '标记'}
@@ -877,18 +944,24 @@ function dominantTierFromReviewList(
 }
 
 function DishTabFeed({
+  restaurantId,
   dishReviews,
   dishes,
   isDemo,
   dishFeedPending,
   dishesPending,
+  emptyReviews,
 }: {
+  restaurantId: string | null
   dishReviews: RestaurantDishReviewItem[]
   dishes: import('@/features/dishes/useDishesByRestaurant').DishLite[]
   isDemo: boolean
   dishFeedPending: boolean
   dishesPending: boolean
+  emptyReviews?: boolean
 }) {
+  const user = useAuthStore((s) => s.user)
+  const voteMut = useDishReviewVoteMutation(!isDemo ? restaurantId : null)
   if (isDemo) {
     return (
       <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm leading-6 text-neutral-500">
@@ -912,46 +985,118 @@ function DishTabFeed({
             公开菜品评价（按时间倒序）
           </h2>
           <ul className="space-y-3">
-            {dishReviews.map((r) => (
-              <li
-                key={r.id}
-                className="rounded-2xl border border-orange-100 bg-white px-4 py-3 shadow-sm shadow-orange-500/6"
-              >
-                <Link
-                  to={`/dishes/${r.dish_id}`}
-                  className="text-[15px] font-bold text-orange-700 underline-offset-4 hover:underline"
+            {dishReviews.map((r) => {
+              const votingThis =
+                voteMut.isPending && voteMut.variables?.dishReviewId === r.id
+              const guestBlocked = !user
+
+              function onTap(which: 'youpin' | 'yebang') {
+                if (!user) {
+                  window.alert('请先登录后再参与有品 / 野榜投票')
+                  return
+                }
+                const next = intentAfterVoteTap(r.my_vote, which)
+                voteMut.mutate({ dishReviewId: r.id, dishId: r.dish_id, next })
+              }
+
+              return (
+                <li
+                  key={r.id}
+                  className="rounded-2xl border border-orange-100 bg-white px-3 py-3 shadow-sm shadow-orange-500/6"
                 >
-                  {r.dish_name}
-                </Link>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-bold text-neutral-500">
-                    {r.reviewer_nickname}
-                  </span>
-                  <span className="text-[11px] text-neutral-400">
-                    · {dateFmt.format(new Date(r.created_at))}
-                  </span>
-                  <span
-                    className="text-[11px] font-bold"
-                    style={{ color: tierInk(r.store_tier) }}
-                  >
-                    · {TIER_LABEL[r.store_tier]}档
-                  </span>
-                  <span className="ml-auto rounded-full bg-orange-50 px-2 py-0.5 text-[12px] font-black text-orange-800">
-                    {r.score !== null ? `${r.score}` : '—'} 分
-                  </span>
-                </div>
-                {r.comment ? (
-                  <p className="mt-2 text-[14px] leading-6 text-neutral-800">{r.comment}</p>
-                ) : null}
-                {r.image_url ? (
-                  <img
-                    src={r.image_url}
-                    alt=""
-                    className="mt-2 max-h-48 w-full rounded-xl object-cover"
-                  />
-                ) : null}
-              </li>
-            ))}
+                  <div className="flex items-start gap-3">
+                    <Link
+                      to={`/dishes/${r.dish_id}`}
+                      className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-100"
+                      aria-label={`查看菜品 ${r.dish_name}`}
+                    >
+                      {r.dish_cover_image_url ? (
+                        <img src={r.dish_cover_image_url} alt="" className="size-full object-cover" />
+                      ) : (
+                        <Utensils className="size-5" aria-hidden />
+                      )}
+                    </Link>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <Link
+                            to={`/dishes/${r.dish_id}`}
+                            className="line-clamp-1 text-[15px] font-bold text-orange-700 underline-offset-4 hover:underline"
+                          >
+                            {r.dish_name}
+                          </Link>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className="text-[11px] font-semibold text-sky-700">
+                              {r.reviewer_nickname}
+                            </span>
+                            <span className="text-[11px] text-neutral-300" aria-hidden>
+                              ·
+                            </span>
+                            <span className="text-[11px] text-neutral-400">
+                              {dateFmt.format(new Date(r.created_at))}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[12px] font-black text-orange-800">
+                          {r.score !== null ? `${r.score}` : '—'} 分
+                        </span>
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-2">
+                        {r.image_url ? (
+                          <img
+                            src={r.image_url}
+                            alt=""
+                            className="size-16 shrink-0 rounded-xl object-cover ring-1 ring-neutral-200/80"
+                          />
+                        ) : null}
+                        <p className="min-w-0 flex-1 text-[14px] leading-6 text-neutral-800">
+                          {r.comment?.trim() || '（未填写菜品锐评）'}
+                        </p>
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          disabled={votingThis || guestBlocked}
+                          title={guestBlocked ? '请先登录' : '觉得这条菜评中肯、有参考价值'}
+                          aria-pressed={r.my_vote === 'youpin'}
+                          onClick={() => onTap('youpin')}
+                          className={`inline-flex min-w-[4.75rem] items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                            r.my_vote === 'youpin'
+                              ? 'bg-orange-50 text-orange-950 shadow-[inset_0_0_0_2px_rgb(251_146_60)]'
+                              : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-orange-50/60'
+                          }`}
+                        >
+                          有品
+                          <span className="tabular-nums opacity-85">{r.youpin_count}</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={votingThis || guestBlocked}
+                          title={guestBlocked ? '请先登录' : '觉得这条菜评离谱、参考价值低'}
+                          aria-pressed={r.my_vote === 'yebang'}
+                          onClick={() => onTap('yebang')}
+                          className={`inline-flex min-w-[4.75rem] items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                            r.my_vote === 'yebang'
+                              ? 'bg-violet-50 text-violet-950 shadow-[inset_0_0_0_2px_rgb(167_139_250)]'
+                              : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-violet-50/55'
+                          }`}
+                        >
+                          野榜
+                          <span className="tabular-nums opacity-85">{r.yebang_count}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {voteMut.isError && voteMut.variables?.dishReviewId === r.id ? (
+                    <p className="mt-2 px-1 text-[10px] text-rose-600">
+                      {(voteMut.error as Error)?.message ?? '投票失败'}
+                    </p>
+                  ) : null}
+                </li>
+              )
+            })}
           </ul>
         </div>
       ) : null}

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import type { Tier } from '@/lib/db'
+import type { Tier, VoteType } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
 
 export interface DishReviewFeedItem {
   id: string
@@ -10,6 +11,9 @@ export interface DishReviewFeedItem {
   score: number | null
   comment: string | null
   image_url: string | null
+  youpin_count: number
+  yebang_count: number
+  my_vote: VoteType | null
 }
 
 interface DrMini {
@@ -28,8 +32,9 @@ interface PrMini {
 }
 
 export function useDishReviewsByDish(dishId: string | null) {
+  const viewerId = useAuthStore((s) => s.user?.id ?? null)
   return useQuery<DishReviewFeedItem[]>({
-    queryKey: ['dish-reviews', dishId],
+    queryKey: ['dish-reviews', dishId, viewerId],
     enabled: isSupabaseConfigured && !!dishId,
     queryFn: async () => {
       const did = dishId!
@@ -68,10 +73,30 @@ export function useDishReviewsByDish(dishId: string | null) {
       type P = { id: string; nickname: string | null }
       const nib = new Map<string, string | null>((pok as P[])?.map((p) => [p.id, p.nickname]))
 
+      const reviewIds = revs.map((r) => r.id)
+      const { data: voteRaw, error: e4 } = await sb
+        .from('review_votes')
+        .select('user_id,target_id,vote_type')
+        .eq('target_type', 'dish_review')
+        .in('target_id', reviewIds)
+
+      if (e4) throw e4
+
+      type VoteRow = { user_id: string; target_id: string; vote_type: VoteType }
+      const voteSummary = new Map<string, { youpin: number; yebang: number; mine: VoteType | null }>()
+      for (const v of (voteRaw ?? []) as VoteRow[]) {
+        const cur = voteSummary.get(v.target_id) ?? { youpin: 0, yebang: 0, mine: null }
+        if (v.vote_type === 'youpin') cur.youpin += 1
+        if (v.vote_type === 'yebang') cur.yebang += 1
+        if (viewerId && v.user_id === viewerId) cur.mine = v.vote_type
+        voteSummary.set(v.target_id, cur)
+      }
+
       const items: DishReviewFeedItem[] = []
       for (const r of revs) {
         const pr = practices.get(r.practice_record_id)
         if (!pr) continue
+        const votes = voteSummary.get(r.id) ?? { youpin: 0, yebang: 0, mine: null }
 
         items.push({
           id: r.id,
@@ -81,6 +106,9 @@ export function useDishReviewsByDish(dishId: string | null) {
           score: r.score,
           comment: r.comment,
           image_url: r.image_url,
+          youpin_count: votes.youpin,
+          yebang_count: votes.yebang,
+          my_vote: votes.mine,
         })
       }
 
