@@ -60,9 +60,9 @@ function GeolocateOnMount() {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        map.setView([coords.latitude, coords.longitude], 5, { animate: true })
+        map.setView([coords.latitude, coords.longitude], 10, { animate: true })
       },
-      () => {},
+      () => { },
       { timeout: 8000, maximumAge: 60_000 },
     )
   }, [map])
