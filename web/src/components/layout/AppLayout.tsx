@@ -33,10 +33,6 @@ const PRACTICE_STEPS = [
   { step: 3, label: '菜品' },
 ] as const
 
-/**
- * 食鉴步骤块 clip-path：上下边水平平行；左侧内凹、右侧外凸，且两侧尖角对称。
- * 右凸水平跨度 (100-b) 与左凹深度 (c-a) 相等；按需求设为 **10%**（肩到尖的水平距离）。
- */
 const PRACTICE_STEP_CLIP_A = 10
 const PRACTICE_STEP_CLIP_B = 90
 const PRACTICE_STEP_CLIP_C = PRACTICE_STEP_CLIP_A + (100 - PRACTICE_STEP_CLIP_B)
@@ -44,6 +40,7 @@ const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_
 
 export function AppLayout() {
   const { pathname } = useLocation()
+  const isHome = pathname === '/'
   const hideTabs =
     pathname.startsWith('/restaurants/') ||
     pathname.startsWith('/dishes/') ||
@@ -56,7 +53,9 @@ export function AppLayout() {
           'flex-1',
           hideTabs
             ? 'pb-[max(1rem,env(safe-area-inset-bottom))]'
-            : 'pb-20',
+            : isHome
+              ? 'pb-0 overflow-hidden'
+              : 'pb-20',
         )}
       >
         <Outlet />

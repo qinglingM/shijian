@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@keyframes shijian-slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
 @theme {
   --color-brand: oklch(0.55 0.20 25);
 }
