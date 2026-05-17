@@ -49,7 +49,7 @@ export function AppRouter() {
           path="/practice/step3"
           element={
             <RequireAuth>
-              <PracticeStep3Page />
+              <PracticeStep2Page defaultTab="dishes" />
             </RequireAuth>
           }
         />
