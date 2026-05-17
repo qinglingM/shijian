@@ -40,7 +40,7 @@ const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_
 
 export function AppLayout() {
   const { pathname } = useLocation()
-  const isHome = pathname === '/'
+  const isHome = pathname === '/' || pathname === '/map'
   const hideTabs =
     pathname.startsWith('/restaurants/') ||
     pathname.startsWith('/dishes/') ||

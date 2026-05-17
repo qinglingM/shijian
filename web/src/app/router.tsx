@@ -15,7 +15,7 @@ import { UserProfilePage } from '@/pages/UserProfilePage'
 import { MarksPage } from '@/pages/MarksPage'
 import { BolePage } from '@/pages/BolePage'
 import { SearchRestaurantsPage } from '@/pages/SearchRestaurantsPage'
-import { PracticeMapPage } from '@/pages/PracticeMapPage'
+import { HomeMap } from '@/features/map/HomeMap'
 import { AuthPage } from '@/pages/AuthPage'
 import { MeProfileEditPage } from '@/pages/MeProfileEditPage'
 import { LegalDocPage } from '@/pages/LegalDocPage'
@@ -28,7 +28,7 @@ export function AppRouter() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/search" element={<SearchRestaurantsPage />} />
-        <Route path="/map" element={<PracticeMapPage />} />
+        <Route path="/map" element={<HomeMap />} />
         <Route
           path="/practice/step1"
           element={
