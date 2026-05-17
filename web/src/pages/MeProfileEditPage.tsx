@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown } from 'lucide-react'
+import { Camera, ChevronDown } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import type { ProfileRow } from '@/lib/db'
 import { maskPhoneDisplay } from '@/lib/maskPhone'
@@ -47,6 +47,7 @@ type EditProfilePick = Pick<
   | 'phone'
   | 'phone_verified_at'
   | 'phone_binding_exempt'
+  | 'avatar_url'
 >
 
 const settingsControlRight =
@@ -126,12 +127,96 @@ function pickEditProfile(row: Record<string, unknown>): EditProfilePick {
     phone_verified_at:
       typeof row.phone_verified_at === 'string' ? row.phone_verified_at : null,
     phone_binding_exempt: row.phone_binding_exempt === true,
+    avatar_url: typeof row.avatar_url === 'string' ? row.avatar_url : null,
   }
+}
+
+function AvatarUpload({
+  avatarUrl,
+  userId,
+  onUploaded,
+}: {
+  avatarUrl: string | null
+  userId: string
+  onUploaded: (url: string) => void
+}) {
+  const queryClient = useQueryClient()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleFile(file: File) {
+    if (!file.type.startsWith('image/')) { setError('请选择图片文件'); return }
+    setError(null)
+    setUploading(true)
+    const objectUrl = URL.createObjectURL(file)
+    setPreview(objectUrl)
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+      const path = `${userId}/avatar.${ext}`
+      const sb = getSupabase()
+      const { error: upErr } = await sb.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type })
+      if (upErr) throw upErr
+      const { data: { publicUrl } } = sb.storage.from('avatars').getPublicUrl(path)
+      const bust = `${publicUrl}?t=${Date.now()}`
+      const { error: dbErr } = await sb.from('profiles').update({ avatar_url: bust }).eq('id', userId)
+      if (dbErr) throw dbErr
+      onUploaded(bust)
+      await queryClient.invalidateQueries({ queryKey: ['me-summary'] })
+      await queryClient.invalidateQueries({ queryKey: ['me-profile-edit'] })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '上传失败，请重试')
+      setPreview(null)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const displayed = preview ?? avatarUrl
+
+  return (
+    <div className="flex flex-col items-center gap-2 py-5">
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        className="relative"
+        aria-label="更换头像"
+      >
+        <div className="w-20 h-20 rounded-full overflow-hidden bg-orange-100 flex items-center justify-center ring-2 ring-orange-200">
+          {displayed ? (
+            <img src={displayed} alt="头像" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-3xl font-bold text-orange-400">食</span>
+          )}
+        </div>
+        <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-neutral-900 flex items-center justify-center ring-2 ring-white">
+          {uploading
+            ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            : <Camera size={12} className="text-white" />
+          }
+        </div>
+      </button>
+      <p className="text-xs text-neutral-400">{uploading ? '上传中…' : '点击更换头像'}</p>
+      {error && <p className="text-xs text-rose-500">{error}</p>}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+      />
+    </div>
+  )
 }
 
 function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; userId: string }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url)
 
   const mutation = useMutation({
     mutationFn: async (payload: {
@@ -201,6 +286,8 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
         })
       }}
     >
+      <AvatarUpload avatarUrl={avatarUrl} userId={userId} onUploaded={setAvatarUrl} />
+
       <div className="divide-y divide-neutral-100 overflow-hidden rounded-2xl border border-neutral-100 bg-white">
         <SettingsRow label="昵称">
           <input

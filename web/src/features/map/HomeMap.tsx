@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet'
+import { useCallback, useEffect, useState } from 'react'
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Search } from 'lucide-react'
@@ -32,6 +32,21 @@ function createAvatarIcon(avatarUrl: string | null, nickname: string): L.DivIcon
 
 function MapDismiss({ onDismiss }: { onDismiss: () => void }) {
   useMapEvents({ click: onDismiss })
+  return null
+}
+
+function GeolocateOnMount() {
+  const map = useMap()
+  useEffect(() => {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        map.setView([coords.latitude, coords.longitude], 13, { animate: true })
+      },
+      () => {},
+      { timeout: 8000, maximumAge: 60_000 },
+    )
+  }, [map])
   return null
 }
 
@@ -183,6 +198,7 @@ export function HomeMap() {
           subdomains="1234"
           maxZoom={18}
         />
+        <GeolocateOnMount />
         <MapDismiss onDismiss={dismiss} />
         {restaurants.map((r) => (
           <Marker
