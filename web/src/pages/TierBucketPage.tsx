@@ -13,7 +13,7 @@ export function TierBucketPage() {
   const tierParam = typeof raw === 'string' ? raw : undefined
 
   if (!tierParam || !isTier(tierParam)) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/tier-map" replace />
   }
 
   const tier = tierParam
@@ -26,7 +26,7 @@ export function TierBucketPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-3rem)] flex-col bg-white pb-8">
-      <BackHeader title={`${TIER_LABEL[tier]}档位`} />
+      <BackHeader title={`${TIER_LABEL[tier]}档位`} backTo="/tier-map" />
       <div className="px-4 pt-4">
         <div className="flex items-end justify-between gap-3 pb-4">
           <div>

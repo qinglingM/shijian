@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Eye, EyeOff, Map, Search as SearchIcon } from 'lucide-react'
-import { CityPicker } from '@/features/city-picker/CityPicker'
+import { Eye, EyeOff, Search as SearchIcon } from 'lucide-react'
+import { DiscoveryTopBar } from '@/components/layout/DiscoveryTopBar'
 import { TierMapCategoryFilter } from '@/features/tier-map/TierMapCategoryFilter'
 import { TierMap } from '@/features/tier-map/TierMap'
 import {
@@ -72,28 +72,19 @@ export function HomePage() {
 
   return (
     <div className="flex min-h-[calc(100vh-5rem)] flex-col">
-      {/* 顶部：城市 + 搜索 + 菜单 */}
-      <header className="flex items-center gap-3 px-4 pt-3 pb-2">
-        <Link
-          to="/map"
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700 ring-1 ring-black/[0.06] transition-colors active:bg-neutral-200"
-          aria-label="实践地图"
-        >
-          <Map size={18} aria-hidden strokeWidth={2.2} />
-        </Link>
-        <Link
-          to="/search"
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-neutral-100 p-1.5 text-sm text-neutral-400 outline-none ring-orange-400/0 transition-[box-shadow,color] active:bg-neutral-200/90"
-          aria-label="搜索我吃过的店"
-        >
-          <span className="flex min-w-0 flex-1 items-center gap-2 px-3 py-1.5">
-            <SearchIcon size={16} aria-hidden className="shrink-0 text-neutral-400" />
-            <span className="truncate">搜索我吃过的店</span>
-          </span>
-          <span className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[12px] font-semibold text-neutral-700 shadow-sm ring-1 ring-black/[0.06]">
-            搜索
-          </span>
-        </Link>
+      <header className="px-4 pt-3 pb-2">
+        <DiscoveryTopBar
+          searchSlot={(
+            <Link
+              to="/search"
+              className="flex min-w-0 items-center gap-2 rounded-full bg-neutral-100 px-4 py-2.5 text-sm text-neutral-400 outline-none transition-colors active:bg-neutral-200/90"
+              aria-label="搜索我吃过的店"
+            >
+              <SearchIcon size={16} aria-hidden className="shrink-0 text-neutral-400" />
+              <span className="truncate">搜索我吃过的店</span>
+            </Link>
+          )}
+        />
       </header>
 
       {/* 中部：情绪文案 + 总数 */}
@@ -124,9 +115,6 @@ export function HomePage() {
             </p>
           </>
         )}
-        <div className="mt-4 flex items-center gap-3">
-          <CityPicker variant="field" />
-        </div>
         <p className="mt-1.5 text-sm text-neutral-500">{EMOTION}</p>
       </section>
 

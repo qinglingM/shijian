@@ -26,7 +26,8 @@ export function AppRouter() {
       <Route path="/auth" element={<AuthPage />} />
       <Route path="/legal/:slug" element={<LegalDocPage />} />
       <Route element={<AppLayout />}>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<Navigate to="/map" replace />} />
+        <Route path="/tier-map" element={<HomePage />} />
         <Route path="/search" element={<SearchRestaurantsPage />} />
         <Route path="/map" element={<HomeMap />} />
         <Route
@@ -85,7 +86,7 @@ export function AppRouter() {
         />
         <Route path="/me/marks" element={<MarksPage />} />
         <Route path="/me/bole" element={<BolePage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/map" replace />} />
       </Route>
     </Routes>
   )

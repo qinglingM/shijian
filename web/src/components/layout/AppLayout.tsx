@@ -11,10 +11,11 @@ const TABS = [
     primary: false,
   },
   {
-    to: '/',
+    to: '/tier-map',
     label: '食鉴图',
     icon: BookOpen,
-    match: (p: string) => p === '/' || p.startsWith('/search'),
+    match: (p: string) =>
+      p === '/tier-map' || p.startsWith('/search') || p.startsWith('/tiers/'),
     primary: false,
   },
   {
@@ -46,7 +47,7 @@ const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_
 
 export function AppLayout() {
   const { pathname } = useLocation()
-  const isHome = pathname === '/' || pathname === '/map'
+  const isHome = pathname === '/' || pathname === '/map' || pathname === '/tier-map'
   const hideTabs =
     pathname.startsWith('/restaurants/') ||
     pathname.startsWith('/dishes/') ||

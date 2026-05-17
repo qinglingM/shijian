@@ -2,10 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { MapPin, Search, UtensilsCrossed, X } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Search, UtensilsCrossed, X } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { DiscoveryTopBar } from '@/components/layout/DiscoveryTopBar'
+import { lookupExistingRestaurantByPoi, usePoiSearch } from '@/features/poi-search/usePoiSearch'
+import { useCityStore } from '@/features/city-picker/cityStore'
 import { useMapRestaurants, type MapRestaurant } from './useMapRestaurants'
 import { TIER_ORDER, TIER_LABEL, type Tier } from '@/lib/db'
+import type { PoiCandidate } from '@/lib/poi'
 
 const ChinaCenter: L.LatLngExpression = [35.86, 104.19]
 
@@ -75,128 +79,116 @@ function MapRefCapture({ onCapture }: { onCapture: (map: L.Map) => void }) {
   return null
 }
 
-interface CityResult {
-  name: string
-  lat: number
-  lng: number
-  count: number
-}
-
 function SearchBar({
-  restaurants,
-  onSelectRestaurant,
-  onSelectCity,
+  onOpenPoi,
+  onInteract,
 }: {
-  restaurants: MapRestaurant[]
-  onSelectRestaurant: (r: MapRestaurant) => void
-  onSelectCity: (lat: number, lng: number) => void
+  onOpenPoi: (poi: PoiCandidate) => Promise<void>
+  onInteract: () => void
 }) {
+  const cityName = useCityStore((s) => s.cityName)
+  const tierMapShowsAllChina = useCityStore((s) => s.tierMapShowsAllChina)
   const [query, setQuery] = useState('')
   const [focused, setFocused] = useState(false)
+  const [openingPoiId, setOpeningPoiId] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const keyword = query.trim()
+  const { data: results = [], isLoading, isFetching } = usePoiSearch(
+    keyword,
+    tierMapShowsAllChina ? undefined : cityName,
+  )
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return null
+  const showDropdown = focused && keyword.length > 0
+  const hasResults = results.length > 0
+  const cityScopeLabel = tierMapShowsAllChina ? '全国' : cityName
 
-    const matchedRestaurants = restaurants
-      .filter((r) => r.display_name.toLowerCase().includes(q))
-      .slice(0, 5)
-
-    const cityMap = new Map<string, CityResult>()
-    for (const r of restaurants) {
-      if (!r.city_name?.toLowerCase().includes(q)) continue
-      const existing = cityMap.get(r.city_name!)
-      if (existing) {
-        existing.lat = (existing.lat * existing.count + r.latitude) / (existing.count + 1)
-        existing.lng = (existing.lng * existing.count + r.longitude) / (existing.count + 1)
-        existing.count++
-      } else {
-        cityMap.set(r.city_name!, { name: r.city_name!, lat: r.latitude, lng: r.longitude, count: 1 })
-      }
+  async function handlePickPoi(poi: PoiCandidate) {
+    setOpeningPoiId(poi.poi_id)
+    try {
+      await onOpenPoi(poi)
+      setQuery('')
+      setFocused(false)
+    } finally {
+      setOpeningPoiId(null)
     }
-    const matchedCities = [...cityMap.values()].slice(0, 3)
-
-    return { restaurants: matchedRestaurants, cities: matchedCities }
-  }, [query, restaurants])
-
-  const showDropdown = focused && query.trim().length > 0
-  const hasResults = results && (results.restaurants.length > 0 || results.cities.length > 0)
+  }
 
   return (
     <div className="absolute top-3 left-3 right-3 z-[410]">
-      <div className="flex items-center gap-2 rounded-full bg-white/95 backdrop-blur px-4 py-2.5 shadow-md ring-1 ring-black/[0.06]">
-        <Search size={15} className="text-neutral-400 shrink-0" />
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setTimeout(() => setFocused(false), 150)}
-          placeholder="搜索城市、餐厅…"
-          className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
-        />
-        {query && (
-          <button
-            className="shrink-0 text-neutral-400"
-            onClick={() => { setQuery(''); inputRef.current?.focus() }}
-          >
-            <X size={14} />
-          </button>
+      <DiscoveryTopBar
+        className="gap-2"
+        searchSlot={(
+          <div className="flex items-center gap-2 rounded-full bg-white/95 backdrop-blur px-4 py-2.5 shadow-md ring-1 ring-black/[0.06]">
+            <Search size={15} className="shrink-0 text-neutral-400" />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                onInteract()
+              }}
+              onFocus={() => {
+                setFocused(true)
+                onInteract()
+              }}
+              onBlur={() => setTimeout(() => setFocused(false), 150)}
+              placeholder={`在${cityScopeLabel}搜店名、区域、地址`}
+              className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
+            />
+            {query && (
+              <button
+                className="shrink-0 text-neutral-400"
+                onClick={() => {
+                  setQuery('')
+                  inputRef.current?.focus()
+                }}
+                aria-label="清空搜索词"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         )}
-      </div>
+      />
 
       {showDropdown && (
         <div
           className="mt-2 rounded-2xl bg-white shadow-xl ring-1 ring-black/[0.05] overflow-hidden"
           style={{ maxHeight: '60dvh', overflowY: 'auto' }}
         >
-          {!hasResults ? (
+          {isLoading || isFetching ? (
+            <p className="px-4 py-3 text-center text-[13px] text-neutral-400">搜索中…</p>
+          ) : !hasResults ? (
             <p className="px-4 py-3 text-[13px] text-neutral-400 text-center">无匹配结果</p>
           ) : (
             <>
-              {results.cities.map((city) => (
+              {results.map((poi) => (
                 <button
-                  key={city.name}
+                  key={`${poi.poi_source}-${poi.poi_id}`}
                   className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-neutral-50 border-b border-neutral-50 last:border-0"
-                  onClick={() => {
-                    onSelectCity(city.lat, city.lng)
-                    setQuery('')
-                    setFocused(false)
-                  }}
+                  disabled={openingPoiId === poi.poi_id}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => void handlePickPoi(poi)}
                 >
-                  <MapPin size={14} className="text-neutral-400 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-medium text-neutral-800">{city.name}</p>
-                    <p className="text-[11px] text-neutral-400">{city.count} 家餐厅</p>
-                  </div>
-                </button>
-              ))}
-              {results.cities.length > 0 && results.restaurants.length > 0 && (
-                <div className="h-px bg-neutral-100" />
-              )}
-              {results.restaurants.map((r) => (
-                <button
-                  key={r.id}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left active:bg-neutral-50 border-b border-neutral-50 last:border-0"
-                  onClick={() => {
-                    onSelectRestaurant(r)
-                    setQuery('')
-                    setFocused(false)
-                  }}
-                >
-                  <div className="shrink-0 w-8 h-8 rounded-lg overflow-hidden bg-orange-100 flex items-center justify-center">
-                    {r.cover_image_url ? (
-                      <img src={r.cover_image_url} className="w-full h-full object-cover" alt="" />
+                  <div className="shrink-0 flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-orange-100">
+                    {poi.cover_image_url ? (
+                      <img src={poi.cover_image_url} className="h-full w-full object-cover" alt="" />
                     ) : (
-                      <UtensilsCrossed size={14} className="text-orange-300" />
+                      <UtensilsCrossed size={16} className="text-orange-300" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium text-neutral-800 truncate">{r.display_name}</p>
-                    <p className="text-[11px] text-neutral-400">
-                      {[r.city_name, r.district_name].filter(Boolean).join(' · ')}
+                    <p className="truncate text-[13px] font-medium text-neutral-800">
+                      {poi.poi_name}
                     </p>
+                    <p className="text-[11px] text-neutral-400">
+                      {[poi.city_name, poi.district_name].filter(Boolean).join(' · ') || '区域未知'}
+                    </p>
+                    {poi.address_text ? (
+                      <p className="mt-0.5 truncate text-[11px] text-neutral-400">
+                        {poi.address_text}
+                      </p>
+                    ) : null}
                   </div>
                 </button>
               ))}
@@ -282,6 +274,7 @@ export function HomeMap() {
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
   const [selectedTier, setSelectedTier] = useState<Tier | null>(null)
   const mapRef = useRef<L.Map | null>(null)
+  const navigate = useNavigate()
 
   const visibleRestaurants = useMemo(
     () => (selectedTier ? restaurants.filter((r) => r.tier === selectedTier) : restaurants),
@@ -298,21 +291,32 @@ export function HomeMap() {
     mapRef.current = map
   }, [])
 
-  const handleSelectRestaurant = useCallback((r: MapRestaurant) => {
-    setSelected(r)
-    mapRef.current?.flyTo([r.latitude, r.longitude], 14, { animate: true, duration: 0.8 })
-  }, [])
+  const handleOpenPoi = useCallback(
+    async (poi: PoiCandidate) => {
+      if (poi.latitude !== null && poi.longitude !== null) {
+        mapRef.current?.flyTo([poi.latitude, poi.longitude], 15, {
+          animate: true,
+          duration: 0.8,
+        })
+      }
 
-  const handleSelectCity = useCallback((lat: number, lng: number) => {
-    mapRef.current?.flyTo([lat, lng], 11, { animate: true, duration: 0.8 })
-  }, [])
+      const existingId = await lookupExistingRestaurantByPoi(poi.poi_source, poi.poi_id)
+      if (existingId) {
+        navigate(`/restaurants/${existingId}`, { state: { poi } })
+        return
+      }
+      navigate(`/restaurants/poi/${poi.poi_source}/${poi.poi_id}`, {
+        state: { poi },
+      })
+    },
+    [navigate],
+  )
 
   return (
     <div className="relative w-full" style={{ height: 'calc(100dvh - 80px)' }}>
       <SearchBar
-        restaurants={restaurants}
-        onSelectRestaurant={handleSelectRestaurant}
-        onSelectCity={handleSelectCity}
+        onOpenPoi={handleOpenPoi}
+        onInteract={dismiss}
       />
 
       {isLoading && (

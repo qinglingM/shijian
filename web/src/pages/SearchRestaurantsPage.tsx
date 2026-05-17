@@ -40,7 +40,7 @@ export function SearchRestaurantsPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-5rem)] flex-col bg-white pb-4">
-      <BackHeader title="搜索门店" />
+      <BackHeader title="搜索门店" backTo="/tier-map" />
 
       <div className="border-b border-neutral-100 px-4 pb-3 pt-2">
         <div className="mb-2 flex items-center gap-2">
@@ -95,7 +95,7 @@ export function SearchRestaurantsPage() {
               没有匹配的门店。换一个词试试。
               <button
                 type="button"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/tier-map')}
                 className="mt-4 inline-block text-sm font-medium text-orange-600"
               >
                 回食鉴图看看
