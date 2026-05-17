@@ -37,7 +37,7 @@ function createRestaurantIcon(coverImageUrl: string | null, tier: Tier | null): 
   return L.divIcon({
     html: `<div style="
       width:44px;height:44px;border-radius:10px;
-      border:2.5px solid #fff;
+      border:3px solid ${tier ? TIER_HEX[tier] : '#e5e5e5'};
       box-shadow:0 2px 10px rgba(0,0,0,0.28);
       background:${bg};
       display:flex;align-items:center;justify-content:center;
