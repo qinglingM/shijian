@@ -38,6 +38,7 @@ web/.vite/
 web/.tsbuildinfo
 **/.tsbuildinfo
 .cursor/
+.claude/worktrees/
 supabase/.temp/
 
 # Temporary scripts output
@@ -48,4 +49,3 @@ supabase/migrations/0013_set_auth_password_for_phone_137.sql
 
 # Scratch directory
 scratch/
-
