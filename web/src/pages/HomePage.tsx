@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Eye, EyeOff, Search as SearchIcon } from 'lucide-react'
-import { DiscoveryTopBar } from '@/components/layout/DiscoveryTopBar'
+import { Eye, EyeOff, LayoutGrid, List, Search as SearchIcon } from 'lucide-react'
+import { CityPicker } from '@/features/city-picker/CityPicker'
 import { TierMapCategoryFilter } from '@/features/tier-map/TierMapCategoryFilter'
 import { TierMap } from '@/features/tier-map/TierMap'
 import {
@@ -13,10 +13,16 @@ import {
   filterTierMapByCategory,
   summarizeTierMapCategoryKeys,
   useDisplayedTierMap,
+  type TierMapItem,
 } from '@/features/tier-map/useTierMap'
 import { useCategories } from '@/features/categories/useCategories'
+import { TIER_LABEL, type Tier } from '@/lib/db'
 
-const EMOTION = '把吃过的店，摆成自己的战利品墙'
+type ViewMode = 'grid' | 'list'
+
+interface FlatItem extends TierMapItem {
+  tier: Tier
+}
 
 export function HomePage() {
   const manualShowDemo = useTierMapDemoStore((s: TierMapDemoStore) => s.manualShowDemo)
@@ -25,19 +31,18 @@ export function HomePage() {
   const categoriesQ = useCategories()
 
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
   const { categoryIds, hasUncategorized } = useMemo(
     () => summarizeTierMapCategoryKeys(map.buckets),
     [map.buckets],
   )
 
-  /** 后台分类全集 + 图上已有分类，下拉始终有可选「美食种类」 */
   const categoryCatalog = useMemo(
     () => (categoriesQ.data ?? []).map((r) => ({ id: r.id, name: r.name })),
     [categoriesQ.data],
   )
 
-  /** 数据变化后剔除已不存在的筛选值，避免在无 effect 下写回 state（见 react-hooks/set-state-in-effect） */
   const displayCategoryFilter = useMemo(() => {
     const f = categoryFilter
     if (f === null) return null
@@ -53,97 +58,62 @@ export function HomePage() {
     [map, displayCategoryFilter],
   )
 
+  const flatItems = useMemo<FlatItem[]>(() => {
+    const items: FlatItem[] = displayMap.buckets.flatMap((b) =>
+      b.restaurants.map((r) => ({ ...r, tier: b.tier })),
+    )
+    return items.sort((a, b) => {
+      if (!a.practiced_at && !b.practiced_at) return 0
+      if (!a.practiced_at) return 1
+      if (!b.practiced_at) return -1
+      return b.practiced_at.localeCompare(a.practiced_at)
+    })
+  }, [displayMap.buckets])
+
+  const totalCount = displayMap.total_count
+
   const showCategoryFilter =
     !error &&
     !(isLoading && !showingDemo) &&
     (categoryCatalog.length > 0 || categoryIds.size > 0 || hasUncategorized || showingDemo)
 
-  const filterActive = displayCategoryFilter !== null
-
-  let filterLabelBadge: string | null = null
-  if (displayCategoryFilter === TIER_MAP_UNCATEGORIZED_FILTER) filterLabelBadge = '未分类'
-  else if (displayCategoryFilter !== null)
-    filterLabelBadge =
-      map.buckets
-        .flatMap((b) => b.restaurants)
-        .find((r) => r.category_id === displayCategoryFilter)?.category_name ??
-      categoryCatalog.find((c) => c.id === displayCategoryFilter)?.name ??
-      '该类'
-
   return (
     <div className="flex min-h-[calc(100vh-5rem)] flex-col">
-      <header className="px-4 pt-3 pb-2">
-        <DiscoveryTopBar
-          searchSlot={(
-            <Link
-              to="/search"
-              className="flex min-w-0 items-center rounded-full bg-neutral-100 px-4 py-2.5 text-sm text-neutral-400 outline-none transition-colors active:bg-neutral-200/90"
-              aria-label="探索一切值得的美味"
-            >
-              <span className="truncate">探索一切值得的美味</span>
-              <SearchIcon size={16} aria-hidden className="ml-2 shrink-0 text-neutral-400" />
-            </Link>
-          )}
-        />
+      <header className="flex items-center justify-between px-4 pt-4 pb-2">
+        <div className="w-16" />
+        <h1 className="text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
+        <div className="flex w-16 justify-end">
+          <button
+            type="button"
+            onClick={() => setViewMode((m) => (m === 'grid' ? 'list' : 'grid'))}
+            aria-label={viewMode === 'grid' ? '切换为列表视图' : '切换为表格视图'}
+            className="flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium text-neutral-500 ring-1 ring-neutral-200 active:bg-neutral-50"
+          >
+            {viewMode === 'grid' ? <List size={14} /> : <LayoutGrid size={14} />}
+            <span className="tabular-nums">{totalCount}</span>
+          </button>
+        </div>
       </header>
 
-      {/* 中部：情绪文案 + 总数 */}
-      <section className="px-5 pt-4 pb-5">
-        {filterActive ? (
-          <>
-            <p className="text-2xl font-semibold tracking-tight text-neutral-900">
-              「{filterLabelBadge}」
-              <span className="mx-1 text-lg font-semibold text-neutral-400">
-                /
-              </span>
-              <span className="text-2xl">匹配</span>{' '}
-              <span className="text-3xl">{displayMap.total_count}</span> 家店
-            </p>
-            <p className="mt-2 text-[13px] text-neutral-500">
-              全部分类合计{' '}
-              <span className="font-semibold tabular-nums text-neutral-700">
-                {map.total_count}
-              </span>{' '}
-              家
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-2xl font-semibold tracking-tight text-neutral-900">
-              你已经食鉴了{' '}
-              <span className="text-3xl text-neutral-900">{map.total_count}</span> 家店
-            </p>
-          </>
-        )}
-        <p className="mt-1.5 text-sm text-neutral-500">{EMOTION}</p>
-      </section>
-
-      {/* 六档食鉴图 */}
-      <section className="flex-1 px-0">
-        <div className="relative mb-3 rounded-2xl bg-neutral-50 px-4 py-3">
-          <div className="flex gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-neutral-900">
-                今天这顿，值得被放进哪一格？
-              </p>
-              <p className="mt-1 text-xs text-neutral-500">
-                好吃是战绩，踩雷也是履历。你的食鉴图会越来越像一张城市胃口地图。
-              </p>
-            </div>
-            {showCategoryFilter ? (
-              <div className="shrink-0 self-start space-y-1 pt-0.5 text-right">
-                <p className="text-[9px] font-medium uppercase tracking-wide text-neutral-400">
-                  筛选 · 种类
-                </p>
-                <TierMapCategoryFilter
-                  buckets={map.buckets}
-                  catalog={categoryCatalog}
-                  selected={displayCategoryFilter}
-                  onSelect={setCategoryFilter}
-                />
-              </div>
-            ) : null}
-          </div>
+      <section className="flex-1 px-4">
+        <div className="mb-3 flex items-center gap-2">
+          <CityPicker variant="navbar" />
+          <Link
+            to="/search"
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-neutral-100 px-4 py-2.5 text-sm text-neutral-400 outline-none transition-colors active:bg-neutral-200/90"
+            aria-label="搜索我吃过的店"
+          >
+            <SearchIcon size={16} aria-hidden className="shrink-0 text-neutral-400" />
+            <span className="truncate">搜索我吃过的店</span>
+          </Link>
+          {showCategoryFilter ? (
+            <TierMapCategoryFilter
+              buckets={map.buckets}
+              catalog={categoryCatalog}
+              selected={displayCategoryFilter}
+              onSelect={setCategoryFilter}
+            />
+          ) : null}
         </div>
 
         {isLoading && !showingDemo ? (
@@ -152,12 +122,18 @@ export function HomePage() {
           <p className="py-12 text-center text-sm text-rose-400">
             读取失败：{(error as Error).message}
           </p>
+        ) : viewMode === 'grid' ? (
+          <TierMap buckets={displayMap.buckets} />
         ) : (
-          <TierMap
-            buckets={displayMap.buckets}
-            showAddSlots={!filterActive}
-          />
+          <TierListView items={flatItems} />
         )}
+
+        <Link
+          to="/practice/step1"
+          className="mt-4 mb-2 flex w-full items-center justify-center rounded-2xl bg-neutral-900 py-3.5 text-sm font-medium text-white active:bg-neutral-700"
+        >
+          开始食鉴
+        </Link>
       </section>
 
       <div className="px-5 pt-4 pb-2">
@@ -182,5 +158,61 @@ export function HomePage() {
         ) : null}
       </div>
     </div>
+  )
+}
+
+const TIER_BG: Record<Tier, string> = {
+  boom: 'bg-red-50 text-red-700',
+  hang: 'bg-orange-50 text-orange-700',
+  top: 'bg-amber-50 text-amber-700',
+  upper: 'bg-yellow-50 text-yellow-800',
+  npc: 'bg-neutral-100 text-neutral-600',
+  bad: 'bg-slate-100 text-slate-600',
+}
+
+function TierListView({ items }: { items: FlatItem[] }) {
+  if (items.length === 0) {
+    return (
+      <p className="py-16 text-center text-sm text-neutral-400">还没有食鉴记录</p>
+    )
+  }
+  return (
+    <ul className="space-y-2">
+      {items.map((item) => (
+        <li key={item.id}>
+          <Link
+            to={`/restaurants/${item.id}`}
+            className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-3 shadow-sm active:bg-neutral-50"
+          >
+            <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-neutral-100">
+              {item.cover_image_url ? (
+                <img src={item.cover_image_url} alt="" className="size-full object-cover" />
+              ) : (
+                <span className="px-1 text-center text-[10px] font-semibold leading-tight text-neutral-400">
+                  {item.display_name.slice(0, 4)}
+                </span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[15px] font-bold text-neutral-950">{item.display_name}</p>
+              {item.practiced_at && (
+                <p className="mt-0.5 text-[11px] text-neutral-400">
+                  {new Date(item.practiced_at).toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </p>
+              )}
+            </div>
+            <span
+              className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${TIER_BG[item.tier]}`}
+            >
+              {TIER_LABEL[item.tier]}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   )
 }

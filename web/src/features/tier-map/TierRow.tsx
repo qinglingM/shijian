@@ -10,37 +10,31 @@ interface TierRowProps {
   tier: Tier
   count: number
   restaurants: TierMapItem[]
-  /** 分类筛选等场景下隐藏「+」添加位，避免与真实占位数量不一致 */
-  showAddSlots?: boolean
 }
 
 export function TierRow({
   tier,
   count,
   restaurants,
-  showAddSlots = true,
 }: TierRowProps) {
-  const filled = Math.min(restaurants.length, MAX_SLOTS)
-  const slots = Array.from({ length: filled }, (_, i) => i)
-  const showAddAt = -1
+  const displayRestaurants = restaurants.slice(0, MAX_SLOTS).reverse()
+  const slots = Array.from({ length: MAX_SLOTS }, (_, i) => i)
 
-  /** 仅「无封面图」店铺格：0.5px 细边框（不改变有图格与空白格） */
   const borderNoCover = 'box-border border-[0.5px] border-solid border-neutral-400/75'
 
   return (
-    <div className="grid grid-cols-[90px_1fr] items-start gap-x-[6px] gap-y-0">
+    <div className="grid grid-cols-[20%_1fr] items-start gap-0">
       <TierLabelBlock tier={tier} count={count} href={`/tiers/${tier}`} />
 
-      {/* 单档位横向浏览轨道 */}
-      <div className="flex gap-[6px] overflow-x-auto overscroll-x-contain px-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {slots.map((i) => {
-          const restaurant = restaurants[i]
+          const restaurant = displayRestaurants[i]
           if (restaurant) {
             return (
               <Link
                 key={i}
                 to={`/restaurants/${restaurant.id}`}
-                className={`group relative flex aspect-square w-[90px] shrink-0 overflow-hidden rounded-[5px] ${
+                className={`group relative flex aspect-square basis-1/4 shrink-0 flex-col overflow-hidden rounded-[5px] ${
                   restaurant.cover_image_url ? '' : borderNoCover
                 }`}
                 title={restaurant.display_name}
@@ -48,13 +42,15 @@ export function TierRow({
               >
                 {restaurant.cover_image_url ? (
                   <>
-                    <img
-                      src={restaurant.cover_image_url}
-                      alt=""
-                      className="size-full object-cover"
-                    />
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1 pt-3 pb-1">
-                      <p className="line-clamp-1 text-center text-[10px] font-medium text-white">
+                    <div className="min-h-0 flex-[3] overflow-hidden">
+                      <img
+                        src={restaurant.cover_image_url}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    </div>
+                    <div className="flex flex-[1] items-center justify-center bg-white px-1">
+                      <p className="line-clamp-1 text-center text-[9px] font-medium text-neutral-800">
                         {restaurant.display_name}
                       </p>
                     </div>
@@ -71,22 +67,10 @@ export function TierRow({
               </Link>
             )
           }
-          if (i === showAddAt) {
-            return (
-              <Link
-                key={i}
-                to="/practice/step1"
-                className="flex aspect-square w-[90px] shrink-0 items-center justify-center rounded-none bg-neutral-50 text-neutral-400 active:bg-neutral-100"
-                aria-label={`添加${TIER_LABEL[tier]}餐厅`}
-              >
-                <Plus size={20} strokeWidth={1.6} />
-              </Link>
-            )
-          }
           return (
             <div
               key={i}
-              className="aspect-square w-[90px] shrink-0 bg-neutral-50"
+              className="aspect-square basis-1/4 shrink-0 bg-neutral-50"
               aria-hidden="true"
             />
           )

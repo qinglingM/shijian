@@ -299,6 +299,7 @@ function tierMapItemFromPracticeRestaurant(row: PracticeRestaurantRow | null): T
     city_id: row.city_id ?? null,
     latitude: numOrNull(row.latitude),
     longitude: numOrNull(row.longitude),
+    practiced_at: null,
   }
 }
 
