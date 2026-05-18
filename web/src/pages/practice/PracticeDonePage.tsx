@@ -28,7 +28,7 @@ export function PracticeDonePage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-6rem)] flex-col px-4 pb-8 pt-2">
-      <BackHeader title="完成" backTo="/" />
+      <BackHeader title="完成" backTo="/tier-map" />
 
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center text-center">
         <div className="flex size-20 items-center justify-center rounded-full bg-gradient-to-br from-orange-100 to-rose-100 text-orange-600 shadow-inner ring-1 ring-orange-200/80">

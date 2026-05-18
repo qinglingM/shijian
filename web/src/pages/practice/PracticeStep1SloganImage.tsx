@@ -12,8 +12,6 @@ export function PracticeStep1SloganImage({ className }: { className?: string }) 
     const wrap = wrapRef.current
     if (!canvas || !wrap) return
 
-    let ro: ResizeObserver | undefined
-
     const paint = () => {
       const cssW = Math.max(1, wrap.clientWidth)
       const dpr = Math.min(window.devicePixelRatio ?? 1, 2)
@@ -166,7 +164,7 @@ export function PracticeStep1SloganImage({ className }: { className?: string }) 
       }
     }
 
-    ro = new ResizeObserver(() => paint())
+    const ro = new ResizeObserver(() => paint())
     ro.observe(wrap)
     run()
 

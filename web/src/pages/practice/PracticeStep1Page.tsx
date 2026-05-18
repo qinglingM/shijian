@@ -64,7 +64,7 @@ export function PracticeStep1Page() {
 
   return (
     <div className="flex min-h-[calc(100dvh-6rem)] flex-col">
-      <BackHeader title="搜索确认店铺" />
+      <BackHeader title="搜索确认店铺" backTo="/tier-map" />
 
       {/* 搜索区：背景固定不变，与下方结果区区分 */}
       <section className="shrink-0 bg-[radial-gradient(120%_85%_at_50%_0%,#f9fafb_0%,#f1f5f9_45%,#e8eef5_100%)] px-4 pt-5 pb-4">

@@ -2,8 +2,6 @@ import { useQuery } from '@tanstack/react-query'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { TIER_LABEL, type Tier, type VoteType } from '@/lib/db'
-import { useRestaurant } from '@/features/restaurants/useRestaurant'
-import type { StoreReviewItem } from '@/features/restaurants/useStoreReviewsByRestaurant'
 
 export type SquareFeedItem =
   | {

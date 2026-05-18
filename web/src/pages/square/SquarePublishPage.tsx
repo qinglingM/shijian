@@ -1,6 +1,6 @@
 import { useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Camera, X } from 'lucide-react'
+import { ArrowLeft, Camera } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { readImageAsDataUrl } from '@/lib/imageFile'
 import { useCreatePostMutation } from '@/features/posts/useCreatePostMutation'

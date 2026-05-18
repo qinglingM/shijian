@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronRight, MapPin, Search as SearchIcon } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { CityPicker } from '@/features/city-picker/CityPicker'
+import { useCityStore } from '@/features/city-picker/cityStore'
 import { usePoiSearch } from '@/features/poi-search/usePoiSearch'
 import type { PoiCandidate } from '@/lib/poi/types'
 
@@ -24,8 +25,12 @@ export function SearchRestaurantsPage() {
   const qParam = params.get('q') ?? ''
   const [draft, setDraft] = useState(qParam)
 
+  const cityName = useCityStore((s) => s.cityName)
+  const tierMapShowsAllChina = useCityStore((s) => s.tierMapShowsAllChina)
+  const searchCity = tierMapShowsAllChina ? undefined : cityName
+
   const needle = normalize(qParam)
-  const { data: pois = [], isLoading, isFetching, error } = usePoiSearch(needle, undefined)
+  const { data: pois = [], isLoading, isFetching, error } = usePoiSearch(needle, searchCity)
   const results = pois
 
   useEffect(() => {

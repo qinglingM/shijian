@@ -1,9 +1,8 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Compass, Search, Sparkles, Image as ImageIcon, PenSquare } from 'lucide-react'
-import { BackHeader } from '@/components/layout/AppLayout'
 import { cn } from '@/lib/utils'
-import { TIER_COLOR_VAR, TIER_SOFT_VAR, type Tier } from '@/lib/db'
+import { TIER_SOFT_VAR, type Tier } from '@/lib/db'
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
 
 export function SquarePage() {
@@ -12,8 +11,6 @@ export function SquarePage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-6rem)] flex-col bg-white">
-      <BackHeader title="广场" />
-
       <section className="px-4 pt-4">
         <div className="rounded-3xl border border-neutral-100 bg-neutral-50 px-4 py-4">
           <div className="flex items-start gap-3">
@@ -172,33 +169,6 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
   )
 }
 
-function PublishSheet({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-30 bg-black/40" onClick={onClose}>
-      <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-md rounded-t-3xl bg-white px-4 pb-6 pt-3" onClick={(e) => e.stopPropagation()}>
-        <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-neutral-200" />
-        <p className="text-center text-sm font-semibold text-neutral-900">选择发布类型</p>
-        <div className="mt-4 space-y-3">
-          <Link to="/practice/step1" className="flex items-center justify-between rounded-2xl border border-neutral-200 px-4 py-5" onClick={onClose}>
-            <span>
-              <span className="block text-sm font-semibold text-neutral-900">发食鉴</span>
-              <span className="block text-xs text-neutral-500">公开食鉴会自动变成广场封面卡片</span>
-            </span>
-            <ArrowUp size={16} className="text-neutral-400" />
-          </Link>
-          <Link to="/square/post/new" className="flex items-center justify-between rounded-2xl border border-neutral-200 px-4 py-4" onClick={onClose}>
-            <span>
-              <span className="block text-sm font-semibold text-neutral-900">发帖子</span>
-              <span className="block text-xs text-neutral-500">上传首图，填标题和内容</span>
-            </span>
-            <ArrowUp size={16} className="text-neutral-400" />
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function tierBg(tier: Tier) {
   return TIER_SOFT_VAR[tier]
 }
@@ -215,6 +185,4 @@ function tierAspect(tier: Tier) {
   return map[tier]
 }
 
-function formatDate(dateLike: string) {
-  return new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit' }).format(new Date(dateLike))
-}
+

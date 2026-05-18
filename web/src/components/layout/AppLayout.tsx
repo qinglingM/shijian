@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { BookOpen, Map, Sparkles, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -93,11 +93,22 @@ export function AppLayout() {
 }
 
 export function BackHeader({ title, backTo = '/', rightSlot }: { title: string; backTo?: string; rightSlot?: React.ReactNode }) {
+  const navigate = useNavigate()
   return (
     <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4">
-      <Link to={backTo} className="text-sm text-neutral-500">
+      <button
+        type="button"
+        onClick={() => {
+          if (window.history.length > 1) {
+            navigate(-1)
+          } else {
+            navigate(backTo, { replace: true })
+          }
+        }}
+        className="text-sm text-neutral-500"
+      >
         ←
-      </Link>
+      </button>
       <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
       {rightSlot ? (
         <div className="flex shrink-0 items-center gap-1">{rightSlot}</div>

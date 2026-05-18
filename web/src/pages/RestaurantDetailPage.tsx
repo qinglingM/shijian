@@ -38,6 +38,7 @@ import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { usePracticeDraft } from '@/stores/practiceDraft'
 import type { PoiCandidate } from '@/lib/poi/types'
+import { getCategoryLabel } from '@/lib/poi/amap-category-rules'
 
 type TabKey = 'store' | 'dish'
 
@@ -179,7 +180,7 @@ export function RestaurantDetailPage() {
     coverUrl = poi.cover_image_url ?? null
     cityDistrictText = [poi.city_name, poi.district_name].filter(Boolean).join(' ') || null
     addressText = poi.address_text?.trim() || null
-    categoryText = poi.category?.trim() || null
+    categoryText = poi.category?.trim() ? getCategoryLabel(poi.category.trim()) : null
   }
 
   const storeList = isDemo
@@ -1061,10 +1062,8 @@ function RestaurantDetailHeader({
   }
 
   return (
-    <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4">
-      <Link to="/" className="text-sm text-neutral-500">←</Link>
-      <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
-      <div className="flex shrink-0 items-center gap-1">
+    <BackHeader title={title} backTo="/tier-map" rightSlot={
+      <>
         <button
           type="button"
           onClick={handleShare}
@@ -1108,8 +1107,8 @@ function RestaurantDetailHeader({
             </>
           )}
         </div>
-      </div>
-    </header>
+      </>
+    } />
   )
 }
 

@@ -6,7 +6,6 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import 'leaflet/dist/leaflet.css'
-import { BackHeader } from '@/components/layout/AppLayout'
 import { TIER_LABEL, TIER_ORDER, type Tier } from '@/lib/db'
 import { useDisplayedTierMap, type TierMapItem, type TierMapResult } from '@/features/tier-map/useTierMap'
 
@@ -88,7 +87,9 @@ export function PracticeMapPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-5rem)] flex-col bg-neutral-100">
-      <BackHeader title="实践地图" />
+      <header className="flex h-12 items-center border-b border-neutral-200 bg-white px-4">
+        <h1 className="text-base font-medium">实践地图</h1>
+      </header>
       <div className="relative flex-1 min-h-[calc(100vh-9rem)]">
         {isLoading && !showingDemo ? (
           <p className="absolute inset-0 z-[500] flex items-center justify-center bg-white/80 text-sm text-neutral-500">

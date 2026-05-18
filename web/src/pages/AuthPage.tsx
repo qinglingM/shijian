@@ -289,9 +289,19 @@ export function AuthPage() {
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col bg-white px-6 pb-14 pt-10">
       <header className="mb-6">
-        <Link to="/" className="text-sm text-neutral-500">
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1)
+            } else {
+              navigate('/tier-map', { replace: true })
+            }
+          }}
+          className="text-sm text-neutral-500"
+        >
           ← 返回
-        </Link>
+        </button>
         <h1 className="mt-4 text-2xl font-semibold text-neutral-950">{headerTitle(phase)}</h1>
         <p className="mt-2 text-xs text-neutral-500">{subtitle(surface, phase)}</p>
         {AUTH_LAX_DEV && (

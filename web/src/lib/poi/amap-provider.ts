@@ -1,5 +1,6 @@
 import { AMAP_KEY } from '@/lib/env'
 import type { PoiCandidate, PoiProvider, PoiSearchParams } from '@/lib/poi/types'
+import { matchCategory } from '@/lib/poi/amap-category-rules'
 
 type AmapPoiRaw = {
   id?: string
@@ -69,10 +70,14 @@ export class AmapPoiProvider implements PoiProvider {
     const params = new URLSearchParams({
       key: this.apiKey,
       keywords: kw,
+      types: '050000',
       offset: '20',
       extensions: 'all',
     })
-    if (city?.trim()) params.set('city', city.trim())
+    if (city?.trim()) {
+      params.set('city', city.trim())
+      params.set('citylimit', 'true')
+    }
 
     const res = await fetch(`https://restapi.amap.com/v3/place/text?${params.toString()}`)
     if (!res.ok) throw new Error(`高德 POI：HTTP ${res.status}`)
@@ -86,21 +91,21 @@ export class AmapPoiProvider implements PoiProvider {
       .filter((r) => r.id && r.name)
       .map((r) => {
         const { latitude, longitude } = splitLocation(r.location)
+        const poiName = String(r.name ?? '').trim()
         const typeStr = typeof r.type === 'string' ? r.type.trim() : ''
-        const primaryType = typeStr ? typeStr.split(';')[0] ?? null : null
         const cover_image_url = firstPhotoUrl(r.photos)
 
         return {
           poi_source: 'amap',
           poi_id: String(r.id),
-          poi_name: String(r.name ?? '').trim(),
+          poi_name: poiName,
           address_text: String(r.address ?? '').trim(),
           latitude,
           longitude,
           province_name: r.pname?.trim() || null,
           city_name: r.cityname?.trim() || null,
           district_name: r.adname?.trim() || null,
-          category: primaryType?.trim() || null,
+          category: typeStr ? matchCategory(typeStr, poiName) : null,
           cover_image_url,
         }
       })

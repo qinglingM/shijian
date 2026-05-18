@@ -7,9 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useFollowMutation } from '@/features/social/useFollowMutation'
 import { useFollowStatus } from '@/features/social/useFollowStatus'
 import { useCityStore } from '@/features/city-picker/cityStore'
-import { useCategories } from '@/features/categories/useCategories'
 import { TIER_LABEL, type Tier } from '@/lib/db'
-import { useRestaurant } from '@/features/restaurants/useRestaurant'
 
 interface ProfileSummary {
   id: string
@@ -19,6 +17,22 @@ interface ProfileSummary {
   bio: string | null
   city_id: string | null
   current_title_id: string | null
+}
+
+interface PracticeRecordJoin {
+  id: string
+  restaurant_id: string
+  tier: string
+  store_comment: string | null
+  created_at: string
+  restaurants: {
+    display_name: string
+    cover_image_url: string | null
+    city_name: string | null
+    district_name: string | null
+    address_text: string | null
+    city_id: string | null
+  } | null
 }
 
 interface UserReviewItem {
@@ -40,7 +54,6 @@ export function UserProfilePage() {
   const cityId = useCityStore((s) => s.cityId)
   const [tierFilter, setTierFilter] = useState<Tier | 'all'>('all')
   const [cityFilter, setCityFilter] = useState<string | null>(null)
-  const categoriesQ = useCategories()
 
   const profileQ = useQuery({
     queryKey: ['user-profile', raw],
@@ -80,7 +93,8 @@ export function UserProfilePage() {
       else if (cityId) q = q.eq('restaurants.city_id', cityId)
       const { data, error } = await q
       if (error) throw error
-      return (data ?? []).map((r: any) => ({
+      const rows = data ?? [] as PracticeRecordJoin[]
+      return rows.map((r) => ({
         practice_id: r.id,
         restaurant_id: r.restaurant_id,
         restaurant_name: r.restaurants?.display_name ?? '餐厅',
@@ -88,7 +102,7 @@ export function UserProfilePage() {
         restaurant_city_name: r.restaurants?.city_name ?? null,
         restaurant_district_name: r.restaurants?.district_name ?? null,
         restaurant_address: r.restaurants?.address_text ?? null,
-        tier: r.tier,
+        tier: r.tier as Tier,
         store_comment: r.store_comment,
         created_at: r.created_at,
       })) as UserReviewItem[]

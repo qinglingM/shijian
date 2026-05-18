@@ -1,13 +1,12 @@
 import { useMemo } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Image as ImageIcon, PenSquare, UserRound } from 'lucide-react'
+import { useParams } from 'react-router-dom'
+import { Image as ImageIcon, PenSquare } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { useSquareFeed } from '@/features/square/useSquareFeed'
 import { usePostVoteMutation } from '@/features/restaurants/usePostVotesMutation'
 
 export function PostDetailPage() {
   const { id } = useParams()
-  const navigate = useNavigate()
   const { data: feed = [] } = useSquareFeed()
   const item = useMemo(() => feed.find((x) => x.kind === 'post' && x.id === `post:${id}`), [feed, id])
   const voteMut = usePostVoteMutation(item?.kind === 'post' ? item.id.split(':')[1] : null)

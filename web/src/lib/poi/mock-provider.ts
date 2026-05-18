@@ -19,7 +19,7 @@ const MOCK_BEIJING: PoiCandidate[] = [
     province_name: '北京市',
     city_name: '北京市',
     district_name: '海淀区',
-    category: '火锅',
+    category: 'huoguo',
     cover_image_url: mockCover('mock-bj-hdl-zzh'),
   },
   {
@@ -32,7 +32,7 @@ const MOCK_BEIJING: PoiCandidate[] = [
     province_name: '北京市',
     city_name: '北京市',
     district_name: '海淀区',
-    category: '火锅',
+    category: 'huoguo',
     cover_image_url: mockCover('mock-bj-hdl-wdk'),
   },
   {
@@ -45,7 +45,7 @@ const MOCK_BEIJING: PoiCandidate[] = [
     province_name: '北京市',
     city_name: '北京市',
     district_name: '朝阳区',
-    category: '饭馆',
+    category: 'zhongcan',
     cover_image_url: mockCover('mock-bj-njdpd'),
   },
   {
@@ -58,7 +58,7 @@ const MOCK_BEIJING: PoiCandidate[] = [
     province_name: '北京市',
     city_name: '北京市',
     district_name: '朝阳区',
-    category: '饭馆',
+    category: 'zhongcan',
     cover_image_url: mockCover('mock-bj-jq'),
   },
   {
@@ -71,7 +71,7 @@ const MOCK_BEIJING: PoiCandidate[] = [
     province_name: '北京市',
     city_name: '北京市',
     district_name: '东城区',
-    category: '小吃',
+    category: 'xiaochi',
     /** 故意 null：验证无封面时前四字占位 */
     cover_image_url: null,
   },
@@ -85,7 +85,7 @@ const MOCK_BEIJING: PoiCandidate[] = [
     province_name: '北京市',
     city_name: '北京市',
     district_name: '西城区',
-    category: '饮甜',
+    category: 'tianpin',
     cover_image_url: mockCover('mock-bj-heytea'),
   },
   {
@@ -98,7 +98,7 @@ const MOCK_BEIJING: PoiCandidate[] = [
     province_name: '北京市',
     city_name: '北京市',
     district_name: '朝阳区',
-    category: '烧烤',
+    category: 'shaokao',
     cover_image_url: mockCover('mock-bj-fmc'),
   },
   {
@@ -111,7 +111,7 @@ const MOCK_BEIJING: PoiCandidate[] = [
     province_name: '北京市',
     city_name: '北京市',
     district_name: '海淀区',
-    category: '粉面',
+    category: 'fenmian',
     cover_image_url: mockCover('mock-bj-qian'),
   },
 ]
