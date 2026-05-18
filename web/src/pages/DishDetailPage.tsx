@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { useDishDetail } from '@/features/dishes/useDishDetail'
@@ -7,10 +8,16 @@ import { useDishReviewVoteMutation } from '@/features/restaurants/useDishReviewV
 import { intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-
 const dateFmt = new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'medium',
 })
+
+function isLikelyReviewImage(url: string | null) {
+  if (!url) return false
+  const u = url.toLowerCase()
+  const avatarHints = ['avatar', 'profile', 'user', 'head', 'portrait']
+  return !avatarHints.some((k) => u.includes(k))
+}
 
 export function DishDetailPage() {
   const { id: rawId } = useParams()
@@ -23,6 +30,29 @@ export function DishDetailPage() {
   const restaurantQ = useRestaurant(dish?.restaurant_id ?? null)
   const user = useAuthStore((s) => s.user)
   const voteMut = useDishReviewVoteMutation(dish?.restaurant_id ?? null)
+
+  const [sort, setSort] = useState<'latest' | 'hot' | 'score'>('latest')
+
+  const sortedReviews = useMemo(() => {
+    const list = reviewsQ.data ?? []
+    const copy = [...list]
+    if (sort === 'latest') {
+      copy.sort((a, b) => b.created_at.localeCompare(a.created_at))
+    } else if (sort === 'hot') {
+      copy.sort((a, b) => {
+        const netA = (b.youpin_count ?? 0) - (b.yebang_count ?? 0)
+        const netB = (a.youpin_count ?? 0) - (a.yebang_count ?? 0)
+        return netA - netB
+      })
+    } else if (sort === 'score') {
+      copy.sort((a, b) => {
+        const sa = a.score ?? -1
+        const sb = b.score ?? -1
+        return sb - sa
+      })
+    }
+    return copy
+  }, [reviewsQ.data, sort])
 
   if (!id) return <Navigate to="/" replace />
 
@@ -107,43 +137,47 @@ export function DishDetailPage() {
           )}
         </div>
 
-        <div className="mx-4 -mt-6 relative z-[1] space-y-3">
-          <section className="rounded-2xl border border-orange-100 bg-white px-4 py-3.5 shadow-md shadow-orange-500/10">
-            <h1 className="text-lg font-black leading-snug tracking-tight text-neutral-950">
-              {dish.name}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-              {avgText ? (
-                <>
-                  <span className="text-2xl font-black tabular-nums text-orange-600">
-                    {avgText}
-                  </span>
-                  <span className="text-sm font-bold text-neutral-700">分</span>
-                </>
-              ) : (
-                <span className="text-sm font-semibold text-neutral-400">暂无均分</span>
-              )}
-              <span className="text-xs text-neutral-500">· {dish.review_count} 条收录</span>
-            </div>
-            {dish.top_comment ? (
-              <p className="mt-3 rounded-xl bg-orange-50/80 px-3 py-2 text-[13px] leading-relaxed text-neutral-800 ring-1 ring-orange-100/80">
-                <span className="font-bold text-orange-800">热评摘录 · </span>
-                {dish.top_comment}
-              </p>
-            ) : null}
-            <div className="mt-3 flex flex-wrap gap-3 text-[11px] font-semibold text-neutral-500">
-              <span>有品赞同 {dish.youpin_count}</span>
-              <span>野榜 {dish.yebang_count}</span>
-              {rr ? (
-                <Link
-                  to={`/restaurants/${rr.id}`}
-                  className="ml-auto text-orange-600 underline-offset-2 hover:underline"
-                >
-                  所属餐厅 · {rr.display_name}
-                </Link>
-              ) : restaurantQ.isPending ? (
-                <span className="ml-auto text-neutral-400">载入餐厅链…</span>
-              ) : null}
+        <div className="mx-4 -mt-6 relative z-[1]">
+          <section className="rounded-2xl border border-orange-100 bg-white px-4 py-3 shadow-md shadow-orange-500/10">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg font-black leading-snug tracking-tight text-neutral-950">
+                  {dish.name}
+                </h1>
+                {dish.top_comment ? (
+                  <p className="mt-2 text-[13px] leading-relaxed text-neutral-600 line-clamp-2">
+                    {dish.top_comment}
+                  </p>
+                ) : null}
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-neutral-500">
+                  {rr ? (
+                    <Link
+                      to={`/restaurants/${rr.id}`}
+                      className="text-orange-600 underline-offset-2 hover:underline"
+                    >
+                      {rr.display_name}
+                    </Link>
+                  ) : restaurantQ.isPending ? (
+                    <span className="text-neutral-400">载入餐厅链…</span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="shrink-0 text-right">
+                {avgText ? (
+                  <div>
+                    <span className="text-[34px] font-black tabular-nums leading-none text-orange-600">
+                      {avgText}
+                    </span>
+                    <span className="ml-0.5 text-base font-bold text-neutral-500">分</span>
+                  </div>
+                ) : (
+                  <span className="text-sm font-semibold text-neutral-400">暂无均分</span>
+                )}
+                <p className="mt-1 text-[11px] text-neutral-400">
+                  {dish.review_count} 条收录
+                </p>
+              </div>
             </div>
           </section>
         </div>
@@ -155,8 +189,10 @@ export function DishDetailPage() {
           {reviewsQ.isPending ? (
             <p className="py-10 text-center text-sm text-neutral-400">载入评价列表…</p>
           ) : reviewsQ.data && reviewsQ.data.length > 0 ? (
-            <ul className="space-y-3">
-              {reviewsQ.data.map((rv) => {
+            <>
+              <ReviewSortBar value={sort} onChange={setSort} />
+              <ul className="mt-3 space-y-3">
+                {sortedReviews.map((rv) => {
                 const votingThis =
                   voteMut.isPending && voteMut.variables?.dishReviewId === rv.id
                 const guestBlocked = !user
@@ -169,6 +205,10 @@ export function DishDetailPage() {
                   const next = intentAfterVoteTap(rv.my_vote, which)
                   voteMut.mutate({ dishReviewId: rv.id, dishId: id!, next })
                 }
+
+                const reviewImageUrl = isLikelyReviewImage(rv.image_url)
+                  ? rv.image_url
+                  : null
 
                 return (
                   <li
@@ -192,9 +232,9 @@ export function DishDetailPage() {
                       <p className="min-w-0 flex-1 text-[14px] leading-6 text-neutral-800">
                         {rv.comment?.trim() || '（未填写菜品锐评）'}
                       </p>
-                      {rv.image_url ? (
+                      {reviewImageUrl ? (
                         <img
-                          src={rv.image_url}
+                          src={reviewImageUrl}
                           alt=""
                           className="size-16 shrink-0 rounded-xl object-cover ring-1 ring-neutral-200/80"
                         />
@@ -240,7 +280,8 @@ export function DishDetailPage() {
                   </li>
                 )
               })}
-            </ul>
+              </ul>
+            </>
           ) : (
             <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm text-neutral-500">
               暂无匿名用户评价。
@@ -249,5 +290,38 @@ export function DishDetailPage() {
         </section>
       </div>
     </>
+  )
+}
+
+const SORT_OPTIONS = [
+  { value: 'latest' as const, label: '最新' },
+  { value: 'hot' as const, label: '最热' },
+  { value: 'score' as const, label: '高分' },
+]
+
+function ReviewSortBar({
+  value,
+  onChange,
+}: {
+  value: 'latest' | 'hot' | 'score'
+  onChange: (v: 'latest' | 'hot' | 'score') => void
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      {SORT_OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+            value === opt.value
+              ? 'bg-orange-100 text-orange-900'
+              : 'text-neutral-400 active:bg-neutral-100'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
   )
 }

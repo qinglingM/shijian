@@ -75,6 +75,11 @@ interface PracticeDraftState {
    */
   submission_baseline_practice_public_snapshot: boolean | null
 
+  /**
+   * 提交成功后要跳回的页面路径（来源页）。null 则回 /map。
+   */
+  returnTo: string | null
+
   applyHydratedPracticeFromServer: (payload: HydratePracticeDraftResult) => void
 
   /**
@@ -113,6 +118,7 @@ interface PracticeDraftState {
   updateDish: (clientId: string, patch: Partial<DraftDishReview>) => void
   removeDish: (clientId: string) => void
   setGoodReviewGuidance: (v: boolean) => void
+  setReturnTo: (path: string | null) => void
   reset: () => void
 }
 
@@ -129,6 +135,7 @@ const INITIAL = {
   submission_baseline: null as PracticeSubmissionBaseline | null,
   submission_baseline_locked_from_server: false,
   submission_baseline_practice_public_snapshot: null as boolean | null,
+  returnTo: null as string | null,
 }
 
 function randomId() {
@@ -245,6 +252,7 @@ export const usePracticeDraft = create<PracticeDraftState>()(
       removeDish: (clientId) =>
         set((s) => ({ dishes: s.dishes.filter((d) => d.client_id !== clientId) })),
       setGoodReviewGuidance: (good_review_guidance) => set({ good_review_guidance }),
+      setReturnTo: (returnTo) => set({ returnTo }),
       reset: () => set({ ...INITIAL }),
     }),
     { name: 'shijian:practice-draft' },

@@ -77,11 +77,11 @@ export function HomePage() {
           searchSlot={(
             <Link
               to="/search"
-              className="flex min-w-0 items-center gap-2 rounded-full bg-neutral-100 px-4 py-2.5 text-sm text-neutral-400 outline-none transition-colors active:bg-neutral-200/90"
-              aria-label="搜索我吃过的店"
+              className="flex min-w-0 items-center rounded-full bg-neutral-100 px-4 py-2.5 text-sm text-neutral-400 outline-none transition-colors active:bg-neutral-200/90"
+              aria-label="探索一切值得的美味"
             >
-              <SearchIcon size={16} aria-hidden className="shrink-0 text-neutral-400" />
-              <span className="truncate">搜索我吃过的店</span>
+              <span className="truncate">探索一切值得的美味</span>
+              <SearchIcon size={16} aria-hidden className="ml-2 shrink-0 text-neutral-400" />
             </Link>
           )}
         />
@@ -119,7 +119,7 @@ export function HomePage() {
       </section>
 
       {/* 六档食鉴图 */}
-      <section className="flex-1 px-4">
+      <section className="flex-1 px-0">
         <div className="relative mb-3 rounded-2xl bg-neutral-50 px-4 py-3">
           <div className="flex gap-3">
             <div className="min-w-0 flex-1">

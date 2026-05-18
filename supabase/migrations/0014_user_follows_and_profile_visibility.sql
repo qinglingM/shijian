@@ -28,7 +28,6 @@ create policy "follows read own or public profile" on user_follows
 create policy "follows insert own" on user_follows
   for insert with check (
     auth.uid() = follower_id
-    and auth.uid() = following_id
   );
 
 create policy "follows delete own" on user_follows

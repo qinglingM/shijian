@@ -17,7 +17,7 @@ export function TierLabelBlock({
   const shellClass = 'min-h-0 min-w-0 shrink-0'
   const body = (
     <div
-      className="relative aspect-square w-full overflow-hidden ring-1 ring-black/8"
+      className="relative aspect-square w-[90px] overflow-hidden"
       role={href ? undefined : 'group'}
       aria-label={href ? undefined : `${TIER_LABEL[tier]}档位，${count} 家`}
       style={{ background: TIER_SOFT_VAR[tier] }}

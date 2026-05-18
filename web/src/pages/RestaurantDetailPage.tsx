@@ -1,6 +1,6 @@
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { useMemo, useState } from 'react'
-import { Bookmark, ChevronDown, MapPin, Utensils, UserRound } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { Bookmark, ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { lookupExistingRestaurantByPoi } from '@/features/poi-search/usePoiSearch'
 import { fetchExistingPracticeHydration } from '@/features/practice/hydratePracticeDraftFromServer'
@@ -80,6 +80,7 @@ export function RestaurantDetailPage() {
   const navigate = useNavigate()
   const setPoiDraft = usePracticeDraft((s) => s.setPoi)
   const setExistingRestaurantDraft = usePracticeDraft((s) => s.setExistingRestaurant)
+  const setReturnTo = usePracticeDraft((s) => s.setReturnTo)
   const applyHydratedDraft = usePracticeDraft((s) => s.applyHydratedPracticeFromServer)
 
   const restaurantQ = useRestaurant(isUuid ? id : null)
@@ -281,6 +282,8 @@ export function RestaurantDetailPage() {
       }
     }
 
+    setReturnTo(location.pathname)
+
     navigate('/practice/step2', {
       state: { poi: practicePoi, from: location.pathname },
     })
@@ -288,7 +291,13 @@ export function RestaurantDetailPage() {
 
   return (
     <>
-      <BackHeader title="店铺详情" />
+      <RestaurantDetailHeader
+        title={title}
+        shareData={{
+          url: window.location.href,
+          title,
+        }}
+      />
       <div className="min-h-[calc(100vh-3rem)] bg-white pb-8">
         {detailKnown ? (
           <section className="border-b border-neutral-100 px-4 pt-4 pb-4">
@@ -423,11 +432,11 @@ export function RestaurantDetailPage() {
 
           return (
             <section className="border-b border-neutral-100 px-4 pb-3 pt-0.5">
-              <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-neutral-600">
-                <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 font-semibold text-orange-700 ring-1 ring-orange-100">
+              <p className="flex items-start gap-2 text-[11px] leading-relaxed text-neutral-600">
+                <span className="mt-0.5 shrink-0 rounded-full bg-orange-50 px-2 py-0.5 font-semibold text-orange-700 ring-1 ring-orange-100">
                   食鉴伯乐
                 </span>
-                <span className="min-w-0 flex-1">
+                <span className="min-w-0 flex-1 pt-0.5 leading-5">
                   {emptyReviews
                     ? '暂未被任何伯乐发现'
                     : boleQ.isPending
@@ -1007,6 +1016,82 @@ function RestaurantMarkActions({
       <Bookmark className="size-3.5" aria-hidden />
       {busy ? '处理中…' : '标记'}
     </button>
+  )
+}
+
+function RestaurantDetailHeader({
+  title,
+  shareData,
+}: {
+  title: string
+  shareData: { url: string; title: string }
+}) {
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
+
+  async function handleShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shareData.title, url: shareData.url })
+      } catch {
+        // user cancelled
+      }
+    } else {
+      await navigator.clipboard.writeText(shareData.url)
+      alert('链接已复制到剪贴板')
+    }
+  }
+
+  return (
+    <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4">
+      <Link to="/" className="text-sm text-neutral-500">←</Link>
+      <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
+      <div className="flex shrink-0 items-center gap-1">
+        <button
+          type="button"
+          onClick={handleShare}
+          className="flex size-9 items-center justify-center rounded-full text-neutral-500 active:bg-neutral-100"
+          aria-label="分享"
+        >
+          <Share2 size={16} strokeWidth={1.6} />
+        </button>
+
+        <div className="relative" ref={moreRef}>
+          <button
+            type="button"
+            onClick={() => setMoreOpen((v) => !v)}
+            className="flex size-9 items-center justify-center rounded-full text-neutral-500 active:bg-neutral-100"
+            aria-label="更多"
+          >
+            {moreOpen ? <X size={16} strokeWidth={1.6} /> : <ChevronDown size={16} strokeWidth={1.6} />}
+          </button>
+
+          {moreOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setMoreOpen(false)} />
+              <div className="absolute right-0 top-full z-30 mt-1 w-44 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => { setMoreOpen(false); alert('反馈错误信息功能开发中') }}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-neutral-700 active:bg-neutral-50"
+                >
+                  <Flag size={14} strokeWidth={1.6} className="text-neutral-400" />
+                  反馈错误信息
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMoreOpen(false); alert('反馈重复店铺功能开发中') }}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-neutral-700 active:bg-neutral-50"
+                >
+                  <Flag size={14} strokeWidth={1.6} className="text-neutral-400" />
+                  反馈重复店铺
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
   )
 }
 

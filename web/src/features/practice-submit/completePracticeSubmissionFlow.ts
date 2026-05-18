@@ -29,7 +29,8 @@ export async function completePracticeSubmissionFlow(opts: {
 
   onBeforeReset?.()
 
-  navigate('/', { replace: true })
+  const returnTo = usePracticeDraft.getState().returnTo ?? '/map'
+  navigate(returnTo, { replace: true })
 
   usePracticeDraft.getState().reset()
 }

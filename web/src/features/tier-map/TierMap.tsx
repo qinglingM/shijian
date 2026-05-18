@@ -9,7 +9,7 @@ export function TierMap({
   showAddSlots?: boolean
 }) {
   return (
-    <div className="flex flex-col divide-y-[3px] divide-solid divide-neutral-950">
+    <div className="flex flex-col divide-y-[3px] divide-solid divide-neutral-950 overflow-hidden px-0">
       {buckets.map((b) => (
         <TierRow
           key={b.tier}

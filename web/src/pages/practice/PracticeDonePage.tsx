@@ -20,7 +20,7 @@ export function PracticeDonePage() {
 
   useEffect(() => {
     if (!restaurantId) {
-      navigate('/', { replace: true })
+      navigate('/map', { replace: true })
     }
   }, [restaurantId, navigate])
 
@@ -56,11 +56,11 @@ export function PracticeDonePage() {
             查看这家店
           </Link>
           <Link
-            to="/"
+            to="/map"
             className="flex w-full items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white py-3.5 text-sm font-medium text-neutral-800 active:bg-neutral-50"
           >
             <Home size={18} strokeWidth={2.2} aria-hidden />
-            回到首页
+            回到美食地图
           </Link>
         </div>
       </div>
