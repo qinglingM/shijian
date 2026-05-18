@@ -6,8 +6,18 @@ import { usePracticeDraft } from '@/stores/practiceDraft'
 import { submitPractice, type SubmitPracticeDraft } from '@/features/practice-submit/submitPractice'
 import { invalidateAfterPracticeSubmit } from '@/features/practice-submit/invalidateAfterPracticeSubmit'
 
+function resetPracticeDraftAfterRouteCommit() {
+  const reset = () => {
+    usePracticeDraft.getState().reset()
+  }
+
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(reset)
+  })
+}
+
 /**
- * 提交食鉴成功后的统一收尾：失效查询 → 关弹窗 → 回首页 → 清空草稿（避免先 reset 触发第三步误跳 step1）。
+ * 提交食鉴成功后的统一收尾：失效查询 → 关弹窗 → 回到本次餐厅详情页 → 清空草稿（避免先 reset 触发第三步误跳 step1）。
  */
 export async function completePracticeSubmissionFlow(opts: {
   draft: SubmitPracticeDraft
@@ -32,5 +42,5 @@ export async function completePracticeSubmissionFlow(opts: {
   const returnTo = usePracticeDraft.getState().returnTo ?? '/tier-map'
   navigate(returnTo, { replace: true })
 
-  setTimeout(() => usePracticeDraft.getState().reset(), 0)
+  resetPracticeDraftAfterRouteCommit()
 }

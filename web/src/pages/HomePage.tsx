@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Eye, EyeOff, LayoutGrid, List } from 'lucide-react'
+import { Eye, EyeOff, LayoutGrid, List, Search as SearchIcon, X } from 'lucide-react'
+import { useUserLocation } from '@/hooks/useUserLocation'
+import { distanceKm } from '@/lib/geo'
 import { CityPicker } from '@/features/city-picker/CityPicker'
 import { TierMapCategoryFilter } from '@/features/tier-map/TierMapCategoryFilter'
 import { TierMap } from '@/features/tier-map/TierMap'
@@ -32,6 +34,9 @@ export function HomePage() {
 
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const userLoc = useUserLocation()
 
   const { categoryIds, hasUncategorized } = useMemo(
     () => summarizeTierMapCategoryKeys(map.buckets),
@@ -58,19 +63,66 @@ export function HomePage() {
     [map, displayCategoryFilter],
   )
 
+  const searchedMap = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return displayMap
+
+    const sortByDist = <T extends { latitude: number | null; longitude: number | null }>(
+      items: T[],
+    ): T[] => {
+      if (!userLoc) return items
+      return [...items].sort((a, b) => {
+        const da =
+          a.latitude != null && a.longitude != null
+            ? distanceKm(userLoc.lat, userLoc.lng, a.latitude, a.longitude)
+            : Infinity
+        const db =
+          b.latitude != null && b.longitude != null
+            ? distanceKm(userLoc.lat, userLoc.lng, b.latitude, b.longitude)
+            : Infinity
+        return da - db
+      })
+    }
+
+    const filteredBuckets = displayMap.buckets.map((b) => {
+      const filtered = b.restaurants.filter((r) =>
+        r.display_name.toLowerCase().includes(q),
+      )
+      return { ...b, restaurants: sortByDist(filtered) }
+    })
+    return {
+      ...displayMap,
+      buckets: filteredBuckets,
+      total_count: filteredBuckets.reduce((n, b) => n + b.restaurants.length, 0),
+    }
+  }, [displayMap, searchQuery, userLoc])
+
   const flatItems = useMemo<FlatItem[]>(() => {
-    const items: FlatItem[] = displayMap.buckets.flatMap((b) =>
+    const items: FlatItem[] = searchedMap.buckets.flatMap((b) =>
       b.restaurants.map((r) => ({ ...r, tier: b.tier })),
     )
+    if (searchQuery.trim() && userLoc) {
+      return items.sort((a, b) => {
+        const da =
+          a.latitude != null && a.longitude != null
+            ? distanceKm(userLoc.lat, userLoc.lng, a.latitude, a.longitude)
+            : Infinity
+        const db =
+          b.latitude != null && b.longitude != null
+            ? distanceKm(userLoc.lat, userLoc.lng, b.latitude, b.longitude)
+            : Infinity
+        return da - db
+      })
+    }
     return items.sort((a, b) => {
       if (!a.practiced_at && !b.practiced_at) return 0
       if (!a.practiced_at) return 1
       if (!b.practiced_at) return -1
       return b.practiced_at.localeCompare(a.practiced_at)
     })
-  }, [displayMap.buckets])
+  }, [searchedMap.buckets, searchQuery, userLoc])
 
-  const totalCount = displayMap.total_count
+  const totalCount = searchedMap.total_count
 
   const showCategoryFilter =
     !error &&
@@ -78,7 +130,7 @@ export function HomePage() {
     (categoryCatalog.length > 0 || categoryIds.size > 0 || hasUncategorized || showingDemo)
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
+    <div className="flex min-h-[calc(100vh-5rem)] flex-col">
       <header className="flex items-center justify-between px-4 pt-4 pb-2">
         <div className="w-16" />
         <h1 className="text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
@@ -96,8 +148,33 @@ export function HomePage() {
       </header>
 
       <section className="flex-1 px-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="mb-3 flex items-center gap-2">
           <CityPicker variant="navbar" />
+          <div className="relative flex min-w-0 flex-1 items-center">
+            <SearchIcon
+              size={16}
+              aria-hidden
+              className="pointer-events-none absolute left-4 shrink-0 text-neutral-400"
+            />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜索我吃过的店"
+              className="w-full rounded-full bg-neutral-100 py-2.5 pl-9 pr-8 text-sm text-neutral-800 placeholder-neutral-400 outline-none transition-colors focus:bg-neutral-200/60 [&::-webkit-search-cancel-button]:hidden"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => { setSearchQuery(''); searchInputRef.current?.focus() }}
+                className="absolute right-3 flex items-center justify-center text-neutral-400 active:text-neutral-600"
+                aria-label="清除搜索"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
           {showCategoryFilter ? (
             <TierMapCategoryFilter
               buckets={map.buckets}
@@ -115,20 +192,20 @@ export function HomePage() {
             读取失败：{(error as Error).message}
           </p>
         ) : viewMode === 'grid' ? (
-          <TierMap buckets={displayMap.buckets} />
+          <TierMap buckets={searchedMap.buckets} />
         ) : (
           <TierListView items={flatItems} />
         )}
 
         <Link
           to="/practice/step1"
-          className="mt-4 mb-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-medium text-white shadow-sm active:opacity-90"
+          className="mt-4 mb-2 flex w-full items-center justify-center rounded-2xl bg-neutral-900 py-3.5 text-sm font-medium text-white active:bg-neutral-700"
         >
           开始食鉴
         </Link>
       </section>
 
-      <div className="px-4 pt-4 pb-2">
+      <div className="px-5 pt-4 pb-2">
         {manualShowDemo ? (
           <p className="text-center text-[11px] text-amber-700">
             当前为示例数据视图，仅用于查看 UI 状态
@@ -154,12 +231,12 @@ export function HomePage() {
 }
 
 const TIER_BG: Record<Tier, string> = {
-  boom: 'bg-[var(--color-tier-boom)] text-white',
-  hang: 'bg-[var(--color-tier-hang)] text-white',
-  top: 'bg-[var(--color-tier-top)] text-white',
-  upper: 'bg-[var(--color-tier-upper)] text-neutral-900',
-  npc: 'bg-[var(--color-tier-npc)] text-neutral-900',
-  bad: 'bg-white text-neutral-900 border-2 border-black',
+  boom: 'bg-red-50 text-red-700',
+  hang: 'bg-orange-50 text-orange-700',
+  top: 'bg-amber-50 text-amber-700',
+  upper: 'bg-yellow-50 text-yellow-800',
+  npc: 'bg-neutral-100 text-neutral-600',
+  bad: 'bg-slate-100 text-slate-600',
 }
 
 function TierListView({ items }: { items: FlatItem[] }) {
@@ -198,7 +275,7 @@ function TierListView({ items }: { items: FlatItem[] }) {
               )}
             </div>
             <span
-              className={`shrink-0 w-14 rounded-full py-1 text-center text-[11px] font-semibold ${TIER_BG[item.tier]}`}
+              className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${TIER_BG[item.tier]}`}
             >
               {TIER_LABEL[item.tier]}
             </span>

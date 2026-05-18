@@ -12,10 +12,11 @@ import { useCandidatesPracticeStatus } from '@/features/poi-search/useCandidates
 import { fetchExistingPracticeHydration } from '@/features/practice/hydratePracticeDraftFromServer'
 import { usePracticeDraft } from '@/stores/practiceDraft'
 import { useAuthStore } from '@/stores/authStore'
-import { useDebounce } from '@/lib/useDebounce'
 import type { PoiCandidate } from '@/lib/poi'
 import { PracticeStep1SloganImage } from './PracticeStep1SloganImage'
 import { poiPracticeKey } from '@/features/poi-search/poiPracticeKey'
+import { useUserLocation } from '@/hooks/useUserLocation'
+import { distanceKm } from '@/lib/geo'
 
 export function PracticeStep1Page() {
   const navigate = useNavigate()
@@ -30,9 +31,25 @@ export function PracticeStep1Page() {
   }, [resetDraft])
 
   const [keyword, setKeyword] = useState('')
-  const debouncedKeyword = useDebounce(keyword, 300)
   const [picking, setPicking] = useState<string | null>(null)
-  const { data: candidates = [], isLoading, isFetching } = usePoiSearch(debouncedKeyword, cityName)
+  const userLoc = useUserLocation()
+  const { data: rawCandidates = [], isLoading, isFetching } = usePoiSearch(keyword, cityName)
+
+  const candidates = useMemo<PoiCandidate[]>(() => {
+    if (!userLoc || rawCandidates.length === 0) return rawCandidates
+    return [...rawCandidates].sort((a, b) => {
+      const da =
+        a.latitude != null && a.longitude != null
+          ? distanceKm(userLoc.lat, userLoc.lng, a.latitude, a.longitude)
+          : Infinity
+      const db =
+        b.latitude != null && b.longitude != null
+          ? distanceKm(userLoc.lat, userLoc.lng, b.latitude, b.longitude)
+          : Infinity
+      return da - db
+    })
+  }, [rawCandidates, userLoc])
+
   const practicedQ = useCandidatesPracticeStatus(candidates)
   const emptyPracticed = useMemo(() => new Set<string>(), [])
   const practicedPoiKeys = practicedQ.data ?? emptyPracticed
@@ -48,16 +65,21 @@ export function PracticeStep1Page() {
         poi.poi_source,
         poi.poi_id,
       )
-      const willReplace = practicedPoiKeys.has(poiPracticeKey(poi))
-      setPoi(poi, existingId, willReplace)
-      if (willReplace && viewerId && existingId) {
+      let existingPracticePayload = null
+      if (viewerId && existingId) {
         try {
-          const payload = await fetchExistingPracticeHydration(viewerId, existingId)
-          if (payload) applyHydrated(payload)
+          existingPracticePayload = await fetchExistingPracticeHydration(
+            viewerId,
+            existingId,
+          )
         } catch (e) {
           console.warn('[shijian] hydrate practice draft failed:', e)
         }
       }
+      const willReplace =
+        !!existingPracticePayload || practicedPoiKeys.has(poiPracticeKey(poi))
+      setPoi(poi, existingId, willReplace)
+      if (existingPracticePayload) applyHydrated(existingPracticePayload)
       navigate('/practice/step2')
     } finally {
       setPicking(null)
@@ -92,7 +114,7 @@ export function PracticeStep1Page() {
 
         <div className="mx-auto mt-3 flex max-w-[22rem] items-center justify-end gap-2 text-[11px] text-neutral-500 sm:max-w-none">
           {(isLoading || isFetching) && !showInitialHint && (
-            <span className="font-medium text-neutral-700">搜寻中…</span>
+            <span className="shrink-0 font-medium text-neutral-700">搜寻中…</span>
           )}
         </div>
       </section>
@@ -141,7 +163,7 @@ export function PracticeStep1Page() {
                   <li key={poi.poi_id}>
                     <button
                       type="button"
-                      disabled={picking === poi.poi_id || practicedQ.isPending}
+                      disabled={picking === poi.poi_id}
                       onClick={() => selectPoi(poi)}
                       className="w-full rounded-2xl border border-neutral-100 bg-white p-3 text-left shadow-sm active:bg-neutral-50 disabled:opacity-50"
                     >

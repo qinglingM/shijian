@@ -199,6 +199,7 @@ export const usePracticeDraft = create<PracticeDraftState>()(
           submission_baseline: null,
           submission_baseline_locked_from_server: false,
           submission_baseline_practice_public_snapshot: null,
+          returnTo: null,
         }),
       setExistingRestaurant: (restaurant, willReplaceExistingPractice = false) =>
         set({
@@ -228,6 +229,7 @@ export const usePracticeDraft = create<PracticeDraftState>()(
           submission_baseline: null,
           submission_baseline_locked_from_server: false,
           submission_baseline_practice_public_snapshot: null,
+          returnTo: null,
         }),
       setManual: (manual) =>
         set({
@@ -244,6 +246,7 @@ export const usePracticeDraft = create<PracticeDraftState>()(
           submission_baseline: null,
           submission_baseline_locked_from_server: false,
           submission_baseline_practice_public_snapshot: null,
+          returnTo: null,
         }),
       setTier: (tier) => set({ tier }),
       setStoreComment: (store_comment) => set({ store_comment }),

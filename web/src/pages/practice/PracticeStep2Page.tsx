@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 
 import { createPortal } from 'react-dom'
 
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import { BackHeader } from '@/components/layout/AppLayout'
 
@@ -76,7 +76,6 @@ type DragFloating = {
 
 export function PracticeStep2Page() {
 
-  const navigate = useNavigate()
   const location = useLocation()
 
   const draft = usePracticeDraft()
@@ -87,8 +86,6 @@ export function PracticeStep2Page() {
       : '/practice/step1'
 
   const display = usePracticeRestaurantCardDisplay()
-
-  const doneRef = useRef(false)
 
   const { map: tierCountsMap } = useDisplayedTierMap()
 
@@ -104,7 +101,7 @@ export function PracticeStep2Page() {
 
   const pendingRef = useRef<HTMLDivElement | null>(null)
 
-  const rowRefs = useRef<Record<Tier, HTMLLIElement | null>>({
+  const rowRefs = useRef<Record<Tier, HTMLDivElement | null>>({
 
     boom: null,
 
@@ -131,6 +128,7 @@ export function PracticeStep2Page() {
   const [dragFloating, setDragFloating] = useState<DragFloating | null>(null)
 
   const [dragging, setDragging] = useState(false)
+  const dragPlacementRef = useRef<Tier | null>(null)
 
 
 
@@ -168,16 +166,25 @@ export function PracticeStep2Page() {
 
 
 
-  useEffect(() => {
-
-    if (!display && !doneRef.current) navigate('/practice/step1', { replace: true })
-
-  }, [display, navigate])
-
-
-
-  if (!display) return null
-
+  if (!display) {
+    return (
+      <div className="flex min-h-[calc(100dvh-6rem)] flex-col bg-white">
+        <BackHeader title="写评价" backTo="/practice/step1" />
+        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <p className="text-base font-semibold text-neutral-900">还没有选定店铺</p>
+          <p className="mt-2 text-sm leading-6 text-neutral-500">
+            先搜索确认一家店，再进入定档和菜品评价。
+          </p>
+          <Link
+            to="/practice/step1"
+            className="mt-6 rounded-full bg-neutral-950 px-5 py-2.5 text-sm font-semibold text-white"
+          >
+            去搜索店铺
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
 
   function nearestPlacement(clientY: number): Tier | null {
@@ -278,6 +285,8 @@ export function PracticeStep2Page() {
 
     })
 
+    dragPlacementRef.current = tier ?? null
+
     setDragging(true)
 
   }
@@ -296,6 +305,10 @@ export function PracticeStep2Page() {
 
     const dy = e.clientY - o.y
 
+    const placement = nearestPlacement(e.clientY)
+
+    dragPlacementRef.current = placement
+
 
 
     setDragFloating((prev) =>
@@ -304,11 +317,15 @@ export function PracticeStep2Page() {
 
         ? {
 
-            ...prev,
-
             left: r.left + dx,
 
             top: r.top + dy,
+
+            width: r.width,
+
+            height: r.height,
+
+            tier: placement ?? undefined,
 
           }
 
@@ -324,11 +341,15 @@ export function PracticeStep2Page() {
 
     if (!dragActiveRef.current) return
 
+    const placement = dragPlacementRef.current ?? nearestPlacement(e.clientY)
+
     dragActiveRef.current = false
 
     dragBaseRectRef.current = null
 
-    draft.setTier(nearestPlacement(e.clientY))
+    dragPlacementRef.current = null
+
+    draft.setTier(placement)
 
     setDragging(false)
 
@@ -362,8 +383,6 @@ export function PracticeStep2Page() {
 
   }
 
-
-
   return (
 
     <div className="flex min-h-[calc(100dvh-6rem)] flex-col bg-white">
@@ -379,7 +398,7 @@ export function PracticeStep2Page() {
 
             <div
 
-              className={`pointer-events-none h-full ${PRACTICE_DRAG_CARD_OUTER} shadow-[0_18px_50px_-12px_rgba(0,0,0,0.55)]`}
+              className={`pointer-events-none h-full ${PRACTICE_DRAG_CARD_OUTER} transition-[top,left,width,height] duration-150 ease-out shadow-[0_18px_50px_-12px_rgba(0,0,0,0.55)]`}
 
               style={{
 
@@ -431,7 +450,7 @@ export function PracticeStep2Page() {
         <div className="mb-5">
           <p className="mb-2 text-[11px] font-medium text-neutral-500">待拖动区域</p>
 
-          <div className="grid grid-cols-[90px_1fr] items-stretch gap-0">
+          <div className="grid grid-cols-[20%_1fr] items-stretch gap-0">
             <div className="flex aspect-square w-full flex-col items-center justify-center overflow-hidden bg-neutral-100 p-1 ring-1 ring-black/8">
               <span className="flex flex-col items-center text-center font-bold leading-[1.12] text-neutral-800">
                 <span className="block text-[clamp(12px,3.4vw,16px)] tracking-tight">拖动</span>
@@ -449,7 +468,7 @@ export function PracticeStep2Page() {
                 outlineOffset: '-1px',
               }}
             >
-              {!draft.tier ? (
+              {draft.tier === null ? (
                 <RestaurantDragSurface
                   display={display}
                   dragging={dragging}
@@ -481,14 +500,16 @@ export function PracticeStep2Page() {
             {TIER_ORDER.map((tier) => (
               <li
                 key={tier}
-                ref={(el) => {
-                  rowRefs.current[tier] = el
-                }}
-                className="grid grid-cols-[90px_1fr] list-none items-stretch gap-0"
+                className="grid grid-cols-[20%_1fr] list-none items-stretch gap-0"
               >
                 <TierLabelBlock tier={tier} count={countsByTier[tier] ?? 0} />
 
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col self-stretch">
+                <div
+                  ref={(el) => {
+                    rowRefs.current[tier] = el
+                  }}
+                  className="relative flex min-h-0 min-w-0 flex-1 flex-col self-stretch"
+                >
                   {draft.tier === tier ? (
                     <RestaurantDragSurface
                       display={display}
@@ -557,9 +578,7 @@ export function PracticeStep2Page() {
 
 
 
-      <PracticeReviewDetailsSection onBeforeReset={() => {
-        doneRef.current = true
-      }} />
+      <PracticeReviewDetailsSection />
 
     </div>
 
