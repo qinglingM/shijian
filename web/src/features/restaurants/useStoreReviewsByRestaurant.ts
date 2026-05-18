@@ -22,12 +22,19 @@ interface PracticeSel {
   store_comment: string | null
   created_at: string
   user_id: string
+  is_anonymous: boolean
 }
 
 interface VoteSel {
   target_id: string
   vote_type: VoteType
   user_id: string
+}
+
+interface ProfileSel {
+  id: string
+  nickname: string
+  avatar_url: string | null
 }
 
 const ANONYMOUS_REVIEWER = '匿名食客'
@@ -44,9 +51,8 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
 
       const { data: prow, error: e1 } = await sb
         .from('practice_records')
-        .select('id, tier, store_comment, created_at, user_id')
+        .select('id, tier, store_comment, created_at, user_id, is_anonymous')
         .eq('restaurant_id', rid)
-        .eq('is_public', true)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(120)
@@ -54,6 +60,19 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
       if (e1) throw e1
       const prs = (prow ?? []) as PracticeSel[]
       if (!prs.length) return []
+
+      // 查非匿名用户的 profile
+      const nonAnonUserIds = [...new Set(prs.filter((p) => !p.is_anonymous).map((p) => p.user_id))]
+      const profileMap = new Map<string, ProfileSel>()
+      if (nonAnonUserIds.length) {
+        const { data: profilesRaw } = await sb
+          .from('profiles')
+          .select('id, nickname, avatar_url')
+          .in('id', nonAnonUserIds)
+        for (const p of (profilesRaw ?? []) as ProfileSel[]) {
+          profileMap.set(p.id, p)
+        }
+      }
 
       const { data: votesRaw, error: e3 } = await sb
         .from('review_votes')
@@ -76,10 +95,11 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
       }
 
       return prs.map((r) => {
+        const profile = r.is_anonymous ? null : profileMap.get(r.user_id) ?? null
         return {
           id: r.id,
-          nickname: ANONYMOUS_REVIEWER,
-          avatar_url: null,
+          nickname: profile ? profile.nickname : ANONYMOUS_REVIEWER,
+          avatar_url: profile ? profile.avatar_url : null,
           tier: r.tier as Tier,
           store_comment: r.store_comment,
           created_at: r.created_at,

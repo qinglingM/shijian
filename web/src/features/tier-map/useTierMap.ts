@@ -20,6 +20,8 @@ export interface TierMapItem {
   city_id: string | null
   latitude: number | null
   longitude: number | null
+  /** practice_records.created_at；模拟/示例数据为 null */
+  practiced_at: string | null
 }
 
 export interface TierBucket {
@@ -112,6 +114,7 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       city_id: null,
       latitude: 39.9612,
       longitude: 116.3084,
+      practiced_at: null,
     },
     {
       id: 'demo-2',
@@ -122,6 +125,7 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       city_id: null,
       latitude: 39.9371,
       longitude: 116.3262,
+      practiced_at: null,
     },
     {
       id: 'demo-3',
@@ -132,6 +136,7 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       city_id: null,
       latitude: 39.9042,
       longitude: 116.4074,
+      practiced_at: null,
     },
   ],
   hang: [
@@ -144,6 +149,7 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       city_id: null,
       latitude: 39.9336,
       longitude: 116.4474,
+      practiced_at: null,
     },
     {
       id: 'demo-5',
@@ -154,6 +160,7 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       city_id: null,
       latitude: 39.9192,
       longitude: 116.3982,
+      practiced_at: null,
     },
   ],
   top: [
@@ -166,6 +173,7 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       city_id: null,
       latitude: 39.9891,
       longitude: 116.3185,
+      practiced_at: null,
     },
   ],
   upper: [
@@ -178,6 +186,7 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       city_id: null,
       latitude: 39.9242,
       longitude: 116.4124,
+      practiced_at: null,
     },
     {
       id: 'demo-8',
@@ -188,6 +197,7 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       city_id: null,
       latitude: 39.9394,
       longitude: 116.4032,
+      practiced_at: null,
     },
     {
       id: 'demo-9',
@@ -198,6 +208,7 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       city_id: null,
       latitude: 39.9102,
       longitude: 116.4552,
+      practiced_at: null,
     },
     {
       id: 'demo-10',
@@ -208,6 +219,7 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       city_id: null,
       latitude: 39.9055,
       longitude: 116.4432,
+      practiced_at: null,
     },
   ],
   npc: [],
@@ -252,6 +264,7 @@ interface PracticeRestaurantRow {
 
 interface PracticeRow {
   tier: Tier
+  created_at: string
   restaurant: PracticeRestaurantRow | null
 }
 
@@ -301,7 +314,7 @@ export function useTierMap() {
       const { data, error } = await supabase
         .from('practice_records')
         .select(
-          'tier, restaurant:restaurants(id, display_name, cover_image_url, category_id, city_id, latitude, longitude, categories(name))',
+          'tier, created_at, restaurant:restaurants(id, display_name, cover_image_url, category_id, city_id, latitude, longitude, categories(name))',
         )
         .eq('user_id', userId!)
         .eq('is_active', true)
@@ -320,7 +333,7 @@ export function useTierMap() {
       }
       for (const r of rows) {
         const item = tierMapItemFromPracticeRestaurant(r.restaurant)
-        if (item) grouped[r.tier].push(item)
+        if (item) grouped[r.tier].push({ ...item, practiced_at: r.created_at })
       }
 
       const buckets = TIER_ORDER.map((tier) => {
@@ -401,6 +414,7 @@ function mergeSimulatedRecords(
       city_id: record.restaurant.city_id ?? null,
       latitude: record.restaurant.latitude ?? null,
       longitude: record.restaurant.longitude ?? null,
+      practiced_at: new Date().toISOString(),
     })
   }
 

@@ -13,8 +13,8 @@ export function DiscoveryTopBar({
 }: DiscoveryTopBarProps) {
   return (
     <div className={cn('flex items-center gap-3', className)}>
-      <div className="min-w-0 flex-1">{searchSlot}</div>
       <CityPicker variant="navbar" />
+      <div className="min-w-0 flex-1">{searchSlot}</div>
     </div>
   )
 }

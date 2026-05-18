@@ -31,6 +31,13 @@ interface PrMini {
   id: string
   tier: string
   user_id: string
+  is_anonymous: boolean
+}
+
+interface ProfileSel {
+  id: string
+  nickname: string
+  avatar_url: string | null
 }
 
 export function useDishReviewsByDish(dishId: string | null) {
@@ -46,7 +53,6 @@ export function useDishReviewsByDish(dishId: string | null) {
         .from('dish_reviews')
         .select('id, score, comment, image_url, created_at, practice_record_id')
         .eq('dish_id', did)
-        .eq('is_public', true)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(80)
@@ -59,14 +65,29 @@ export function useDishReviewsByDish(dishId: string | null) {
 
       const { data: prv, error: e2 } = await sb
         .from('practice_records')
-        .select('id, tier, user_id, is_public, is_active')
+        .select('id, tier, user_id, is_anonymous, is_active')
         .in('id', prIds)
-        .eq('is_public', true)
         .eq('is_active', true)
 
       if (e2) throw e2
 
       const practices = new Map(((prv ?? []) as PrMini[]).map((p) => [p.id, p]))
+
+      // 查非匿名用户的 profile
+      const nonAnonUserIds = [...new Set(
+        ((prv ?? []) as PrMini[]).filter((p) => !p.is_anonymous).map((p) => p.user_id)
+      )]
+      const profileMap = new Map<string, ProfileSel>()
+      if (nonAnonUserIds.length) {
+        const { data: profilesRaw } = await sb
+          .from('profiles')
+          .select('id, nickname, avatar_url')
+          .in('id', nonAnonUserIds)
+        for (const p of (profilesRaw ?? []) as ProfileSel[]) {
+          profileMap.set(p.id, p)
+        }
+      }
+
       const reviewIds = revs.map((r) => r.id)
       const { data: voteRaw, error: e4 } = await sb
         .from('review_votes')
@@ -92,9 +113,10 @@ export function useDishReviewsByDish(dishId: string | null) {
         if (!pr) continue
         const votes = voteSummary.get(r.id) ?? { youpin: 0, yebang: 0, mine: null }
 
+        const profile = pr.is_anonymous ? null : profileMap.get(pr.user_id) ?? null
         items.push({
           id: r.id,
-          reviewer_nickname: ANONYMOUS_REVIEWER,
+          reviewer_nickname: profile ? profile.nickname : ANONYMOUS_REVIEWER,
           created_at: r.created_at,
           store_tier: pr.tier as Tier,
           score: r.score,

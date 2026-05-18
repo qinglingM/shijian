@@ -1,5 +1,6 @@
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMemo, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Bookmark, ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { lookupExistingRestaurantByPoi } from '@/features/poi-search/usePoiSearch'
@@ -82,6 +83,23 @@ export function RestaurantDetailPage() {
   const setExistingRestaurantDraft = usePracticeDraft((s) => s.setExistingRestaurant)
   const setReturnTo = usePracticeDraft((s) => s.setReturnTo)
   const applyHydratedDraft = usePracticeDraft((s) => s.applyHydratedPracticeFromServer)
+
+  const myPracticeQ = useQuery({
+    queryKey: ['my-practice-check', isUuid ? id : null, viewerId],
+    enabled: isSupabaseConfigured && !!viewerId && isUuid && !!id,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await getSupabase()
+        .from('practice_records')
+        .select('id')
+        .eq('user_id', viewerId!)
+        .eq('restaurant_id', id!)
+        .eq('is_active', true)
+        .maybeSingle()
+      return data?.id ?? null
+    },
+  })
+  const hasExistingReview = !!myPracticeQ.data
 
   const restaurantQ = useRestaurant(isUuid ? id : null)
   const storeRQ = useStoreReviewsByRestaurant(isUuid ? id : null)
@@ -527,7 +545,7 @@ export function RestaurantDetailPage() {
             onClick={() => void beginPracticeFromDetail()}
             className="flex w-full items-center justify-center rounded-full bg-gradient-to-r from-orange-600 to-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-orange-700/20 active:from-orange-700 active:to-rose-700"
           >
-            写评价
+            {hasExistingReview ? '更新评价' : '写评价'}
           </button>
         </div>
       </div>

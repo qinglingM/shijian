@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Check, MapPin, Search } from 'lucide-react'
-import { BackHeader, PracticeProgress } from '@/components/layout/AppLayout'
-import { PRACTICE_MERGED_STEPS } from '@/components/layout/practiceProgress'
+import { MapPin, Search } from 'lucide-react'
+import { BackHeader } from '@/components/layout/AppLayout'
 import { CityPicker } from '@/features/city-picker/CityPicker'
 import { useCityStore } from '@/features/city-picker/cityStore'
 import {
@@ -10,16 +9,10 @@ import {
   usePoiSearch,
 } from '@/features/poi-search/usePoiSearch'
 import { useCandidatesPracticeStatus } from '@/features/poi-search/useCandidatesPracticeStatus'
-import {
-  PracticeRestaurantDragCard,
-  PracticeRestaurantDragRow,
-  practiceDisplayFromPoiCandidate,
-} from '@/features/practice/PracticeRestaurantCard'
 import { fetchExistingPracticeHydration } from '@/features/practice/hydratePracticeDraftFromServer'
 import { usePracticeDraft } from '@/stores/practiceDraft'
-import { getSupabase } from '@/lib/supabase'
-import type { PoiCandidate } from '@/lib/poi'
 import { useAuthStore } from '@/stores/authStore'
+import type { PoiCandidate } from '@/lib/poi'
 import { PracticeStep1SloganImage } from './PracticeStep1SloganImage'
 import { poiPracticeKey } from '@/features/poi-search/poiPracticeKey'
 
@@ -27,7 +20,13 @@ export function PracticeStep1Page() {
   const navigate = useNavigate()
   const setPoi = usePracticeDraft((s) => s.setPoi)
   const applyHydrated = usePracticeDraft((s) => s.applyHydratedPracticeFromServer)
+  const resetDraft = usePracticeDraft((s) => s.reset)
+  const viewerId = useAuthStore((s) => s.user?.id ?? null)
   const cityName = useCityStore((s) => s.cityName)
+
+  useEffect(() => {
+    resetDraft()
+  }, [resetDraft])
 
   const [keyword, setKeyword] = useState('')
   const [picking, setPicking] = useState<string | null>(null)
@@ -47,29 +46,16 @@ export function PracticeStep1Page() {
         poi.poi_source,
         poi.poi_id,
       )
-      const userId = useAuthStore.getState().user?.id ?? null
-      let willReplace = false
-      if (existingId && userId) {
-        const { data, error } = await getSupabase()
-          .from('practice_records')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('restaurant_id', existingId)
-          .eq('is_active', true)
-          .maybeSingle()
-        if (!error) willReplace = !!data
-      }
+      const willReplace = practicedPoiKeys.has(poiPracticeKey(poi))
       setPoi(poi, existingId, willReplace)
-
-      if (willReplace && existingId && userId) {
+      if (willReplace && viewerId && existingId) {
         try {
-          const payload = await fetchExistingPracticeHydration(userId, existingId)
+          const payload = await fetchExistingPracticeHydration(viewerId, existingId)
           if (payload) applyHydrated(payload)
         } catch (e) {
           console.warn('[shijian] hydrate practice draft failed:', e)
         }
       }
-
       navigate('/practice/step2')
     } finally {
       setPicking(null)
@@ -79,7 +65,6 @@ export function PracticeStep1Page() {
   return (
     <div className="flex min-h-[calc(100dvh-6rem)] flex-col">
       <BackHeader title="搜索确认店铺" />
-      <PracticeProgress current={1} steps={PRACTICE_MERGED_STEPS} />
 
       {/* 搜索区：背景固定不变，与下方结果区区分 */}
       <section className="shrink-0 bg-[radial-gradient(120%_85%_at_50%_0%,#f9fafb_0%,#f1f5f9_45%,#e8eef5_100%)] px-4 pt-5 pb-4">
@@ -142,50 +127,57 @@ export function PracticeStep1Page() {
         {candidates.length > 0 && (
           <div>
             <div className="mb-3 flex items-end justify-between">
-              <div>
-                <p className="text-sm font-semibold text-neutral-900">可能就是它</p>
-                <p className="mt-0.5 text-[11px] text-neutral-400">
-                  选中后进入写评价，不会立即公开
-                </p>
-              </div>
-              <span className="rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-semibold text-orange-900">
-                {candidates.length} 个候选
-              </span>
+              <p className="text-[12px] font-medium text-neutral-600">
+                找到 <span className="tabular-nums text-orange-700">{candidates.length}</span> 个候选，点击选定后进入写评价
+              </p>
             </div>
             <ul className="space-y-3">
               {candidates.map((poi) => {
                 const practicedHere = practicedPoiKeys.has(poiPracticeKey(poi))
+                const region = [poi.city_name, poi.district_name].filter(Boolean).join(' ') || '区域未知'
+                const address = poi.address_text?.trim() || '地址未录入'
                 return (
-                  <li
-                    key={poi.poi_id}
-                    className="list-none flex w-full min-w-0 items-center gap-2 pr-2 sm:pr-3"
-                  >
-                    <PracticeRestaurantDragRow fullWidth>
-                      <PracticeRestaurantDragCard
-                        display={practiceDisplayFromPoiCandidate(poi)}
-                      />
-                    </PracticeRestaurantDragRow>
+                  <li key={poi.poi_id}>
                     <button
                       type="button"
                       disabled={picking === poi.poi_id || practicedQ.isPending}
                       onClick={() => selectPoi(poi)}
-                      aria-label={
-                        practicedHere ? '你已评过这家店，点此更新食鉴' : '选这家店开始食鉴'
-                      }
-                      title={practicedHere ? '已评过 · 点此继续' : '就是这家'}
-                      className={`ml-auto flex size-11 shrink-0 items-center justify-center rounded-full disabled:opacity-45 ${
-                        practicedHere
-                          ? 'bg-gradient-to-br from-orange-600 to-rose-600 text-white shadow-md shadow-orange-700/25'
-                          : 'border-[2.5px] border-orange-500 bg-white text-orange-600 shadow-sm shadow-orange-900/12'
-                      }`}
+                      className="w-full rounded-2xl border border-neutral-100 bg-white p-3 text-left shadow-sm active:bg-neutral-50 disabled:opacity-50"
                     >
-                      <Check strokeWidth={2.5} size={20} className={picking === poi.poi_id ? 'animate-pulse' : ''} />
+                      <div className="flex gap-3">
+                        <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 ring-1 ring-orange-100">
+                          {poi.cover_image_url ? (
+                            <img src={poi.cover_image_url} alt="" className="size-full object-cover" />
+                          ) : (
+                            <MapPin className="size-6 text-orange-500" aria-hidden />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="min-w-0 flex-1 truncate text-[15px] font-bold text-neutral-950">
+                              {poi.poi_name}
+                            </h3>
+                            {practicedHere && (
+                              <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+                                已评过
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
+                              {region}
+                            </span>
+                          </div>
+                          <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-neutral-500">
+                            {address}
+                          </p>
+                        </div>
+                      </div>
                     </button>
                   </li>
                 )
               })}
 
-              {/* 底部弱提示：手动补充入口（有结果时低调） */}
               <li className="pt-2 pb-6 text-center text-[11px] text-neutral-400">
                 没有找到这家店？{' '}
                 <Link to="/practice/manual" className="text-neutral-700 underline">

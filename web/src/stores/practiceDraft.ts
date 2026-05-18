@@ -54,7 +54,10 @@ interface PracticeDraftState {
 
   tier: Tier | null
   store_comment: string
+  /** 评价是否公开显示（始终为 true，因为评价总是公开的） */
   is_public: boolean
+  /** 是否以匿名身份显示评价 */
+  is_anonymous: boolean
 
   dishes: DraftDishReview[]
   good_review_guidance: boolean
@@ -71,7 +74,7 @@ interface PracticeDraftState {
   submission_baseline_locked_from_server: boolean
 
   /**
-   * 基线捕获时的「公开评价」勾选，用于判断是否改动可见项。
+   * 基线捕获时的「匿名评价」勾选，用于判断是否改动可见项。
    */
   submission_baseline_practice_public_snapshot: boolean | null
 
@@ -114,6 +117,7 @@ interface PracticeDraftState {
   setTier: (tier: Tier | null) => void
   setStoreComment: (text: string) => void
   setIsPublic: (v: boolean) => void
+  setIsAnonymous: (v: boolean) => void
   addDish: (dish: Omit<DraftDishReview, 'client_id'>) => void
   updateDish: (clientId: string, patch: Partial<DraftDishReview>) => void
   removeDish: (clientId: string) => void
@@ -130,6 +134,7 @@ const INITIAL = {
   tier: null,
   store_comment: '',
   is_public: true,
+  is_anonymous: false,
   dishes: [] as DraftDishReview[],
   good_review_guidance: false,
   submission_baseline: null as PracticeSubmissionBaseline | null,
@@ -152,6 +157,7 @@ export const usePracticeDraft = create<PracticeDraftState>()(
           tier: payload.tier,
           store_comment: payload.store_comment,
           is_public: payload.is_public,
+          is_anonymous: payload.is_anonymous ?? false,
           dishes: payload.dishes_payload.map((d) => ({ ...d, client_id: randomId() })),
           submission_baseline: payload.submission_baseline,
           submission_baseline_locked_from_server: true,
@@ -173,7 +179,7 @@ export const usePracticeDraft = create<PracticeDraftState>()(
         })
         set({
           submission_baseline,
-          submission_baseline_practice_public_snapshot: s.is_public,
+          submission_baseline_practice_public_snapshot: s.is_anonymous,
         })
       },
       setPoi: (poi, existingRestaurantId, willReplaceExistingPractice = false) =>
@@ -187,6 +193,7 @@ export const usePracticeDraft = create<PracticeDraftState>()(
           tier: null,
           store_comment: '',
           is_public: true,
+          is_anonymous: false,
           dishes: [],
           good_review_guidance: false,
           submission_baseline: null,
@@ -215,6 +222,7 @@ export const usePracticeDraft = create<PracticeDraftState>()(
           tier: null,
           store_comment: '',
           is_public: true,
+          is_anonymous: false,
           dishes: [],
           good_review_guidance: false,
           submission_baseline: null,
@@ -230,6 +238,7 @@ export const usePracticeDraft = create<PracticeDraftState>()(
           tier: null,
           store_comment: '',
           is_public: true,
+          is_anonymous: false,
           dishes: [],
           good_review_guidance: false,
           submission_baseline: null,
@@ -239,6 +248,7 @@ export const usePracticeDraft = create<PracticeDraftState>()(
       setTier: (tier) => set({ tier }),
       setStoreComment: (store_comment) => set({ store_comment }),
       setIsPublic: (is_public) => set({ is_public }),
+      setIsAnonymous: (is_anonymous) => set({ is_anonymous }),
       addDish: (dish) =>
         set((s) => ({
           dishes: [...s.dishes, { ...dish, client_id: randomId() }],

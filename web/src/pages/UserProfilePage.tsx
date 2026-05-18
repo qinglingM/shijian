@@ -72,7 +72,6 @@ export function UserProfilePage() {
         .from('practice_records')
         .select('id, restaurant_id, tier, store_comment, created_at, restaurants(id, display_name, cover_image_url, city_name, district_name, address_text, city_id)')
         .eq('user_id', targetUserId!)
-        .eq('is_public', true)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(50)

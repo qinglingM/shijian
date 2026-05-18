@@ -550,23 +550,6 @@ export function PracticeStep2Page() {
 
         />
 
-        <label className="mt-3 flex items-center gap-2 text-xs text-neutral-600">
-
-          <input
-
-            type="checkbox"
-
-            checked={draft.is_public}
-
-            onChange={(e) => draft.setIsPublic(e.target.checked)}
-
-            className="size-3.5"
-
-          />
-
-          匿名评价（其他用户可见）
-
-        </label>
 
       </section>
 

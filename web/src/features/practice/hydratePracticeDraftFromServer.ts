@@ -20,6 +20,7 @@ export type HydratePracticeDraftResult = {
   tier: Tier
   store_comment: string
   is_public: boolean
+  is_anonymous: boolean
   dishes_payload: HydratedDishInput[]
   submission_baseline: PracticeSubmissionBaseline
   submission_baseline_practice_public_snapshot: boolean
@@ -46,7 +47,7 @@ export async function fetchExistingPracticeHydration(
 
   const { data: pr, error: prErr } = await supabase
     .from('practice_records')
-    .select('id, tier, store_comment, is_public')
+    .select('id, tier, store_comment, is_public, is_anonymous')
     .eq('user_id', userId)
     .eq('restaurant_id', restaurantId)
     .eq('is_active', true)
@@ -103,6 +104,7 @@ export async function fetchExistingPracticeHydration(
 
   const store_comment = (pr.store_comment as string | null | undefined)?.trim() ?? ''
   const is_public = !!(pr.is_public as boolean)
+  const is_anonymous = !!(pr.is_anonymous as boolean)
 
   const submission_baseline = buildSubmissionBaseline(tier, store_comment, comparable)
 
@@ -110,8 +112,9 @@ export async function fetchExistingPracticeHydration(
     tier,
     store_comment,
     is_public,
+    is_anonymous,
     dishes_payload,
     submission_baseline,
-    submission_baseline_practice_public_snapshot: is_public,
+    submission_baseline_practice_public_snapshot: is_anonymous,
   }
 }

@@ -34,7 +34,6 @@ export function useRestaurantPublicTierMode(restaurantId: string | null | undefi
         .from('practice_records')
         .select('tier')
         .eq('restaurant_id', id!)
-        .eq('is_public', true)
         .eq('is_active', true)
 
       if (error) throw error

@@ -22,6 +22,12 @@ export interface RestaurantDishReviewItem {
 
 const ANONYMOUS_REVIEWER = '匿名食客'
 
+interface ProfileSel {
+  id: string
+  nickname: string
+  avatar_url: string | null
+}
+
 export function useRestaurantDishReviews(restaurantId: string | null) {
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
   return useQuery<RestaurantDishReviewItem[]>({
@@ -33,9 +39,8 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
 
       const { data: prsRaw, error: e1 } = await sb
         .from('practice_records')
-        .select('id, user_id, tier')
+        .select('id, user_id, tier, is_anonymous')
         .eq('restaurant_id', rid)
-        .eq('is_public', true)
         .eq('is_active', true)
 
       if (e1) throw e1
@@ -44,6 +49,7 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
         id: string
         user_id: string
         tier: string
+        is_anonymous: boolean
       }
       const prs = (prsRaw ?? []) as PrTier[]
       if (!prs.length) return []
@@ -51,11 +57,23 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
       const prMap = new Map(prs.map((p) => [p.id, p]))
       const prIds = prs.map((p) => p.id)
 
+      // 查非匿名用户的 profile
+      const nonAnonUserIds = [...new Set(prs.filter((p) => !p.is_anonymous).map((p) => p.user_id))]
+      const profileMap = new Map<string, ProfileSel>()
+      if (nonAnonUserIds.length) {
+        const { data: profilesRaw } = await sb
+          .from('profiles')
+          .select('id, nickname, avatar_url')
+          .in('id', nonAnonUserIds)
+        for (const p of (profilesRaw ?? []) as ProfileSel[]) {
+          profileMap.set(p.id, p)
+        }
+      }
+
       const { data: drRaw, error: e2 } = await sb
         .from('dish_reviews')
         .select('id,dish_id,score,comment,image_url,created_at,is_public,is_active,practice_record_id,dishes(id,name,cover_image_url)')
         .in('practice_record_id', prIds)
-        .eq('is_public', true)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(80)
@@ -109,12 +127,13 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
         }
         const votes = voteSummary.get(r.id) ?? { youpin: 0, yebang: 0, mine: null }
 
+        const profile = pr.is_anonymous ? null : profileMap.get(pr.user_id) ?? null
         out.push({
           id: r.id,
           dish_id: r.dish_id,
           dish_name: dishName,
           dish_cover_image_url: dishCover,
-          reviewer_nickname: ANONYMOUS_REVIEWER,
+          reviewer_nickname: profile ? profile.nickname : ANONYMOUS_REVIEWER,
           score: r.score,
           comment: r.comment,
           image_url: r.image_url,
