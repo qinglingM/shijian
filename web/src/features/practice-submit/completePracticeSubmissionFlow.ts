@@ -29,7 +29,7 @@ export async function completePracticeSubmissionFlow(opts: {
 
   onBeforeReset?.()
 
-  const returnTo = usePracticeDraft.getState().returnTo ?? '/map'
+  const returnTo = usePracticeDraft.getState().returnTo ?? '/tier-map'
   navigate(returnTo, { replace: true })
 
   usePracticeDraft.getState().reset()

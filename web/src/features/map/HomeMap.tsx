@@ -286,35 +286,37 @@ function BottomSheet({
         {r.top_store_comment && (
           <>
             <div className="h-px bg-neutral-100 mx-4" />
-            <div className="px-4 py-3">
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    {r.top_reviewer_avatar_url ? (
-                      <img src={r.top_reviewer_avatar_url} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full bg-neutral-200 shrink-0 flex items-center justify-center text-[10px] text-neutral-500 font-medium">
-                        {r.top_reviewer_nickname?.[0] ?? '?'}
-                      </div>
-                    )}
-                    <p className="text-[11px] text-neutral-600 min-w-0 truncate font-medium">
-                      {r.top_reviewer_nickname}
-                    </p>
+            <div className="px-4 py-3 grid grid-cols-[1fr_auto] gap-x-3">
+              {/* Row 1 Col 1: avatar + username + 热评 */}
+              <div className="flex items-start gap-[19.5px]">
+                {r.top_reviewer_avatar_url ? (
+                  <img src={r.top_reviewer_avatar_url} alt="" className="w-[41px] h-[41px] rounded-full object-cover shrink-0 ml-[7.5px] mt-[11.5px]" />
+                ) : (
+                  <div className="w-[41px] h-[41px] rounded-full bg-neutral-200 shrink-0 flex items-center justify-center text-[10px] text-neutral-500 font-medium ml-[7.5px] mt-[11.5px]">
+                    {r.top_reviewer_nickname?.[0] ?? '?'}
                   </div>
-                  <div className="flex items-start pl-[68px] relative">
-                    <span className="absolute left-[17px] top-0 text-[11px] text-orange-500 font-semibold leading-[1.3rem]">热评</span>
-                    <p className="flex-1 min-w-0 text-[15px] font-semibold text-neutral-700 leading-relaxed line-clamp-3">
-                      {r.top_store_comment}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex shrink-0 flex-col items-center gap-0.5">
-                  {dateStr ? (
-                    <span className="text-[11px] text-neutral-400 whitespace-nowrap">{dateStr}</span>
-                  ) : null}
-                  {r.review_tier ? <TierChip tier={r.review_tier} small /> : null}
-                  <span className="text-[11px] text-neutral-500 whitespace-nowrap">有品 {r.review_youpin}</span>
-                </div>
+                )}
+                <p className="text-[11px] text-neutral-600 min-w-0 truncate font-medium">
+                  {r.top_reviewer_nickname}
+                </p>
+                <span className="ml-auto shrink-0 text-[11px] text-orange-500 font-semibold whitespace-nowrap">热评</span>
+              </div>
+              {/* Row 1 Col 2: date */}
+              <div className="justify-self-end">
+                {dateStr ? (
+                  <span className="text-[11px] text-neutral-400 whitespace-nowrap">{dateStr}</span>
+                ) : null}
+              </div>
+              {/* Row 2 Col 1: comment */}
+              <div className="flex items-start pl-[68px] -mt-[20px]">
+                <p className="flex-1 min-w-0 text-[15px] font-semibold text-neutral-700 leading-relaxed line-clamp-3">
+                  {r.top_store_comment}
+                </p>
+              </div>
+              {/* Row 2 Col 2: tier + 有品 */}
+              <div className="flex flex-col items-end gap-0.5 justify-self-end -mt-[20px]">
+                {r.review_tier ? <TierChip tier={r.review_tier} small /> : null}
+                <span className="text-[11px] text-neutral-500 whitespace-nowrap">有品 {r.review_youpin}</span>
               </div>
             </div>
           </>

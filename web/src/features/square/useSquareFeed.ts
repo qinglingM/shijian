@@ -66,6 +66,8 @@ export function useSquareFeed() {
           .select('id,user_id,restaurant_id,tier,store_comment,created_at')
           .eq('is_public', true)
           .eq('is_active', true)
+          .not('store_comment', 'is', null)
+          .neq('store_comment', '')
           .order('created_at', { ascending: false })
           .limit(40),
         sb
@@ -119,7 +121,7 @@ export function useSquareFeed() {
           nickname: prof?.nickname?.trim() || '食鉴用户',
           avatar_url: prof?.avatar_url ?? null,
           title: rest?.display_name || '未知门店',
-          content: r.store_comment?.trim() || '（未填写店铺锐评）',
+          content: r.store_comment ?? '',
           cover_style: 'tier',
           tier: r.tier as Tier,
           tier_label: TIER_LABEL[r.tier as Tier],

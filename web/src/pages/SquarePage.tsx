@@ -1,53 +1,47 @@
-import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
-import { Compass, Search, Sparkles, Image as ImageIcon, PenSquare } from 'lucide-react'
+import { useMemo, useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Search, Image as ImageIcon, PenSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TIER_SOFT_VAR, type Tier } from '@/lib/db'
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
+import { useTodayPracticeCount } from '@/features/square/useTodayPracticeCount'
 
 export function SquarePage() {
+  const navigate = useNavigate()
+  const [draft, setDraft] = useState('')
   const { data: feed = [], isLoading } = useSquareFeed()
+  const { data: todayCount = 0 } = useTodayPracticeCount()
   const columns = useMemo(() => splitIntoMasonryColumns(feed), [feed])
+
+  function onSearch(e: FormEvent) {
+    e.preventDefault()
+    const q = draft.trim()
+    if (q) navigate('/search?q=' + encodeURIComponent(q))
+  }
 
   return (
     <div className="flex min-h-[calc(100dvh-6rem)] flex-col bg-white">
       <section className="px-4 pt-4">
-        <div className="rounded-3xl border border-neutral-100 bg-neutral-50 px-4 py-4">
-          <div className="flex items-start gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-white text-orange-600 ring-1 ring-orange-100">
-              <Sparkles size={20} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-base font-semibold text-neutral-950">双列广场</p>
-              <p className="mt-1 text-sm leading-6 text-neutral-500">
-                公开食鉴会变成纯色封面卡片，图文帖子则直接展示首图。
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <Link
-              to="/search"
-              className="inline-flex flex-1 items-center justify-center gap-1 rounded-full bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white"
-            >
-              <Search size={16} />
-              搜索内容
-            </Link>
-            <Link
-              to="/practice/step1"
-              className="inline-flex flex-1 items-center justify-center gap-1 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-neutral-800 ring-1 ring-neutral-200"
-            >
-              <Compass size={16} />
-              去食鉴
-            </Link>
-          </div>
-        </div>
+        <form onSubmit={onSearch} className="relative">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400"
+            aria-hidden
+          />
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="搜索餐厅来看看别人的评价"
+            className="w-full rounded-full bg-neutral-100 py-2.5 pl-10 pr-4 text-sm outline-none placeholder:text-neutral-400"
+            enterKeyHint="search"
+          />
+        </form>
+        <p className="mt-1.5 text-center text-xs text-neutral-500">
+          今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
+        </p>
       </section>
 
       <section className="flex-1 px-4 pt-5 pb-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-900">最新动态</h2>
-          <span className="text-xs text-neutral-400">双列瀑布流</span>
-        </div>
+        <h2 className="mb-3 text-sm font-semibold text-neutral-900">最新动态</h2>
 
         {isLoading ? (
           <p className="py-14 text-center text-sm text-neutral-400">载入广场内容…</p>
@@ -63,7 +57,6 @@ export function SquarePage() {
           ))}
         </div>
       </section>
-
     </div>
   )
 }
@@ -184,5 +177,3 @@ function tierAspect(tier: Tier) {
   }
   return map[tier]
 }
-
-
