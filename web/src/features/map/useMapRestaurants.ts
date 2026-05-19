@@ -10,10 +10,16 @@ export interface MapRestaurant {
   city_name: string | null
   district_name: string | null
   cover_image_url: string | null
+  address_text: string | null
+  category_name: string | null
   tier: Tier | null
   top_reviewer_nickname: string | null
   top_reviewer_avatar_url: string | null
   top_store_comment: string | null
+  review_tier: Tier | null
+  review_youpin: number
+  review_created_at: string | null
+  practice_count: number
 }
 
 interface RestaurantRow {
@@ -24,6 +30,7 @@ interface RestaurantRow {
   city_name: string | null
   district_name: string | null
   cover_image_url: string | null
+  address_text: string | null
 }
 
 interface PracticeRow {
@@ -33,6 +40,7 @@ interface PracticeRow {
   tier: string
   store_comment: string | null
   is_anonymous: boolean
+  created_at: string
 }
 
 interface ProfileRow {
@@ -68,16 +76,27 @@ export function useMapRestaurants() {
     queryFn: async () => {
       const sb = getSupabase()
 
-      // 1. 所有有坐标的已入库餐厅
+      // 1. 所有有坐标的已入库餐厅（含分类中文名）
       const { data: raws, error: e1 } = await sb
         .from('restaurants')
-        .select('id, display_name, latitude, longitude, city_name, district_name, cover_image_url')
+        .select('id, display_name, latitude, longitude, city_name, district_name, cover_image_url, address_text, categories(name)')
         .eq('status', 'active')
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
 
       if (e1) throw e1
-      const restaurants = (raws ?? []) as RestaurantRow[]
+      const rawRows = (raws ?? []) as (RestaurantRow & { categories: { name?: string } | { name?: string }[] | null })[]
+      const restaurants: (RestaurantRow & { category_name: string | null })[] = rawRows.map((r) => {
+        const nested = r.categories
+        let category_name: string | null = null
+        if (nested && typeof nested === 'object' && !Array.isArray(nested) && nested.name != null)
+          category_name = String(nested.name)
+        else if (Array.isArray(nested) && nested[0]?.name != null)
+          category_name = String(nested[0].name)
+        const { categories: _omit, ...core } = r
+        void _omit
+        return { ...core, category_name }
+      })
       if (!restaurants.length) return []
 
       const ids = restaurants.map((r) => r.id)
@@ -85,7 +104,7 @@ export function useMapRestaurants() {
       // 2. 这些餐厅的所有公开实践（含 tier + store_comment）
       const { data: praw, error: e2 } = await sb
         .from('practice_records')
-        .select('id, restaurant_id, user_id, tier, store_comment, is_anonymous')
+        .select('id, restaurant_id, user_id, tier, store_comment, is_anonymous, created_at')
         .in('restaurant_id', ids)
         .eq('is_active', true)
 
@@ -101,10 +120,16 @@ export function useMapRestaurants() {
           city_name: r.city_name,
           district_name: r.district_name,
           cover_image_url: r.cover_image_url,
+          address_text: null,
+          category_name: r.category_name,
           tier: null,
           top_reviewer_nickname: null,
           top_reviewer_avatar_url: null,
           top_store_comment: null,
+          review_tier: null,
+          review_youpin: 0,
+          review_created_at: null,
+          practice_count: 0,
         }))
       }
 
@@ -117,6 +142,12 @@ export function useMapRestaurants() {
         }
         const counts = tierCountsByRestaurant.get(p.restaurant_id)!
         counts.set(t, (counts.get(t) ?? 0) + 1)
+      }
+
+      // 餐厅食鉴总人次
+      const practiceCountByRestaurant = new Map<string, number>()
+      for (const p of practices) {
+        practiceCountByRestaurant.set(p.restaurant_id, (practiceCountByRestaurant.get(p.restaurant_id) ?? 0) + 1)
       }
 
       // 有品最高的睿评：只取有 store_comment 的实践
@@ -175,10 +206,16 @@ export function useMapRestaurants() {
           city_name: r.city_name,
           district_name: r.district_name,
           cover_image_url: r.cover_image_url,
+          address_text: r.address_text,
+          category_name: r.category_name,
           tier: tierCounts ? modeTier(tierCounts) : null,
           top_reviewer_nickname: top ? (profile ? profile.nickname : ANONYMOUS_REVIEWER) : null,
           top_reviewer_avatar_url: profile ? profile.avatar_url : null,
           top_store_comment: top?.store_comment ?? null,
+          review_tier: top ? (top.tier as Tier) : null,
+          review_youpin: top?.score ?? 0,
+          review_created_at: top?.created_at ?? null,
+          practice_count: practiceCountByRestaurant.get(r.id) ?? 0,
         }
       })
     },

@@ -200,6 +200,19 @@ function SearchBar({
   )
 }
 
+const TIER_CHIP_WIDTH = 'min-w-[4.5rem]'
+
+function TierChip({ tier, small }: { tier: Tier; small?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center justify-center rounded font-bold leading-none text-center ${TIER_CHIP_WIDTH} ${small ? 'px-2 py-0.5 text-[10px]' : 'px-2 py-1.5 text-sm'}`}
+      style={{ background: TIER_HEX[tier], color: TIER_TEXT_COLOR[tier] }}
+    >
+      {TIER_LABEL[tier]}
+    </span>
+  )
+}
+
 function BottomSheet({
   restaurant: r,
   onClose,
@@ -207,6 +220,11 @@ function BottomSheet({
   restaurant: MapRestaurant
   onClose: () => void
 }) {
+  const locationLine = [r.city_name, r.district_name].filter(Boolean).join(' · ')
+  const metaPieces = [locationLine].filter(Boolean)
+  const addressLine = r.address_text
+  const dateStr = r.review_created_at?.slice(0, 10)
+
   return (
     <>
       <div className="absolute inset-0 z-[401]" onClick={onClose} aria-hidden />
@@ -217,7 +235,8 @@ function BottomSheet({
         <div className="flex justify-center pt-2.5 pb-1">
           <div className="w-9 h-1 rounded-full bg-neutral-200" />
         </div>
-        <div className="flex items-center gap-3 px-4 pt-1 pb-3">
+
+        <div className="flex items-start gap-3 px-4 pt-1 pb-3">
           <div className="shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-orange-100 flex items-center justify-center">
             {r.cover_image_url ? (
               <img src={r.cover_image_url} alt={r.display_name} className="w-full h-full object-cover" />
@@ -229,33 +248,78 @@ function BottomSheet({
             <p className="font-semibold text-[15px] text-neutral-900 truncate leading-snug">
               {r.display_name}
             </p>
-            <p className="text-xs text-neutral-400 mt-0.5">
-              {[r.city_name, r.district_name].filter(Boolean).join(' · ')}
-            </p>
+            {metaPieces.length > 0 ? (
+              <p className="text-xs text-neutral-400 mt-0.5">
+                {metaPieces.join(' · ')}
+              </p>
+            ) : null}
+            {addressLine ? (
+              <p className="text-xs text-neutral-400 truncate mt-0.5">
+                {addressLine}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 flex-col items-center gap-0.5">
+            {r.tier ? (
+              <>
+                <TierChip tier={r.tier} />
+                {r.category_name != null && r.category_name !== '' ? (
+                  <span className="text-[11px] text-neutral-400 whitespace-nowrap">{r.category_name}</span>
+                ) : null}
+                <span className="text-[11px] text-neutral-500 whitespace-nowrap">
+                  {r.practice_count > 0 ? `${r.practice_count}人评价` : '暂无评价'}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className={`inline-flex items-center justify-center rounded font-bold leading-none text-center ${TIER_CHIP_WIDTH} px-2 py-1.5 text-sm bg-neutral-200 text-neutral-400`}>
+                  未评级
+                </span>
+                {r.category_name != null && r.category_name !== '' ? (
+                  <span className="text-[11px] text-neutral-400 whitespace-nowrap">{r.category_name}</span>
+                ) : null}
+              </>
+            )}
           </div>
         </div>
+
         {r.top_store_comment && (
           <>
             <div className="h-px bg-neutral-100 mx-4" />
             <div className="px-4 py-3">
-              <div className="flex items-center gap-2 mb-1.5">
-                {r.top_reviewer_avatar_url ? (
-                  <img src={r.top_reviewer_avatar_url} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-                ) : (
-                  <div className="w-5 h-5 rounded-full bg-neutral-200 shrink-0 flex items-center justify-center text-[10px] text-neutral-500 font-medium">
-                    {r.top_reviewer_nickname?.[0] ?? '?'}
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {r.top_reviewer_avatar_url ? (
+                      <img src={r.top_reviewer_avatar_url} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-neutral-200 shrink-0 flex items-center justify-center text-[10px] text-neutral-500 font-medium">
+                        {r.top_reviewer_nickname?.[0] ?? '?'}
+                      </div>
+                    )}
+                    <p className="text-[11px] text-neutral-600 min-w-0 truncate font-medium">
+                      {r.top_reviewer_nickname}
+                    </p>
                   </div>
-                )}
-                <p className="text-[11px] text-neutral-400">
-                  睿评 · <span className="text-neutral-600 font-medium">{r.top_reviewer_nickname}</span>
-                </p>
+                  <div className="flex items-start pl-[68px] relative">
+                    <span className="absolute left-[17px] top-0 text-[11px] text-orange-500 font-semibold leading-[1.3rem]">热评</span>
+                    <p className="flex-1 min-w-0 text-[15px] font-semibold text-neutral-700 leading-relaxed line-clamp-3">
+                      {r.top_store_comment}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-col items-center gap-0.5">
+                  {dateStr ? (
+                    <span className="text-[11px] text-neutral-400 whitespace-nowrap">{dateStr}</span>
+                  ) : null}
+                  {r.review_tier ? <TierChip tier={r.review_tier} small /> : null}
+                  <span className="text-[11px] text-neutral-500 whitespace-nowrap">有品 {r.review_youpin}</span>
+                </div>
               </div>
-              <p className="text-[13px] text-neutral-700 leading-relaxed line-clamp-3">
-                {r.top_store_comment}
-              </p>
             </div>
           </>
         )}
+
         <div className="px-4 pb-4 pt-1">
           <Link
             to={`/restaurants/${r.id}`}
