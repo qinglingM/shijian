@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -53,8 +53,39 @@ function createRestaurantIcon(coverImageUrl: string | null, tier: Tier | null): 
   })
 }
 
+const MapMarker = memo(function MapMarker({
+  restaurant,
+  onSelect,
+}: {
+  restaurant: MapRestaurant
+  onSelect: (r: MapRestaurant) => void
+}) {
+  const icon = useMemo(
+    () => createRestaurantIcon(restaurant.cover_image_url, restaurant.tier),
+    [restaurant.cover_image_url, restaurant.tier],
+  )
+  return (
+    <Marker
+      position={[restaurant.latitude, restaurant.longitude]}
+      icon={icon}
+      eventHandlers={{ click: () => onSelect(restaurant) }}
+    />
+  )
+})
+
 function MapDismiss({ onDismiss }: { onDismiss: () => void }) {
   useMapEvents({ click: onDismiss })
+  return null
+}
+
+function MapBoundsTracker({ onBoundsChange }: { onBoundsChange: (b: L.LatLngBounds) => void }) {
+  const map = useMap()
+  useEffect(() => {
+    const handler = () => onBoundsChange(map.getBounds())
+    map.on('moveend', handler)
+    handler()
+    return () => { map.off('moveend', handler) }
+  }, [map, onBoundsChange])
   return null
 }
 
@@ -339,6 +370,7 @@ export function HomeMap() {
   const { data: restaurants = [], isLoading, error } = useMapRestaurants()
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
   const [selectedTier, setSelectedTier] = useState<Tier | null>(null)
+  const [bounds, setBounds] = useState<L.LatLngBounds | null>(null)
   const mapRef = useRef<L.Map | null>(null)
   const navigate = useNavigate()
 
@@ -347,8 +379,13 @@ export function HomeMap() {
     [restaurants, selectedTier],
   )
 
-  const handleMarkerClick = useCallback((r: MapRestaurant) => {
-    setSelected(r)
+  const displayMarkers = useMemo(
+    () => bounds ? visibleRestaurants.filter((r) => bounds.contains([r.latitude, r.longitude])) : visibleRestaurants,
+    [visibleRestaurants, bounds],
+  )
+
+  const handleBoundsChange = useCallback((b: L.LatLngBounds) => {
+    setBounds(b)
   }, [])
 
   const dismiss = useCallback(() => setSelected(null), [])
@@ -411,14 +448,10 @@ export function HomeMap() {
         />
         <GeolocateOnMount />
         <MapDismiss onDismiss={dismiss} />
+        <MapBoundsTracker onBoundsChange={handleBoundsChange} />
         <MapRefCapture onCapture={handleMapCapture} />
-        {visibleRestaurants.map((r) => (
-          <Marker
-            key={r.id}
-            position={[r.latitude, r.longitude]}
-            icon={createRestaurantIcon(r.cover_image_url, r.tier)}
-            eventHandlers={{ click: () => handleMarkerClick(r) }}
-          />
+        {displayMarkers.map((r) => (
+          <MapMarker key={r.id} restaurant={r} onSelect={handleMarkerClick} />
         ))}
       </MapContainer>
 

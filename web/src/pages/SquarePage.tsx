@@ -153,7 +153,7 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
                 <PenSquare size={14} />
               )}
             </div>
-            <p className="truncate text-sm font-semibold text-neutral-900">{item.nickname}</p>
+            <p className="truncate text-xs font-semibold text-neutral-900">{item.nickname}</p>
           </div>
           <div className="shrink-0 text-[11px] text-neutral-500">有品 {item.youpin_count}</div>
         </div>

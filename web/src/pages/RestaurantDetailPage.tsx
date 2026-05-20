@@ -1,7 +1,7 @@
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Bookmark, ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X } from 'lucide-react'
+import { ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { lookupExistingRestaurantByPoi } from '@/features/poi-search/usePoiSearch'
 import { fetchExistingPracticeHydration } from '@/features/practice/hydratePracticeDraftFromServer'
@@ -9,7 +9,7 @@ import {
   getDemoStoreReviews,
   lookupDemoRestaurant,
 } from '@/features/restaurants/demoRestaurantMeta'
-import { useDishesByRestaurant } from '@/features/dishes/useDishesByRestaurant'
+
 import {
   useRestaurant,
   isRestaurantUuid,
@@ -31,8 +31,6 @@ import { useStoreReviewVoteMutation } from '@/features/restaurants/useStoreRevie
 import { useDishReviewVoteMutation } from '@/features/restaurants/useDishReviewVoteMutation'
 import { useRestaurantBole, type RestaurantBoleView } from '@/features/restaurants/useRestaurantBole'
 import { useRestaurantGuidanceSummary } from '@/features/restaurants/useRestaurantGuidanceSummary'
-import { useInsertMarkMutation, useDeleteMarkMutation } from '@/features/marks/useRestaurantMarkMutations'
-import { useRestaurantMarkStatus } from '@/features/marks/useRestaurantMarkStatus'
 import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, type Tier } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -92,20 +90,21 @@ export function RestaurantDetailPage() {
     queryFn: async () => {
       const { data } = await getSupabase()
         .from('practice_records')
-        .select('id')
+        .select('id, tier')
         .eq('user_id', viewerId!)
         .eq('restaurant_id', id!)
         .eq('is_active', true)
         .maybeSingle()
-      return data?.id ?? null
+      return data ?? null
     },
   })
+  const myTier = myPracticeQ.data?.tier ?? null
   const hasExistingReview = !!myPracticeQ.data
 
   const restaurantQ = useRestaurant(isUuid ? id : null)
   const storeRQ = useStoreReviewsByRestaurant(isUuid ? id : null)
   const dishRQ = useRestaurantDishReviews(isUuid ? id : null)
-  const dishesQ = useDishesByRestaurant(isUuid ? id : null)
+
 
   const storeReviewsDemo = useMemo(
     () => (isDemo && id && demoMeta ? getDemoStoreReviews(id, demoMeta.tier) : []),
@@ -187,7 +186,7 @@ export function RestaurantDetailPage() {
     ? storeReviewsDemo
     : (storeRQ.data ?? []).filter(Boolean)
   const dishFeed: RestaurantDishReviewItem[] = isDemo ? [] : (dishRQ.data ?? [])
-  const dishes = isDemo ? [] : (dishesQ.data ?? [])
+
   const fallbackPoi =
     !poi && isPoiRoute && poiSource && poiId
       ? ({
@@ -321,9 +320,6 @@ export function RestaurantDetailPage() {
         {detailKnown ? (
           <section className="border-b border-neutral-100 px-4 pt-4 pb-4">
             <div className="relative flex flex-col gap-3 rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-sm shadow-black/[0.04]">
-              {!isDemo && isUuid && isSupabaseConfigured && id ? (
-                <RestaurantMarkActions restaurantId={id} viewerId={viewerId ?? null} />
-              ) : null}
               <div className="flex gap-4">
                 <div className="relative mt-1 h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-xl bg-neutral-100">
                   {coverUrl ? (
@@ -337,69 +333,45 @@ export function RestaurantDetailPage() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start gap-3">
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <h1 className="text-[18px] font-black leading-snug tracking-tight text-neutral-950">
-                          {title}
-                        </h1>
-                        {cityDistrictText ? (
-                          <>
-                            <span className="text-neutral-300" aria-hidden>
-                              ·
-                            </span>
-                            <span className="text-[13px] font-semibold text-neutral-700">
-                              {cityDistrictText}
-                            </span>
-                          </>
-                        ) : null}
-                        {categoryText ? (
-                          <>
-                            <span className="text-neutral-300" aria-hidden>
-                              ·
-                            </span>
-                            <span className="text-[13px] text-neutral-600">{categoryText}</span>
-                          </>
-                        ) : null}
-                      </div>
-
-                      {isDemo && demoMeta && demoMeta.address_detail ? (
-                        <p className="flex items-start gap-1.5 pt-0.5 text-[13px] leading-snug text-neutral-700">
-                          <MapPin
-                            className="mt-0.5 size-3.5 shrink-0 text-neutral-400"
-                            aria-hidden
-                          />
-                          <span>{demoMeta.address_detail}</span>
-                        </p>
-                      ) : null}
-
-                      {addressText ? (
-                        <p className="flex items-start gap-1.5 pt-0.5 text-[13px] leading-snug text-neutral-700">
-                          <MapPin
-                            className="mt-0.5 size-3.5 shrink-0 text-neutral-400"
-                            aria-hidden
-                          />
-                          <span>{addressText}</span>
-                        </p>
-                      ) : isUuid && !isDemo ? (
-                        <p className="pt-0.5 text-[12px] text-neutral-400">暂未录入城市与地址</p>
-                      ) : null}
-
-                      {isDemo ? (
-                        <p className="text-[11px] text-neutral-400">示例数据 · 仅供界面预览</p>
+                    <div className="min-w-0 flex-1">
+                      <h1 className="text-[16px] font-black leading-snug tracking-tight text-neutral-950">
+                        {title}
+                      </h1>
+                      {categoryText ? (
+                        <p className="mt-0.5 text-[12px] font-semibold text-neutral-700">{categoryText}</p>
                       ) : null}
                     </div>
 
-                    <div className="flex shrink-0 flex-col items-end gap-2 pt-9">
-                      <HeaderTierPanel
-                        tier={headerTierFallback}
-                        loading={storeTierLoading}
-                        isDemo={Boolean(isDemo)}
-                        emptyLabel={emptyReviews ? '暂无评级' : undefined}
-                      />
-                    </div>
+                    <HeaderTierCard
+                      storeTier={headerTierFallback}
+                      myTier={myTier}
+                      hasExistingReview={hasExistingReview}
+                      loading={storeTierLoading}
+                      storeEmptyLabel="暂无店评"
+                    />
                   </div>
                 </div>
               </div>
+
+              {isDemo && demoMeta && demoMeta.address_detail ? (
+                <p className="flex items-start gap-1.5 text-[12px] leading-snug text-neutral-700">
+                  <MapPin className="mt-0.5 size-3 shrink-0 text-neutral-400" aria-hidden />
+                  <span>{demoMeta.address_detail}</span>
+                </p>
+              ) : null}
+
+              {addressText ? (
+                <p className="flex items-start gap-1.5 text-[12px] leading-snug text-neutral-700">
+                  <MapPin className="mt-0.5 size-3 shrink-0 text-neutral-400" aria-hidden />
+                  <span>{addressText}</span>
+                </p>
+              ) : isUuid && !isDemo ? (
+                <p className="text-[12px] text-neutral-400">暂未录入城市与地址</p>
+              ) : null}
+
+              {isDemo ? (
+                <p className="text-[11px] text-neutral-400">示例数据 · 仅供界面预览</p>
+              ) : null}
             </div>
           </section>
         ) : null}
@@ -417,7 +389,7 @@ export function RestaurantDetailPage() {
                   <div className="flex items-start gap-3">
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <h1 className="text-[18px] font-black leading-snug tracking-tight text-neutral-950">
+                        <h1 className="text-[16px] font-black leading-snug tracking-tight text-neutral-950">
                           {title}
                         </h1>
                         <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700 ring-1 ring-orange-100">
@@ -430,6 +402,13 @@ export function RestaurantDetailPage() {
                       </p>
                       <p className="text-[11px] text-neutral-400">快来成为第一个伯乐吧</p>
                     </div>
+                    <HeaderTierCard
+                      storeTier={null}
+                      myTier={null}
+                      hasExistingReview={false}
+                      loading={false}
+                      storeEmptyLabel="暂无店评"
+                    />
                   </div>
                 </div>
               </div>
@@ -494,7 +473,7 @@ export function RestaurantDetailPage() {
             {(
               [
                 ['store', '店铺评价', storeList.length] as const,
-                ['dish', '菜品评价', dishFeed.length || dishes.length] as const,
+                ['dish', '菜品评价', dishFeed.length] as const,
               ] as const
             ).map(([key, label, count]) => (
               <button
@@ -512,11 +491,6 @@ export function RestaurantDetailPage() {
               </button>
             ))}
           </div>
-          <p className="mt-2 px-2 text-[11px] leading-relaxed text-neutral-500">
-            {tab === 'store'
-              ? '每条店评底部固定两颗表态键「有品 / 野榜」。登录后与数据库投票表同步；再点已选一侧为撤回，点另一侧为改投（同一账号对同一条店评仅保留一种立场）。'
-              : '展示这家店已入库菜品的匿名菜评流，并可进入上架菜品条目查看详情（含用户对菜品的分项评价）。'}
-          </p>
         </div>
 
         <div className="mt-4 px-4">
@@ -533,9 +507,7 @@ export function RestaurantDetailPage() {
               restaurantId={isUuid ? id ?? null : null}
               isDemo={isDemo}
               dishFeedPending={Boolean(isUuid && !isDemo && dishRQ.isPending)}
-              dishesPending={Boolean(isUuid && !isDemo && dishesQ.isPending)}
               dishReviews={dishFeed}
-              dishes={dishes}
             />
           )}
         </div>
@@ -564,33 +536,65 @@ function restaurantStreetLine(r: RestaurantDetail) {
   return s || null
 }
 
-function HeaderTierPanel({
+function TierCapsule({
+  label,
+  value,
   tier,
-  loading,
-  isDemo,
-  emptyLabel,
+  empty,
 }: {
+  label: string
+  value: string
   tier: Tier | null
-  loading: boolean
-  isDemo: boolean
-  emptyLabel?: string
+  empty?: boolean
 }) {
+  const isBad = tier === 'bad'
+  const hasTier = tier !== null && !empty
+
+  let outerCls = 'flex flex-col items-center rounded-md px-1 py-1.5 ml-4 min-w-[4rem]'
+  let outerStyle: React.CSSProperties = {}
+
+  if (!hasTier) {
+    outerCls += ' bg-neutral-200'
+  } else if (isBad) {
+    outerCls += ' border-2 border-neutral-950'
+  } else {
+    outerStyle.backgroundColor = TIER_COLOR_VAR[tier]
+  }
+
   return (
-    <div className="shrink-0 text-right leading-none">
-      {loading ? (
-        <p className="text-[15px] font-semibold text-neutral-400">…</p>
-      ) : tier ? (
-        <p
-          className="text-[17px] font-black tracking-tight"
-          style={{ color: tierInk(tier) }}
-        >
-          {TIER_LABEL[tier]}
-        </p>
-      ) : (
-        <p className="text-[12px] font-medium text-neutral-400">
-          {emptyLabel || (isDemo ? '示例' : '暂无店评')}
-        </p>
-      )}
+    <div className={outerCls} style={outerStyle}>
+      <p className="text-[9px] font-semibold tracking-wider text-neutral-950">{label}</p>
+      <div className="mt-0.5 w-full rounded bg-white px-1 py-0.5 text-center">
+        <p className="text-[11px] font-black text-neutral-950">{value}</p>
+      </div>
+    </div>
+  )
+}
+
+function HeaderTierCard({
+  storeTier,
+  myTier,
+  hasExistingReview,
+  loading,
+  storeEmptyLabel,
+}: {
+  storeTier: Tier | null
+  myTier: Tier | null
+  hasExistingReview: boolean
+  loading: boolean
+  storeEmptyLabel?: string
+}) {
+  if (loading) {
+    return <p className="text-[15px] font-semibold text-neutral-400">…</p>
+  }
+
+  const storeLabel = storeTier ? TIER_LABEL[storeTier] : (storeEmptyLabel || '暂无店评')
+  const myValue = hasExistingReview && myTier ? TIER_LABEL[myTier] : '待评价'
+
+  return (
+    <div className="flex h-[6.5rem] flex-col justify-between">
+      <TierCapsule label="店铺等级" value={storeLabel} tier={storeTier} />
+      <TierCapsule label="我的评级" value={myValue} tier={hasExistingReview && myTier ? myTier : null} empty={!hasExistingReview || !myTier} />
     </div>
   )
 }
@@ -643,14 +647,14 @@ function formatBoleText(bole: RestaurantBoleView) {
   if (bole.created_from === 'manual') {
     return (
       <>
-        被 <span className="font-semibold text-neutral-900">@{nickname}</span> 于
+        被 <span className="font-semibold text-sky-600">@{nickname}</span> 于
         {compactDate(bole.awarded_at, 'yyMMdd')} 发现并收录在册
       </>
     )
   }
   return (
     <>
-      由 <span className="font-semibold text-neutral-900">@{nickname}</span> 于
+      由 <span className="font-semibold text-sky-600">@{nickname}</span> 于
       {compactDate(bole.awarded_at, 'yyyyMMdd')} 首次完成鉴定
     </>
   )
@@ -894,11 +898,11 @@ function StoreTab({
             </div>
 
             <div
-              className="relative z-[1] flex min-h-[2.875rem] items-center justify-between gap-2 px-3 pb-2.5 pt-0"
+              className="relative z-[1] flex min-h-[3.5rem] items-end justify-between gap-2 px-3 pb-2.5 pt-2"
               role="group"
               aria-label="有品野榜表态"
             >
-              <hr className="absolute left-3 right-3 top-0 border-neutral-100" />
+              <hr className="absolute left-3 right-3 top-1.5 border-neutral-100" />
 
               <span className="relative shrink-0 whitespace-nowrap text-[10px] tabular-nums text-neutral-400">
                 {dateFmt.format(new Date(r.created_at))}
@@ -910,7 +914,7 @@ function StoreTab({
                 title={guestBlocked ? '请先登录' : '觉得这条店评中肯、有参考价值'}
                 aria-pressed={r.my_vote === 'youpin'}
                 onClick={() => onTap('youpin')}
-                className={`inline-flex min-w-[5.875rem] items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                   r.my_vote === 'youpin'
                     ? 'bg-orange-50 text-orange-950 shadow-[inset_0_0_0_2px_rgb(251_146_60)]'
                     : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-orange-50/60'
@@ -925,7 +929,7 @@ function StoreTab({
                 title={guestBlocked ? '请先登录' : '觉得这条店评离谱、参考价值低'}
                 aria-pressed={r.my_vote === 'yebang'}
                 onClick={() => onTap('yebang')}
-                className={`inline-flex min-w-[5.875rem] items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                   r.my_vote === 'yebang'
                     ? 'bg-violet-50 text-violet-950 shadow-[inset_0_0_0_2px_rgb(167_139_250)]'
                     : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-violet-50/55'
@@ -948,93 +952,6 @@ function StoreTab({
       })}
     </ul>
     </div>
-  )
-}
-
-function RestaurantMarkActions({
-  restaurantId,
-  viewerId,
-}: {
-  restaurantId: string
-  viewerId: string | null
-}) {
-  const statusQ = useRestaurantMarkStatus(viewerId, restaurantId)
-  const insertM = useInsertMarkMutation(restaurantId)
-  const deleteM = useDeleteMarkMutation(restaurantId)
-
-  if (!viewerId) {
-    return (
-      <Link
-        to={`/auth?redirect=/restaurants/${restaurantId}`}
-        className="absolute right-4 top-4 inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-2.5 text-[11px] font-semibold text-neutral-600 ring-1 ring-neutral-200 active:bg-neutral-200"
-        title="登录后可标记想去"
-      >
-        <Bookmark className="size-3.5" aria-hidden />
-        标记
-      </Link>
-    )
-  }
-
-  if (statusQ.isPending) {
-    return (
-      <span className="absolute right-4 top-4 inline-flex h-8 shrink-0 items-center rounded-full bg-neutral-100 px-2.5 text-[11px] font-semibold text-neutral-400">
-        载入…
-      </span>
-    )
-  }
-
-  if (statusQ.isError) {
-    return (
-      <span
-        className="absolute right-4 top-4 inline-flex h-8 shrink-0 items-center rounded-full bg-rose-50 px-2.5 text-[11px] font-semibold text-rose-600 ring-1 ring-rose-100"
-        title={(statusQ.error as Error)?.message ?? '无法读取标记状态'}
-      >
-        标记失败
-      </span>
-    )
-  }
-
-  const st = statusQ.data
-
-  if (st === 'reviewed') {
-    return (
-      <span className="absolute bottom-4 right-4 inline-flex h-8 shrink-0 items-center rounded-full bg-emerald-50 px-2.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-100">
-        已食鉴
-      </span>
-    )
-  }
-
-  const marked = st === 'marked'
-  const busy = insertM.isPending || deleteM.isPending
-
-  if (st === 'marked') {
-    return (
-      <button
-        type="button"
-        disabled={busy}
-        aria-pressed={marked}
-        title="再次点击取消标记"
-        onClick={() => deleteM.mutate()}
-        className="absolute right-4 top-4 inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-orange-600 px-2.5 text-[11px] font-semibold text-white shadow-sm shadow-orange-900/20 active:bg-orange-700 disabled:opacity-50"
-      >
-        <Bookmark className="size-3.5 fill-current" aria-hidden />
-        {busy ? '处理中…' : '已标记'}
-      </button>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      disabled={busy}
-      aria-pressed={marked}
-      title="标记到想去"
-      onClick={() => insertM.mutate()}
-      className="absolute right-4 top-4 inline-flex h-8 shrink-0 items-center gap-1 rounded-full bg-orange-50 px-2.5 text-[11px] font-semibold text-orange-800 ring-1 ring-orange-200/80 active:bg-orange-100 disabled:opacity-50"
-    >
-      <Bookmark className="size-3.5" aria-hidden />
-      {busy ? '处理中…' : '标记'}
-    </button>
   )
 }
 
@@ -1132,18 +1049,15 @@ function dominantTierFromReviewList(
 function DishTabFeed({
   restaurantId,
   dishReviews,
-  dishes,
   isDemo,
   dishFeedPending,
-  dishesPending,
 }: {
   restaurantId: string | null
   dishReviews: RestaurantDishReviewItem[]
-  dishes: import('@/features/dishes/useDishesByRestaurant').DishLite[]
   isDemo: boolean
   dishFeedPending: boolean
-  dishesPending: boolean
 }) {
+  const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const voteMut = useDishReviewVoteMutation(!isDemo ? restaurantId : null)
   if (isDemo) {
@@ -1156,7 +1070,7 @@ function DishTabFeed({
     )
   }
 
-  const busy = dishFeedPending || dishesPending
+  const busy = dishFeedPending
   if (busy) {
     return <p className="py-14 text-center text-sm text-neutral-400">载入菜评与菜品列表…</p>
   }
@@ -1165,9 +1079,10 @@ function DishTabFeed({
     <div className="space-y-6">
       {dishReviews.length > 0 ? (
         <div>
-          <h2 className="mb-2 text-[12px] font-semibold tracking-tight text-neutral-600">
-            匿名菜品评价（按时间倒序）
+          <h2 className="text-[12px] font-semibold tracking-tight text-neutral-600">
+            所有菜品评价
           </h2>
+
           <ul className="space-y-3">
             {dishReviews.map((r) => {
               const votingThis =
@@ -1183,70 +1098,62 @@ function DishTabFeed({
                 voteMut.mutate({ dishReviewId: r.id, dishId: r.dish_id, next })
               }
 
+              const dishImg = r.dish_cover_image_url ? (
+                <img src={r.dish_cover_image_url} alt="" className="size-full object-cover" />
+              ) : (
+                <div className="flex size-full items-center justify-center bg-orange-50 text-orange-600">
+                  <Utensils className="size-4" aria-hidden />
+                </div>
+              )
+
               return (
                 <li
                   key={r.id}
-                  className="rounded-2xl border border-orange-100 bg-white px-3 py-3 shadow-sm shadow-orange-500/6"
+                  onClick={() => navigate(`/dishes/${r.dish_id}`)}
+                  className="cursor-pointer rounded-2xl border border-orange-100 bg-white px-3 py-3 shadow-sm shadow-orange-500/6 active:bg-orange-50/50"
                 >
                   <div className="flex items-start gap-3">
-                    <Link
-                      to={`/dishes/${r.dish_id}`}
-                      className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-100"
-                      aria-label={`查看菜品 ${r.dish_name}`}
-                    >
-                      {r.dish_cover_image_url ? (
-                        <img src={r.dish_cover_image_url} alt="" className="size-full object-cover" />
-                      ) : (
-                        <Utensils className="size-5" aria-hidden />
-                      )}
-                    </Link>
+                    <div className="shrink-0">
+                      <span className="ml-[10px] block truncate text-[12px] font-bold leading-tight text-orange-700">
+                        {r.dish_name}
+                      </span>
+                      <Link
+                        to={`/dishes/${r.dish_id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-[10px] flex size-16 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-100"
+                        aria-label={`查看菜品 ${r.dish_name}`}
+                      >
+                        {dishImg}
+                      </Link>
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start gap-2">
-                        <div className="min-w-0 flex-1">
-                          <Link
-                            to={`/dishes/${r.dish_id}`}
-                            className="line-clamp-1 text-[15px] font-bold text-orange-700 underline-offset-4 hover:underline"
-                          >
-                            {r.dish_name}
-                          </Link>
-                          <div className="mt-1 flex items-center gap-2">
-                            <span className="text-[11px] font-semibold text-sky-700">
-                              {r.reviewer_nickname}
-                            </span>
-                            <span className="text-[11px] text-neutral-300" aria-hidden>
-                              ·
-                            </span>
-                            <span className="text-[11px] text-neutral-400">
-                              {dateFmt.format(new Date(r.created_at))}
-                            </span>
-                          </div>
-                        </div>
-                        <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[12px] font-black text-orange-800">
-                          {r.score !== null ? `${r.score}` : '—'} 分
+                      <div className="flex items-start justify-between gap-2 pt-[24px]">
+                        <span className="text-[11px] font-semibold text-sky-700">
+                          {r.reviewer_nickname}
+                        </span>
+                        <span className="shrink-0 text-[10px] text-neutral-400">
+                          {dateFmt.format(new Date(r.created_at))}
                         </span>
                       </div>
-
-                      <div className="mt-2 flex items-center gap-2">
-                        {r.image_url ? (
-                          <img
-                            src={r.image_url}
-                            alt=""
-                            className="size-16 shrink-0 rounded-xl object-cover ring-1 ring-neutral-200/80"
-                          />
-                        ) : null}
-                        <p className="min-w-0 flex-1 text-[14px] leading-6 text-neutral-800">
+                      <div className="mt-1 flex items-start gap-2">
+                        <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['\201C'] [&::after]:content-['\201D']">
                           {r.comment?.trim() || '（未填写菜品锐评）'}
                         </p>
+                        <span className="shrink-0 pt-0.5">
+                          <span className="text-[28px] font-black italic leading-none text-sky-600">
+                            {r.score !== null ? r.score : '—'}
+                          </span>
+                          <span className="ml-0.5 text-[11px] font-semibold text-sky-600">分</span>
+                        </span>
                       </div>
-
-                      <div className="mt-2 flex items-center justify-end gap-2">
+                      <div className="mt-1 flex items-center justify-end gap-1.5">
                         <button
                           type="button"
                           disabled={votingThis || guestBlocked}
                           title={guestBlocked ? '请先登录' : '觉得这条菜评中肯、有参考价值'}
                           aria-pressed={r.my_vote === 'youpin'}
-                          onClick={() => onTap('youpin')}
-                          className={`inline-flex min-w-[4.75rem] items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                          onClick={(e) => { e.stopPropagation(); onTap('youpin') }}
+                          className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                             r.my_vote === 'youpin'
                               ? 'bg-orange-50 text-orange-950 shadow-[inset_0_0_0_2px_rgb(251_146_60)]'
                               : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-orange-50/60'
@@ -1260,8 +1167,8 @@ function DishTabFeed({
                           disabled={votingThis || guestBlocked}
                           title={guestBlocked ? '请先登录' : '觉得这条菜评离谱、参考价值低'}
                           aria-pressed={r.my_vote === 'yebang'}
-                          onClick={() => onTap('yebang')}
-                          className={`inline-flex min-w-[4.75rem] items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                          onClick={(e) => { e.stopPropagation(); onTap('yebang') }}
+                          className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                             r.my_vote === 'yebang'
                               ? 'bg-violet-50 text-violet-950 shadow-[inset_0_0_0_2px_rgb(167_139_250)]'
                               : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-violet-50/55'
@@ -1271,13 +1178,13 @@ function DishTabFeed({
                           <span className="tabular-nums opacity-85">{r.yebang_count}</span>
                         </button>
                       </div>
+                      {voteMut.isError && voteMut.variables?.dishReviewId === r.id ? (
+                        <p className="mt-2 px-1 text-[10px] text-rose-600">
+                          {(voteMut.error as Error)?.message ?? '投票失败'}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
-                  {voteMut.isError && voteMut.variables?.dishReviewId === r.id ? (
-                    <p className="mt-2 px-1 text-[10px] text-rose-600">
-                      {(voteMut.error as Error)?.message ?? '投票失败'}
-                    </p>
-                  ) : null}
                 </li>
               )
             })}
@@ -1285,58 +1192,6 @@ function DishTabFeed({
         </div>
       ) : null}
 
-      <div>
-        <h2 className="mb-2 text-[12px] font-semibold tracking-tight text-neutral-600">
-          这家店已入库的菜品
-        </h2>
-        {dishes.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-10 text-center text-sm text-neutral-500">
-            这家店还没有入库菜品。
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {dishes.map((d) => (
-              <li key={d.id}>
-                <Link
-                  to={`/dishes/${d.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-neutral-100 bg-white px-3 py-2.5 active:bg-neutral-50"
-                >
-                  {d.cover_image_url ? (
-                    <img src={d.cover_image_url} alt="" className="size-11 rounded-lg object-cover" />
-                  ) : (
-                    <div className="flex size-11 items-center justify-center rounded-lg bg-neutral-100 text-xs font-semibold text-neutral-500">
-                      {d.name.slice(0, 2)}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[14px] font-semibold text-neutral-900">{d.name}</p>
-                    <p className="text-[11px] text-neutral-500">
-                      {d.avg_score !== null ? `均分 ${Number(d.avg_score).toFixed(1)}` : '暂无均分'}{' '}
-                      · {d.review_count} 条评价
-                      {(d.youpin_count ?? 0) > 0 || (d.yebang_count ?? 0) > 0 ? (
-                        <>
-                          {' '}
-                          ·{' '}
-                          <span className="text-violet-700">有品 {d.youpin_count ?? 0}</span>
-                          {' · '}
-                          <span className="text-neutral-600">野榜 {d.yebang_count ?? 0}</span>
-                        </>
-                      ) : null}
-                    </p>
-                    {d.top_comment?.trim() ? (
-                      <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-neutral-600">
-                        <span className="font-semibold text-neutral-500">代表锐评</span> ·{' '}
-                        {d.top_comment.trim()}
-                      </p>
-                    ) : null}
-                  </div>
-                  <span className="text-xs text-orange-600">›</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </div>
   )
 }

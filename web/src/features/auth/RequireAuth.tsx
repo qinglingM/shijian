@@ -10,6 +10,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (!isSupabaseConfigured) return children
 
+  /* 开发环境（npm run dev）跳过登录检查，方便本地调试 */
+  if (!import.meta.env.PROD) return children
+
   if (!user) {
     const to = `/auth?redirect=${encodeURIComponent(location.pathname + location.search)}`
     return <Navigate to={to} replace />

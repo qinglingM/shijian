@@ -46,6 +46,7 @@ export function useRestaurant(restaurantId: string | null) {
           search_text,
           created_at,
           updated_at,
+          display_category_label,
           categories(name)
         `,
         )

@@ -1,6 +1,7 @@
 import { AMAP_KEY } from '@/lib/env'
 import type { PoiCandidate, PoiProvider, PoiSearchParams } from '@/lib/poi/types'
 import { matchCategory } from '@/lib/poi/amap-category-rules'
+import { mapAmapToShijian } from '@/lib/poi/category-mapper'
 
 type AmapPoiRaw = {
   id?: string
@@ -11,6 +12,7 @@ type AmapPoiRaw = {
   cityname?: string
   adname?: string
   type?: string
+  typecode?: string
   photos?: unknown
 }
 
@@ -54,6 +56,15 @@ function firstPhotoUrl(photos: unknown): string | null {
   return null
 }
 
+function parseAmapTypeStr(amapType: string): { midText: string; subText: string } | null {
+  if (!amapType) return null
+  const segs = amapType.split(';').map((s) => s.trim())
+  return {
+    midText: segs[1] ?? segs[0] ?? '',
+    subText: segs[2] ?? segs[1] ?? segs[0] ?? '',
+  }
+}
+
 export class AmapPoiProvider implements PoiProvider {
   readonly source = 'amap' as const
 
@@ -95,6 +106,10 @@ export class AmapPoiProvider implements PoiProvider {
         const typeStr = typeof r.type === 'string' ? r.type.trim() : ''
         const cover_image_url = firstPhotoUrl(r.photos)
 
+        const typeCode = typeof r.typecode === 'string' ? r.typecode.trim() : null
+        const parsed = typeStr ? parseAmapTypeStr(typeStr) : null
+        const mapped = typeStr ? mapAmapToShijian(typeStr, poiName) : null
+
         return {
           poi_source: 'amap',
           poi_id: String(r.id),
@@ -105,8 +120,12 @@ export class AmapPoiProvider implements PoiProvider {
           province_name: r.pname?.trim() || null,
           city_name: r.cityname?.trim() || null,
           district_name: r.adname?.trim() || null,
-          category: typeStr ? matchCategory(typeStr, poiName) : null,
+          category: mapped?.categoryCode ?? matchCategory(typeStr, poiName),
           cover_image_url,
+          amap_type_code: typeCode,
+          amap_mid_category: parsed?.midText ?? null,
+          amap_small_category: parsed?.subText ?? null,
+          display_label: mapped?.displayLabel ?? null,
         }
       })
   }

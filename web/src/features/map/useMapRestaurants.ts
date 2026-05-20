@@ -83,6 +83,7 @@ export function useMapRestaurants() {
         .eq('status', 'active')
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
+        .limit(500)
 
       if (e1) throw e1
       const rawRows = (raws ?? []) as (RestaurantRow & { categories: { name?: string } | { name?: string }[] | null })[]

@@ -170,6 +170,7 @@ export interface RestaurantRow {
   search_text: string | null
   created_at: string
   updated_at: string
+  display_category_label?: string | null
 }
 
 export interface PracticeRecordRow {

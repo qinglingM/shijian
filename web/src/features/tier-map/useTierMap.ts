@@ -315,7 +315,7 @@ export function useTierMap() {
       const { data, error } = await supabase
         .from('practice_records')
         .select(
-          'tier, created_at, restaurant:restaurants(id, display_name, cover_image_url, category_id, city_id, latitude, longitude, categories(name))',
+          'tier, created_at, restaurant:restaurants(id, display_name, cover_image_url, category_id, city_id, latitude, longitude, display_category_label, categories(name))',
         )
         .eq('user_id', userId!)
         .eq('is_active', true)

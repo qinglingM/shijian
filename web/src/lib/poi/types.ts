@@ -20,6 +20,11 @@ export interface PoiCandidate {
   category: string | null
   /** 关键字搜索封面（高德 extensions=all 首张；mock；旧草稿可缺省） */
   cover_image_url?: string | null
+
+  amap_type_code?: string | null
+  amap_mid_category?: string | null
+  amap_small_category?: string | null
+  display_label?: string | null
 }
 
 export interface PoiSearchParams {

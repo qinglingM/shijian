@@ -114,45 +114,20 @@ export function PracticeReviewDetailsSection() {
 
         {draft.existing_restaurant_id && selectableExistingDishes.length > 0 && (
           <div className="mt-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium text-neutral-700">这家店大家还评过</p>
-              <span className="text-[11px] text-neutral-400">点选后生成评分卡</span>
-            </div>
-
-            <div className="-mx-4 mt-2 overflow-x-auto px-4 pb-1">
-              <ul className="flex min-w-full gap-2">
-                {selectableExistingDishes.map((dish) => (
-                  <li key={dish.id} className="list-none">
-                    <button
-                      type="button"
-                      onClick={() => addExistingDish(dish)}
-                      className="flex w-[8.5rem] shrink-0 items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-2.5 py-2 text-left shadow-sm shadow-neutral-900/5 active:bg-neutral-50"
-                    >
-                      {dish.cover_image_url ? (
-                        <img
-                          src={dish.cover_image_url}
-                          alt={dish.name}
-                          className="size-11 shrink-0 rounded-xl object-cover"
-                        />
-                      ) : (
-                        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-neutral-100 text-neutral-400">
-                          <Plus size={16} />
-                        </div>
-                      )}
-
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-neutral-900">
-                          {dish.name}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-neutral-400">
-                          {dish.review_count > 0 ? `${dish.review_count} 人评过` : '加入评价'}
-                        </p>
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <p className="text-xs font-medium text-neutral-700">这家店大家还评过</p>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {selectableExistingDishes.map((dish) => (
+                <li key={dish.id}>
+                  <button
+                    type="button"
+                    onClick={() => addExistingDish(dish)}
+                    className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm text-neutral-800 active:bg-neutral-200"
+                  >
+                    {dish.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

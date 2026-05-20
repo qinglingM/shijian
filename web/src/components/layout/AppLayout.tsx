@@ -92,23 +92,37 @@ export function AppLayout() {
   )
 }
 
-export function BackHeader({ title, backTo = '/', rightSlot }: { title: string; backTo?: string; rightSlot?: React.ReactNode }) {
+export function BackHeader({ title, backTo = '/', rightSlot, centerTitle }: { title: string; backTo?: string; rightSlot?: React.ReactNode; centerTitle?: boolean }) {
   const navigate = useNavigate()
+  const btn = (
+    <button
+      type="button"
+      onClick={() => {
+        if (window.history.length > 1) {
+          navigate(-1)
+        } else {
+          navigate(backTo, { replace: true })
+        }
+      }}
+      className="text-sm text-neutral-500"
+    >
+      ←
+    </button>
+  )
+  if (centerTitle) {
+    return (
+      <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4">
+        <div className="absolute left-4">{btn}</div>
+        <h1 className="flex-1 text-center text-base font-medium">{title}</h1>
+        {rightSlot ? (
+          <div className="absolute right-4 flex shrink-0 items-center gap-1">{rightSlot}</div>
+        ) : null}
+      </header>
+    )
+  }
   return (
     <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4">
-      <button
-        type="button"
-        onClick={() => {
-          if (window.history.length > 1) {
-            navigate(-1)
-          } else {
-            navigate(backTo, { replace: true })
-          }
-        }}
-        className="text-sm text-neutral-500"
-      >
-        ←
-      </button>
+      {btn}
       <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
       {rightSlot ? (
         <div className="flex shrink-0 items-center gap-1">{rightSlot}</div>

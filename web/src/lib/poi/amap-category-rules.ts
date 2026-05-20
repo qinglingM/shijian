@@ -1,9 +1,11 @@
+/** @deprecated 使用 shijian-categories.ts 的 ShijianCategoryCode */
 export const CATEGORY_CODES = [
   'zhongcan', 'yiguo', 'huoguo', 'shaokao',
   'kuaican', 'fenmian', 'xiaochi', 'xiuxian',
   'kafei', 'chayin', 'tianpin', 'qita',
 ] as const
 
+/** @deprecated 使用 shijian-categories.ts 的 ShijianCategoryCode */
 export type CategoryCode = (typeof CATEGORY_CODES)[number]
 
 export const CATEGORY_LABEL: Record<CategoryCode, string> = {

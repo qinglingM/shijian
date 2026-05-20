@@ -45,6 +45,8 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
         if (ok) {
           const { data: again } = await supabase.auth.getSession()
           if (again.session) setSession(again.session)
+        } else if (!import.meta.env.PROD) {
+          console.warn('[shijian] dev: 所有 Supabase Auth 方式均失败，使用开发降级身份')
         }
       } else if (FIXTURE_AUTO_LOGIN && FIXTURE_EMAIL && FIXTURE_PASSWORD) {
         const { data: signIn, error } = await supabase.auth.signInWithPassword({
