@@ -15,7 +15,11 @@ import {
   type DraftDishReview,
 } from '@/stores/practiceDraft'
 
-export function PracticeReviewDetailsSection() {
+export function PracticeReviewDetailsSection({
+  onBeforeReset,
+}: {
+  onBeforeReset?: () => void
+}) {
   const navigate = useNavigate()
   const draft = usePracticeDraft()
   const display = usePracticeRestaurantCardDisplay()
@@ -52,7 +56,6 @@ export function PracticeReviewDetailsSection() {
     })
   }, [draftDishIds, existingDishes])
 
-  const hasExistingDishChoices = selectableExistingDishes.length > 0
   const allDishesNamed = everyDishRowHasName(draft)
   const allDishesScored = everyDishRowHasScore(draft)
   const canSubmit = isValidPractice(draft)
@@ -91,7 +94,7 @@ export function PracticeReviewDetailsSection() {
         queryClient,
         userId,
         navigate,
-        onBeforeReset: () => undefined,
+        onBeforeReset,
       })
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : '提交失败，请稍后重试')
@@ -121,7 +124,7 @@ export function PracticeReviewDetailsSection() {
                   <button
                     type="button"
                     onClick={() => addExistingDish(dish)}
-                    className="rounded-full bg-neutral-100 px-3 py-1.5 text-sm text-neutral-800 active:bg-neutral-200"
+                    className="rounded-full border border-neutral-200 px-2.5 py-1 text-xs text-neutral-700 active:bg-neutral-100"
                   >
                     {dish.name}
                   </button>
@@ -131,23 +134,12 @@ export function PracticeReviewDetailsSection() {
           </div>
         )}
 
-        {draft.dishes.length === 0 && !hasExistingDishChoices ? (
-          <div className="mt-3 space-y-3">
-            <DishPlaceholderCard onActivate={addNewDish} />
-            <p className="text-center text-xs text-neutral-400">
-              不写菜品也可直接点下方按钮「仅鉴定餐厅」
-            </p>
-          </div>
-        ) : draft.dishes.length > 0 ? (
+        {draft.dishes.length > 0 && (
           <ul className="mt-3 space-y-3">
             {draft.dishes.map((d) => (
               <DishItem key={d.client_id} dish={d} />
             ))}
           </ul>
-        ) : (
-          <p className="mt-4 text-center text-xs text-neutral-400">
-            先从上方挑你吃过的菜；如果没有，再手动新增。
-          </p>
         )}
 
         <button
@@ -201,54 +193,6 @@ export function PracticeReviewDetailsSection() {
         )}
       </div>
     </>
-  )
-}
-
-function DishPlaceholderCard({ onActivate }: { onActivate: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onActivate}
-      className="block w-full rounded-2xl border border-neutral-200 bg-white p-3 text-left active:bg-neutral-50"
-    >
-      <div className="flex items-start gap-2">
-        <div className="flex-1 rounded-lg bg-neutral-100 px-2.5 py-1.5 text-sm text-neutral-400">
-          菜名（如 麻辣肥牛）
-        </div>
-
-        <span className="rounded-md p-1 text-rose-200" aria-hidden>
-          <Trash2 size={14} strokeWidth={2} />
-        </span>
-      </div>
-
-      <div className="mt-2.5">
-        <div className="flex items-center justify-between text-[11px] text-neutral-500">
-          <span>0–10 分</span>
-          <span className="font-medium text-neutral-500">未评分</span>
-        </div>
-        <div className="mt-1 flex flex-wrap gap-1">
-          {Array.from({ length: 11 }, (_, i) => i).map((n) => (
-            <span
-              key={n}
-              className={`flex h-7 w-7 items-center justify-center rounded-md text-xs ${
-                SCORE_HEAT_BUTTON[n] ?? SCORE_HEAT_BUTTON[0]
-              }`}
-            >
-              {n}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-2 rounded-lg bg-neutral-50 px-2.5 py-1.5 text-xs leading-5 text-neutral-400">
-        一句锐评（选填）
-      </div>
-
-      <div className="mt-2 flex items-center gap-2 rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
-        <Camera size={14} />
-        <span>上传我的图</span>
-      </div>
-    </button>
   )
 }
 

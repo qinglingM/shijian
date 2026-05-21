@@ -47,6 +47,7 @@ export const PRACTICE_DRAG_CARD_OUTER = cn(
 
 export type PracticeRestaurantCardDisplay = {
   brand_name: string
+  category_name: string | null
   address_text: string | null
   city_name: string | null
   district_name: string | null
@@ -56,6 +57,7 @@ export type PracticeRestaurantCardDisplay = {
 export function practiceDisplayFromPoiCandidate(poi: PoiCandidate): PracticeRestaurantCardDisplay {
   return {
     brand_name: poi.poi_name,
+    category_name: poi.display_label ?? poi.category ?? null,
     address_text: poi.address_text,
     city_name: poi.city_name,
     district_name: poi.district_name,
@@ -86,6 +88,7 @@ export function PracticeRestaurantCard({
   className,
 }: PracticeRestaurantCardProps) {
   const fill = tier ? TIER_SLOT_VAR[tier] : '#f5f5f4'
+  const categoryText = display.category_name?.trim() || null
   const placeLine =
     [display.city_name, display.district_name].filter(Boolean).join(' ').trim() ||
     display.address_text?.trim() ||
@@ -94,12 +97,12 @@ export function PracticeRestaurantCard({
   return (
     <div
       className={cn(
-        'pointer-events-none flex w-full items-stretch bg-white',
+        'pointer-events-none flex w-full items-stretch bg-white overflow-hidden',
         fillContainer ? 'h-full min-h-0 flex-1 rounded-[inherit]' : 'min-h-[3.25rem]',
         className,
       )}
     >
-      <div className="relative h-full min-h-0 w-[4.5rem] shrink-0 overflow-hidden sm:w-20">
+      <div className="relative aspect-square w-[4.5rem] shrink-0 self-center overflow-hidden sm:w-20">
         {display.cover_image_url ? (
           <img
             src={display.cover_image_url}
@@ -122,7 +125,7 @@ export function PracticeRestaurantCard({
         )}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-2">
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-2 overflow-hidden">
         <div className="flex items-start gap-2">
           <p className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-snug text-neutral-900">
             {display.brand_name}
@@ -133,11 +136,9 @@ export function PracticeRestaurantCard({
             </span>
           ) : null}
         </div>
-        {placeLine ? (
-          <p className="line-clamp-2 text-[10px] leading-snug text-neutral-500">{placeLine}</p>
-        ) : (
-          <p className="text-[10px] text-neutral-400">暂无城市/地址展示</p>
-        )}
+        <p className="truncate text-[10px] leading-snug text-neutral-500">
+          {categoryText ? `${categoryText} · ${placeLine ?? ''}` : (placeLine ?? '暂无城市/地址展示')}
+        </p>
       </div>
 
       <span className="sr-only">{display.brand_name}</span>

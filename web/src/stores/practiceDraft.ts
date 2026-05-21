@@ -297,6 +297,7 @@ export function isValidPractice(state: PracticeDraftState): boolean {
 
 export function getDraftRestaurantDisplay(state: PracticeDraftState): {
   brand_name: string
+  category_name: string | null
   address_text: string | null
   city_name: string | null
   district_name: string | null
@@ -305,6 +306,7 @@ export function getDraftRestaurantDisplay(state: PracticeDraftState): {
   if (state.selected_poi) {
     return {
       brand_name: state.selected_poi.poi_name,
+      category_name: state.selected_poi.display_label ?? state.selected_poi.category ?? null,
       address_text: state.selected_poi.address_text,
       city_name: state.selected_poi.city_name,
       district_name: state.selected_poi.district_name,
@@ -315,6 +317,7 @@ export function getDraftRestaurantDisplay(state: PracticeDraftState): {
     const m = state.manual_restaurant
     return {
       brand_name: m.brand_name,
+      category_name: m.category_name?.trim() || null,
       address_text: m.address_text,
       city_name: m.city_name,
       district_name: m.district_name,

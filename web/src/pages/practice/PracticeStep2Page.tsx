@@ -88,6 +88,8 @@ export function PracticeStep2Page() {
 
   const display = usePracticeRestaurantCardDisplay()
 
+  const doneRef = useRef(false)
+
   const { map: tierCountsMap } = useDisplayedTierMap()
 
   const consensusQ = useRestaurantPublicTierMode(draft.existing_restaurant_id)
@@ -168,7 +170,7 @@ export function PracticeStep2Page() {
 
   useEffect(() => {
 
-    if (!display) navigate('/practice/step1', { replace: true })
+    if (!display && !doneRef.current) navigate('/practice/step1', { replace: true })
 
   }, [display, navigate])
 
@@ -429,7 +431,7 @@ export function PracticeStep2Page() {
         <div className="mb-5">
           <p className="mb-2 text-[11px] font-medium text-neutral-500">待拖动区域</p>
 
-          <div className="grid grid-cols-[20%_1fr] items-stretch gap-0">
+          <div className="grid grid-cols-[90px_1fr] items-stretch gap-0">
             <div className="flex aspect-square w-full flex-col items-center justify-center overflow-hidden bg-neutral-100 p-1 ring-1 ring-black/8">
               <span className="flex flex-col items-center text-center font-bold leading-[1.12] text-neutral-800">
                 <span className="block text-[clamp(12px,3.4vw,16px)] tracking-tight">拖动</span>
@@ -482,7 +484,7 @@ export function PracticeStep2Page() {
                 ref={(el) => {
                   rowRefs.current[tier] = el
                 }}
-                className="grid grid-cols-[20%_1fr] list-none items-stretch gap-0"
+                className="grid grid-cols-[90px_1fr] list-none items-stretch gap-0"
               >
                 <TierLabelBlock tier={tier} count={countsByTier[tier] ?? 0} />
 
@@ -555,7 +557,9 @@ export function PracticeStep2Page() {
 
 
 
-      <PracticeReviewDetailsSection />
+      <PracticeReviewDetailsSection onBeforeReset={() => {
+        doneRef.current = true
+      }} />
 
     </div>
 
