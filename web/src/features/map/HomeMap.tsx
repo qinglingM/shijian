@@ -275,9 +275,9 @@ function BottomSheet({
   restaurant: MapRestaurant
   onClose: () => void
 }) {
-  const locationLine = [r.city_name, r.district_name].filter(Boolean).join(' · ')
-  const metaPieces = [locationLine].filter(Boolean)
-  const addressLine = r.address_text
+  const fullAddressLine = [r.city_name, r.district_name, r.address_text]
+    .filter(Boolean)
+    .join(' · ')
   const dateStr = r.review_created_at?.slice(0, 10)
 
   return (
@@ -303,14 +303,14 @@ function BottomSheet({
             <p className="font-semibold text-[15px] text-neutral-900 truncate leading-snug">
               {r.display_name}
             </p>
-            {metaPieces.length > 0 ? (
-              <p className="text-xs text-neutral-400 mt-0.5">
-                {metaPieces.join(' · ')}
+            {r.category_label ? (
+              <p className="text-xs font-semibold text-neutral-700 mt-0.5 truncate">
+                {r.category_label}
               </p>
             ) : null}
-            {addressLine ? (
+            {fullAddressLine ? (
               <p className="text-xs text-neutral-400 truncate mt-0.5">
-                {addressLine}
+                {fullAddressLine}
               </p>
             ) : null}
           </div>
@@ -318,9 +318,6 @@ function BottomSheet({
             {r.tier ? (
               <>
                 <TierChip tier={r.tier} />
-                {r.category_name != null && r.category_name !== '' ? (
-                  <span className="text-[11px] text-neutral-400 whitespace-nowrap">{r.category_name}</span>
-                ) : null}
                 <span className="text-[11px] text-neutral-500 whitespace-nowrap">
                   {r.practice_count > 0 ? `${r.practice_count}人评价` : '暂无评价'}
                 </span>
@@ -330,9 +327,6 @@ function BottomSheet({
                 <span className={`inline-flex items-center justify-center rounded font-bold leading-none text-center ${TIER_CHIP_WIDTH} px-2 py-1.5 text-sm bg-neutral-200 text-neutral-400`}>
                   未评级
                 </span>
-                {r.category_name != null && r.category_name !== '' ? (
-                  <span className="text-[11px] text-neutral-400 whitespace-nowrap">{r.category_name}</span>
-                ) : null}
               </>
             )}
           </div>
@@ -341,37 +335,50 @@ function BottomSheet({
         {r.top_store_comment && (
           <>
             <div className="h-px bg-neutral-100 mx-4" />
-            <div className="px-4 py-3 grid grid-cols-[1fr_auto] gap-x-3">
-              {/* Row 1 Col 1: avatar + username + 热评 */}
-              <div className="flex items-start gap-[19.5px]">
+            <div
+              className="px-4 pb-3 pt-2"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'auto 1fr auto auto',
+                gridTemplateRows: 'auto auto',
+                gridTemplateAreas: `"avatar name hot meta" "avatar comment comment meta"`,
+                columnGap: 8,
+                rowGap: 4,
+              }}
+            >
+              {/* Avatar: spans 2 rows */}
+              <div style={{ gridArea: 'avatar' }} className="flex items-start">
                 {r.top_reviewer_avatar_url ? (
-                  <img src={r.top_reviewer_avatar_url} alt="" className="w-[41px] h-[41px] rounded-full object-cover shrink-0 ml-[7.5px] mt-[11.5px]" />
+                  <img src={r.top_reviewer_avatar_url} alt="" className="w-[41px] h-[41px] rounded-full object-cover shrink-0" />
                 ) : (
-                  <div className="w-[41px] h-[41px] rounded-full bg-neutral-200 shrink-0 flex items-center justify-center text-[10px] text-neutral-500 font-medium ml-[7.5px] mt-[11.5px]">
+                  <div className="w-[41px] h-[41px] rounded-full bg-neutral-200 shrink-0 flex items-center justify-center text-[10px] text-neutral-500 font-medium">
                     {r.top_reviewer_nickname?.[0] ?? '?'}
                   </div>
                 )}
-                <p className="text-[11px] text-neutral-600 min-w-0 truncate font-medium">
+              </div>
+              {/* Username */}
+              <div style={{ gridArea: 'name' }} className="flex items-center">
+                <p className="truncate text-[11px] font-semibold text-sky-700">
                   {r.top_reviewer_nickname}
                 </p>
-                <span className="ml-auto shrink-0 text-[11px] text-orange-500 font-semibold whitespace-nowrap">热评</span>
               </div>
-              {/* Row 1 Col 2: date */}
-              <div className="justify-self-end">
+              {/* Hot badge */}
+              <div style={{ gridArea: 'hot' }} className="flex items-center justify-self-start">
+                <span className="whitespace-nowrap text-[11px] font-semibold text-orange-500">热评</span>
+              </div>
+              {/* Meta: date + tier + youpin stacked */}
+              <div style={{ gridArea: 'meta' }} className="flex flex-col items-center justify-self-end gap-0.5">
                 {dateStr ? (
                   <span className="text-[11px] text-neutral-400 whitespace-nowrap">{dateStr}</span>
                 ) : null}
+                {r.review_tier ? <TierChip tier={r.review_tier} small /> : null}
+                <span className="text-[11px] text-neutral-500 whitespace-nowrap">有品 {r.review_youpin}</span>
               </div>
-              {/* Row 2 Col 1: comment */}
-              <div className="flex items-start pl-[68px] -mt-[20px]">
+              {/* Comment: spans columns 2-3 */}
+              <div style={{ gridArea: 'comment' }} className="flex items-start">
                 <p className="flex-1 min-w-0 text-[15px] font-semibold text-neutral-700 leading-relaxed line-clamp-3">
                   {r.top_store_comment}
                 </p>
-              </div>
-              {/* Row 2 Col 2: tier + 有品 */}
-              <div className="flex flex-col items-end gap-0.5 justify-self-end -mt-[20px]">
-                {r.review_tier ? <TierChip tier={r.review_tier} small /> : null}
-                <span className="text-[11px] text-neutral-500 whitespace-nowrap">有品 {r.review_youpin}</span>
               </div>
             </div>
           </>
@@ -463,7 +470,7 @@ export function HomeMap() {
   )
 
   return (
-    <div className="relative w-full" style={{ height: 'calc(100dvh - 80px)' }}>
+    <div className="relative w-full" style={{ height: 'calc(100dvh - 56px)' }}>
       <SearchBar
         onOpenPoi={handleOpenPoi}
         onInteract={dismiss}

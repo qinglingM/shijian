@@ -1,10 +1,14 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, PenSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { TIER_SOFT_VAR, type Tier } from '@/lib/db'
+import { TIER_SOFT_VAR, type Tier, type VoteType } from '@/lib/db'
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
 import { useTodayPracticeCount } from '@/features/square/useTodayPracticeCount'
+import { applyStoreReviewVoteClick, intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/authStore'
 
 export function SquarePage() {
   const navigate = useNavigate()
@@ -93,6 +97,75 @@ function estimateCardHeight(item: SquareFeedItem) {
 }
 
 function SquareCard({ item }: { item: SquareFeedItem }) {
+  const queryClient = useQueryClient()
+  const viewerId = useAuthStore((s) => s.user?.id ?? null)
+  const voteMut = useMutation({
+    mutationFn: async (next: VoteType | null) => {
+      if (!isSupabaseConfigured) throw new Error('暂无可用后端')
+      if (!viewerId) throw new Error('请先登录')
+      const sb = getSupabase()
+      if (next === null) {
+        const { error } = await sb
+          .from('review_votes')
+          .delete()
+          .match({ user_id: viewerId, target_type: 'store_review', target_id: item.id })
+        if (error) throw error
+        return
+      }
+      const { error } = await sb.from('review_votes').upsert(
+        {
+          user_id: viewerId,
+          target_type: 'store_review',
+          target_id: item.id,
+          vote_type: next,
+        },
+        { onConflict: 'user_id,target_type,target_id' },
+      )
+      if (error) throw error
+    },
+    onMutate: async (next) => {
+      const key = ['square-feed', viewerId]
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueryData<SquareFeedItem[]>(key)
+      queryClient.setQueryData<SquareFeedItem[]>(key, (old) =>
+        old?.map((x) => {
+          if (x.id !== item.id) return x
+          const patched = applyStoreReviewVoteClick(
+            x.youpin_count,
+            x.yebang_count,
+            x.my_vote,
+            'youpin',
+          )
+          return {
+            ...x,
+            youpin_count: patched.youpin,
+            yebang_count: patched.yebang,
+            my_vote: next,
+          }
+        }),
+      )
+      return { previous }
+    },
+    onError: (err, _next, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(['square-feed', viewerId], ctx.previous)
+      window.alert(err instanceof Error ? err.message : '操作失败，请稍后重试')
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['square-feed', viewerId] })
+    },
+  })
+
+  function toggleYoupin() {
+    if (voteMut.isPending) return
+    if (!viewerId) {
+      window.alert('请先登录后再参与有品投票')
+      return
+    }
+    voteMut.mutate(intentAfterVoteTap(item.my_vote, 'youpin'))
+  }
+
+  const liked = item.my_vote === 'youpin'
+
   return (
     <article className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-100">
       <Link to={`/restaurants/${item.restaurant_id}`} className="block">
@@ -103,8 +176,8 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
             aspectRatio: tierAspect(item.tier),
           }}
         >
+          <span className="absolute left-3 top-2.5 text-[11px] font-bold leading-none">{item.tier_label}</span>
           <div className="flex w-full flex-col justify-between">
-            <p className="truncate text-[11px] font-semibold opacity-90">{item.restaurant_name}</p>
             <div className="flex flex-1 items-center justify-center px-2 text-center">
               <p
                 className={cn(
@@ -120,24 +193,38 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
                 {item.content}
               </p>
             </div>
-            <p className="text-[11px] font-medium opacity-85">{item.tier_label}</p>
           </div>
         </div>
       </Link>
 
       <div className="px-3 pb-3 pt-2">
-        <div className="mt-2 flex items-center justify-between gap-2">
+        <p className="text-[13px] font-bold text-neutral-900">{item.restaurant_name}</p>
+        <div className="mt-1.5 flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
               {item.avatar_url ? (
                 <img src={item.avatar_url} alt={item.nickname} className="size-full rounded-full object-cover" />
               ) : (
-                <PenSquare size={14} />
+                <PenSquare size={12} />
               )}
             </div>
-            <p className="truncate text-xs font-semibold text-neutral-900">{item.nickname}</p>
+            <p className="truncate text-[10px] font-semibold text-sky-700">{item.nickname}</p>
           </div>
-          <div className="shrink-0 text-[11px] text-neutral-500">有品 {item.youpin_count}</div>
+          <button
+            type="button"
+            disabled={voteMut.isPending}
+            aria-pressed={liked}
+            onClick={toggleYoupin}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors disabled:opacity-50',
+              liked
+                ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
+                : 'bg-orange-50 text-orange-700 ring-1 ring-orange-100 active:bg-orange-100',
+            )}
+          >
+            <span className={liked ? '' : 'text-orange-500'}>{item.youpin_count}</span>
+            有品
+          </button>
         </div>
       </div>
     </article>
@@ -150,12 +237,12 @@ function tierBg(tier: Tier) {
 
 function tierAspect(tier: Tier) {
   const map: Record<Tier, string> = {
-    boom: '4 / 5.05',
-    hang: '4 / 4.96',
-    top: '4 / 4.87',
-    upper: '4 / 4.78',
-    npc: '4 / 4.69',
-    bad: '4 / 4.60',
+    boom: '4 / 4.04',
+    hang: '4 / 3.97',
+    top: '4 / 3.90',
+    upper: '4 / 3.82',
+    npc: '4 / 3.75',
+    bad: '4 / 3.68',
   }
   return map[tier]
 }

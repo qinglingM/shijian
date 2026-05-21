@@ -11,7 +11,7 @@ export interface MapRestaurant {
   district_name: string | null
   cover_image_url: string | null
   address_text: string | null
-  category_name: string | null
+  category_label: string | null
   tier: Tier | null
   top_reviewer_nickname: string | null
   top_reviewer_avatar_url: string | null
@@ -31,6 +31,9 @@ interface RestaurantRow {
   district_name: string | null
   cover_image_url: string | null
   address_text: string | null
+  display_category_label: string | null
+  amap_mid_category: string | null
+  amap_small_category: string | null
 }
 
 interface PracticeRow {
@@ -79,7 +82,7 @@ export function useMapRestaurants() {
       // 1. 所有有坐标的已入库餐厅（含分类中文名）
       const { data: raws, error: e1 } = await sb
         .from('restaurants')
-        .select('id, display_name, latitude, longitude, city_name, district_name, cover_image_url, address_text, categories(name)')
+        .select('id, display_name, latitude, longitude, city_name, district_name, cover_image_url, address_text, display_category_label, amap_mid_category, amap_small_category, categories(name)')
         .eq('status', 'active')
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
@@ -87,7 +90,7 @@ export function useMapRestaurants() {
 
       if (e1) throw e1
       const rawRows = (raws ?? []) as (RestaurantRow & { categories: { name?: string } | { name?: string }[] | null })[]
-      const restaurants: (RestaurantRow & { category_name: string | null })[] = rawRows.map((r) => {
+      const restaurants: (RestaurantRow & { category_label: string | null })[] = rawRows.map((r) => {
         const nested = r.categories
         let category_name: string | null = null
         if (nested && typeof nested === 'object' && !Array.isArray(nested) && nested.name != null)
@@ -96,7 +99,13 @@ export function useMapRestaurants() {
           category_name = String(nested[0].name)
         const { categories: _omit, ...core } = r
         void _omit
-        return { ...core, category_name }
+        const category_label =
+          r.display_category_label?.trim() ||
+          category_name?.trim() ||
+          r.amap_small_category?.trim() ||
+          r.amap_mid_category?.trim() ||
+          null
+        return { ...core, category_label }
       })
       if (!restaurants.length) return []
 
@@ -122,7 +131,7 @@ export function useMapRestaurants() {
           district_name: r.district_name,
           cover_image_url: r.cover_image_url,
           address_text: null,
-          category_name: r.category_name,
+          category_label: r.category_label,
           tier: null,
           top_reviewer_nickname: null,
           top_reviewer_avatar_url: null,
@@ -208,7 +217,7 @@ export function useMapRestaurants() {
           district_name: r.district_name,
           cover_image_url: r.cover_image_url,
           address_text: r.address_text,
-          category_name: r.category_name,
+          category_label: r.category_label,
           tier: tierCounts ? modeTier(tierCounts) : null,
           top_reviewer_nickname: top ? (profile ? profile.nickname : ANONYMOUS_REVIEWER) : null,
           top_reviewer_avatar_url: profile ? profile.avatar_url : null,
