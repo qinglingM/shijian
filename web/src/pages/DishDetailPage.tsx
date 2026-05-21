@@ -31,7 +31,7 @@ export function DishDetailPage() {
   const user = useAuthStore((s) => s.user)
   const voteMut = useDishReviewVoteMutation(dish?.restaurant_id ?? null)
 
-  const [sort, setSort] = useState<'latest' | 'hot' | 'score'>('latest')
+  const [sort, setSort] = useState<'latest' | 'hot' | 'score'>('hot')
 
   const sortedReviews = useMemo(() => {
     const list = reviewsQ.data ?? []
@@ -53,6 +53,19 @@ export function DishDetailPage() {
     }
     return copy
   }, [reviewsQ.data, sort])
+
+  const bestCoverUrl = useMemo(() => {
+    const reviews = reviewsQ.data
+    if (!reviews || reviews.length === 0) return dish?.cover_image_url ?? null
+    const withImages = reviews
+      .filter((r) => r.image_url && isLikelyReviewImage(r.image_url))
+      .sort(
+        (a, b) =>
+          (b.youpin_count - b.yebang_count) -
+          (a.youpin_count - a.yebang_count),
+      )
+    return withImages[0]?.image_url ?? dish?.cover_image_url ?? null
+  }, [reviewsQ.data, dish?.cover_image_url])
 
   if (!id) return <Navigate to="/" replace />
 
@@ -128,8 +141,8 @@ export function DishDetailPage() {
       <BackHeader title="菜品详情" centerTitle backTo={`/restaurants/${dish.restaurant_id}`} />
       <div className="min-h-[calc(100vh-3rem)] bg-white pb-10">
         <div className="relative h-[12rem] w-full bg-neutral-100">
-          {dish.cover_image_url ? (
-            <img src={dish.cover_image_url} alt="" className="size-full object-cover" />
+          {bestCoverUrl ? (
+            <img src={bestCoverUrl} alt="" className="size-full object-cover" />
           ) : (
             <div className="flex size-full items-center justify-center text-sm font-semibold tracking-widest text-neutral-400">
               {(dish.name.slice(0, 4).replace(/\s/g, '') || '菜').slice(0, 4)}
@@ -216,20 +229,15 @@ export function DishDetailPage() {
                     className="rounded-2xl border border-orange-100 bg-white px-3 py-3 shadow-sm shadow-orange-500/6"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <span className="text-[13px] font-semibold text-neutral-900">
-                          {rv.reviewer_nickname}
-                        </span>
-                        <span className="ml-2 text-[11px] text-neutral-400">
-                          {dateFmt.format(new Date(rv.created_at))}
-                        </span>
-                      </div>
-                      <span className="shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[12px] font-black text-orange-800">
-                        {rv.score !== null ? `${rv.score}` : '—'} 分
+                      <span className="text-[11px] font-semibold text-sky-700">
+                        {rv.reviewer_nickname}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-neutral-400">
+                        {dateFmt.format(new Date(rv.created_at))}
                       </span>
                     </div>
-                    <div className="mt-2 flex items-start gap-2">
-                      <p className="min-w-0 flex-1 text-[14px] leading-6 text-neutral-800">
+                    <div className="mt-1 flex items-start gap-2">
+                      <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['\201C'] [&::after]:content-['\201D']">
                         {rv.comment?.trim() || '（未填写菜品锐评）'}
                       </p>
                       {reviewImageUrl ? (
@@ -239,15 +247,21 @@ export function DishDetailPage() {
                           className="size-16 shrink-0 rounded-xl object-cover ring-1 ring-neutral-200/80"
                         />
                       ) : null}
+                      <span className="shrink-0 pt-0.5">
+                        <span className="text-[28px] font-black italic leading-none text-sky-600">
+                          {rv.score !== null ? rv.score : '—'}
+                        </span>
+                        <span className="ml-0.5 text-[11px] font-semibold text-sky-600">分</span>
+                      </span>
                     </div>
-                    <div className="mt-2 flex items-center justify-end gap-2">
+                    <div className="mt-1 flex items-center justify-end gap-1.5">
                       <button
                         type="button"
                         disabled={votingThis || guestBlocked}
                         title={guestBlocked ? '请先登录' : '觉得这条菜评中肯、有参考价值'}
                         aria-pressed={rv.my_vote === 'youpin'}
                         onClick={() => onTap('youpin')}
-                        className={`inline-flex min-w-[4.75rem] items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                        className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                           rv.my_vote === 'youpin'
                             ? 'bg-orange-50 text-orange-950 shadow-[inset_0_0_0_2px_rgb(251_146_60)]'
                             : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-orange-50/60'
@@ -262,7 +276,7 @@ export function DishDetailPage() {
                         title={guestBlocked ? '请先登录' : '觉得这条菜评离谱、参考价值低'}
                         aria-pressed={rv.my_vote === 'yebang'}
                         onClick={() => onTap('yebang')}
-                        className={`inline-flex min-w-[4.75rem] items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-colors disabled:opacity-50 ${
+                        className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                           rv.my_vote === 'yebang'
                             ? 'bg-violet-50 text-violet-950 shadow-[inset_0_0_0_2px_rgb(167_139_250)]'
                             : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-violet-50/55'

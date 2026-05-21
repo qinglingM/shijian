@@ -1046,6 +1046,12 @@ function dominantTierFromReviewList(
   return best
 }
 
+const SORT_OPTIONS = [
+  { value: 'latest' as const, label: '最新' },
+  { value: 'hot' as const, label: '最热' },
+  { value: 'score' as const, label: '高分' },
+]
+
 function DishTabFeed({
   restaurantId,
   dishReviews,
@@ -1060,6 +1066,8 @@ function DishTabFeed({
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const voteMut = useDishReviewVoteMutation(!isDemo ? restaurantId : null)
+  const [sort, setSort] = useState<'latest' | 'hot' | 'score'>('hot')
+
   if (isDemo) {
     return (
       <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm leading-6 text-neutral-500">
@@ -1075,16 +1083,86 @@ function DishTabFeed({
     return <p className="py-14 text-center text-sm text-neutral-400">载入菜评与菜品列表…</p>
   }
 
+  const groupedDisplays = useMemo(() => {
+    const groups = new Map<string, RestaurantDishReviewItem[]>()
+    for (const r of dishReviews) {
+      const arr = groups.get(r.dish_id) ?? []
+      arr.push(r)
+      groups.set(r.dish_id, arr)
+    }
+
+    const entries: {
+      dishName: string
+      dishId: string
+      topReview: RestaurantDishReviewItem
+      coverUrl: string | null
+    }[] = []
+
+    for (const [dishId, reviews] of groups) {
+      const dishName = reviews[0].dish_name
+
+      const sortedForCover = [...reviews].sort(
+        (a, b) => (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count),
+      )
+      const coverUrl = sortedForCover.find((r) => r.image_url)?.image_url ?? null
+
+      let sortedReviews: RestaurantDishReviewItem[]
+      if (sort === 'latest') {
+        sortedReviews = [...reviews].sort((a, b) => b.created_at.localeCompare(a.created_at))
+      } else if (sort === 'score') {
+        sortedReviews = [...reviews].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
+      } else {
+        sortedReviews = [...reviews].sort(
+          (a, b) => (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count),
+        )
+      }
+
+      entries.push({ dishName, dishId, topReview: sortedReviews[0], coverUrl })
+    }
+
+    if (sort === 'latest') {
+      entries.sort((a, b) => b.topReview.created_at.localeCompare(a.topReview.created_at))
+    } else if (sort === 'score') {
+      entries.sort((a, b) => (b.topReview.score ?? -1) - (a.topReview.score ?? -1))
+    } else {
+      entries.sort(
+        (a, b) =>
+          (b.topReview.youpin_count - b.topReview.yebang_count) -
+          (a.topReview.youpin_count - a.topReview.yebang_count),
+      )
+    }
+
+    return entries
+  }, [dishReviews, sort])
+
   return (
     <div className="space-y-6">
-      {dishReviews.length > 0 ? (
+      {groupedDisplays.length > 0 ? (
         <div>
           <h2 className="text-[12px] font-semibold tracking-tight text-neutral-600">
             所有菜品评价
           </h2>
 
-          <ul className="space-y-3">
-            {dishReviews.map((r) => {
+          <div className="mt-2 flex items-center gap-1">
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setSort(opt.value)}
+                className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                  sort === opt.value
+                    ? 'bg-orange-100 text-orange-900'
+                    : 'text-neutral-400 active:bg-neutral-100'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <ul className="mt-3 space-y-3">
+            {groupedDisplays.map((entry) => {
+              const r = entry.topReview
               const votingThis =
                 voteMut.isPending && voteMut.variables?.dishReviewId === r.id
               const guestBlocked = !user
@@ -1098,8 +1176,8 @@ function DishTabFeed({
                 voteMut.mutate({ dishReviewId: r.id, dishId: r.dish_id, next })
               }
 
-              const dishImg = r.dish_cover_image_url ? (
-                <img src={r.dish_cover_image_url} alt="" className="size-full object-cover" />
+              const dishImg = entry.coverUrl ? (
+                <img src={entry.coverUrl} alt="" className="size-full object-cover" />
               ) : (
                 <div className="flex size-full items-center justify-center bg-orange-50 text-orange-600">
                   <Utensils className="size-4" aria-hidden />
@@ -1108,20 +1186,20 @@ function DishTabFeed({
 
               return (
                 <li
-                  key={r.id}
-                  onClick={() => navigate(`/dishes/${r.dish_id}`)}
+                  key={entry.dishId}
+                  onClick={() => navigate(`/dishes/${entry.dishId}`)}
                   className="cursor-pointer rounded-2xl border border-orange-100 bg-white px-3 py-3 shadow-sm shadow-orange-500/6 active:bg-orange-50/50"
                 >
                   <span className="mb-[10px] block truncate text-[12px] font-bold leading-tight text-orange-700">
-                    {r.dish_name}
+                    {entry.dishName}
                   </span>
                   <div className="flex items-start gap-3">
                     <div className="shrink-0">
                       <Link
-                        to={`/dishes/${r.dish_id}`}
+                        to={`/dishes/${entry.dishId}`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex size-16 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-100"
-                        aria-label={`查看菜品 ${r.dish_name}`}
+                        aria-label={`查看菜品 ${entry.dishName}`}
                       >
                         {dishImg}
                       </Link>
