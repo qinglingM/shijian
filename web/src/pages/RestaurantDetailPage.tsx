@@ -1227,7 +1227,7 @@ function DishTabFeed({
                         </span>
                       </div>
                       <div className="mt-1 flex items-start gap-2">
-                        <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['\201C'] [&::after]:content-['\201D']">
+                        <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['“'] [&::after]:content-['”']">
                           {r.comment?.trim() || '（未填写菜品锐评）'}
                         </p>
                         <span className="shrink-0 pt-0.5">

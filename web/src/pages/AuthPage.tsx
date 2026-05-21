@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { startTransition, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -9,11 +9,15 @@ import {
   validatePasswordForAccount,
 } from '@/lib/passwordPolicy'
 import { EmailAuthPanel } from '@/features/auth/EmailAuthPanel'
+import { callAliyunSmsOtp } from '@/features/auth/aliyunSmsOtp'
 import { AUTH_LAX_DEV, tryLaxDevRedirect } from '@/lib/laxDevAuth'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 
 type Phase = 'login' | 'signup' | 'forgot'
+type LoginMode = 'password' | 'otp'
+type LoginOtpStep = 1 | 2
+type OtpPurpose = 'login' | 'signup' | 'forgot'
 type SignupStep = 1 | 2 | 3
 type ForgotStep = 1 | 2 | 3
 
@@ -21,6 +25,7 @@ const EMAIL_AUTH = import.meta.env.VITE_ENABLE_EMAIL_AUTH === 'true'
 
 export function AuthPage() {
   const user = useAuthStore((s) => s.user)
+  const setSession = useAuthStore((s) => s.setSession)
   const navigate = useNavigate()
   const [params] = useSearchParams()
 
@@ -41,10 +46,13 @@ export function AuthPage() {
   const [mobileInput, setMobileInput] = useState('')
   const [e164Locked, setE164Locked] = useState<string | null>(null)
   const [otp, setOtp] = useState('')
-  const [otpPurpose, setOtpPurpose] = useState<'signup' | 'forgot' | null>(null)
+  const [otpToken, setOtpToken] = useState<string | null>(null)
+  const [otpPurpose, setOtpPurpose] = useState<OtpPurpose | null>(null)
 
   const [loginPw, setLoginPw] = useState('')
   const [showLoginPw, setShowLoginPw] = useState(false)
+  const [loginMode, setLoginMode] = useState<LoginMode>('password')
+  const [loginOtpStep, setLoginOtpStep] = useState<LoginOtpStep>(1)
 
   const [regPw1, setRegPw1] = useState('')
   const [regPw2, setRegPw2] = useState('')
@@ -61,35 +69,50 @@ export function AuthPage() {
   const [msg, setMsg] = useState<string | null>(null)
 
   const channelParams = params.get('channel')
+  const authMode = params.get('mode')
 
   useEffect(() => {
     const m = params.get('mode')
     if (m === 'signup') {
-      setSurface('phone')
-      setPhase('signup')
-      setSignupStep(1)
-      resetOtp()
-      setMsg(null)
+      startTransition(() => {
+        setSurface('phone')
+        setPhase('signup')
+        setSignupStep(1)
+        resetOtp()
+        setMsg(null)
+      })
       return
     }
     if (m === 'forgot') {
-      setSurface('phone')
-      setPhase('forgot')
-      setForgotStep(1)
-      resetOtp()
-      setMsg(null)
+      startTransition(() => {
+        setSurface('phone')
+        setPhase('forgot')
+        setForgotStep(1)
+        resetOtp()
+        setMsg(null)
+      })
     }
   }, [params])
 
   useEffect(() => {
-    if (EMAIL_AUTH && channelParams === 'email') setSurface('email')
-    if (!EMAIL_AUTH) setSurface('phone')
+    startTransition(() => {
+      if (EMAIL_AUTH && channelParams === 'email') setSurface('email')
+      if (!EMAIL_AUTH) setSurface('phone')
+    })
   }, [channelParams])
 
   useEffect(() => {
     if (!isSupabaseConfigured) return
-    if (user) navigate(safeRedirect, { replace: true })
-  }, [user, navigate, safeRedirect])
+    if (!user) return
+
+    const isAnonymousUser = (user as { is_anonymous?: boolean }).is_anonymous === true
+    if ((authMode === 'signup' || authMode === 'forgot') && isAnonymousUser) {
+      void getSupabase().auth.signOut({ scope: 'local' })
+      return
+    }
+
+    navigate(safeRedirect, { replace: true })
+  }, [user, navigate, safeRedirect, authMode])
 
   useEffect(() => {
     if (resendSeconds <= 0) return
@@ -100,12 +123,14 @@ export function AuthPage() {
   function resetOtp() {
     setOtp('')
     setE164Locked(null)
+    setOtpToken(null)
     setOtpPurpose(null)
     setResendSeconds(0)
   }
 
   function goPhoneLogin() {
     setPhase('login')
+    setLoginOtpStep(1)
     setSignupStep(1)
     setForgotStep(1)
     resetOtp()
@@ -133,39 +158,33 @@ export function AuthPage() {
     setForgotPw2('')
   }
 
-  async function sendOtp(purpose: 'signup' | 'forgot') {
+  async function sendOtp(purpose: OtpPurpose) {
     setMsg(null)
-    if (AUTH_LAX_DEV && (await tryLaxDevRedirect(navigate, safeRedirect))) return
     const e164 = normalizeChinaMobileToE164(mobileInput)
     if (!e164) {
       setMsg('请输入中国大陆 11 位手机号')
       return
     }
     setSubmitting(true)
-    const sb = getSupabase()
-    const { error } = await sb.auth.signInWithOtp({
-      phone: e164,
-      options: {
-        channel: 'sms',
-        shouldCreateUser: purpose === 'signup',
-      },
-    })
+    const result = await callAliyunSmsOtp({ action: 'send', phone: e164, purpose })
     setSubmitting(false)
-    if (error) {
-      setMsg(trOtpSend(error.message, purpose))
+    if (!result.ok || !result.token) {
+      setMsg(trOtpSend(result.error ?? '验证码发送失败', purpose))
       return
     }
     setE164Locked(e164)
+    setOtpToken(result.token)
+    setOtp('')
     setOtpPurpose(purpose)
     setResendSeconds(60)
-    if (purpose === 'signup') setSignupStep(2)
+    if (purpose === 'login') setLoginOtpStep(2)
+    else if (purpose === 'signup') setSignupStep(2)
     else setForgotStep(2)
   }
 
   async function verifyOtpAdvance(purposeExpected: 'signup' | 'forgot') {
     setMsg(null)
-    if (AUTH_LAX_DEV && (await tryLaxDevRedirect(navigate, safeRedirect))) return
-    if (!e164Locked || otpPurpose !== purposeExpected) {
+    if (!e164Locked || !otpToken || otpPurpose !== purposeExpected) {
       setMsg('请先获取短信验证码')
       return
     }
@@ -175,22 +194,67 @@ export function AuthPage() {
       return
     }
     setSubmitting(true)
-    const sb = getSupabase()
-    const { error } = await sb.auth.verifyOtp({
+    const result = await callAliyunSmsOtp({
+      action: 'verify',
       phone: e164Locked,
-      token,
-      type: 'sms',
+      code: token,
+      token: otpToken,
     })
     setSubmitting(false)
-    if (error) setMsg(trVerify(error.message))
+    if (!result.ok) setMsg(trVerify(result.error ?? '验证码校验失败'))
     else if (purposeExpected === 'signup') setSignupStep(3)
     else setForgotStep(3)
+  }
+
+  async function submitLoginOtp(e: React.FormEvent) {
+    e.preventDefault()
+    setMsg(null)
+    if (!e164Locked || !otpToken || otpPurpose !== 'login') {
+      setMsg('请先获取短信验证码')
+      return
+    }
+    const code = otp.replace(/\D/g, '')
+    if (code.length !== 6) {
+      setMsg('请输入 6 位短信验证码')
+      return
+    }
+    setSubmitting(true)
+    setMsg('正在校验短信验证码…')
+    try {
+      const result = await callAliyunSmsOtp({
+        action: 'complete-login',
+        phone: e164Locked,
+        code,
+        token: otpToken,
+      })
+      if (!result.ok) {
+        setSubmitting(false)
+        setMsg(trVerify(result.error ?? '验证码登录失败'))
+        return
+      }
+
+      setMsg('验证码通过，正在登录…')
+      const { error } = result.access_token && result.refresh_token
+        ? await setVerifiedSession(result.access_token, result.refresh_token)
+        : result.temp_password
+          ? await signInWithPhonePassword([
+              result.login_phone,
+              e164Locked,
+              e164Locked.startsWith('+86') ? e164Locked.slice(3) : null,
+            ], result.temp_password)
+          : { error: '验证码登录失败' }
+      setSubmitting(false)
+      if (error) setMsg(loginUnifiedError(error))
+      else navigate(safeRedirect, { replace: true })
+    } catch (err) {
+      setSubmitting(false)
+      setMsg(err instanceof Error ? err.message : '验证码登录失败，请稍后再试')
+    }
   }
 
   async function submitRegisterPassword(e: React.FormEvent) {
     e.preventDefault()
     setMsg(null)
-    if (AUTH_LAX_DEV && (await tryLaxDevRedirect(navigate, safeRedirect))) return
     const errPw = validatePasswordForAccount(regPw1)
     if (errPw) {
       setMsg(errPw)
@@ -215,7 +279,6 @@ export function AuthPage() {
   async function submitForgotPassword(e: React.FormEvent) {
     e.preventDefault()
     setMsg(null)
-    if (AUTH_LAX_DEV && (await tryLaxDevRedirect(navigate, safeRedirect))) return
     const errPw = validatePasswordForAccount(forgotPw1)
     if (errPw) {
       setMsg(errPw)
@@ -234,15 +297,45 @@ export function AuthPage() {
   }
 
   async function applyPassword(newPassword: string, nicknameOpt?: string) {
-    if (AUTH_LAX_DEV && (await tryLaxDevRedirect(navigate, safeRedirect))) return
+    if (!e164Locked || !otpToken || !otpPurpose) {
+      setMsg('请先完成短信验证码校验')
+      return
+    }
+    const code = otp.replace(/\D/g, '')
+    if (code.length !== 6) {
+      setMsg('验证码状态已失效，请重新获取')
+      return
+    }
     setSubmitting(true)
-    const sb = getSupabase()
-    const { error } = await sb.auth.updateUser({
-      password: newPassword,
-      ...(nicknameOpt ? { data: { nickname: nicknameOpt } } : {}),
-    })
+    const result = await callAliyunSmsOtp(
+      otpPurpose === 'signup'
+        ? {
+            action: 'complete-signup',
+            phone: e164Locked,
+            code,
+            token: otpToken,
+            password: newPassword,
+            nickname: nicknameOpt,
+          }
+        : {
+            action: 'complete-forgot',
+            phone: e164Locked,
+            code,
+            token: otpToken,
+            password: newPassword,
+          },
+    )
+    if (!result.ok) {
+      setSubmitting(false)
+      setMsg(trVerify(result.error ?? '账号处理失败'))
+      return
+    }
+
+    const { error } = result.access_token && result.refresh_token
+      ? await setVerifiedSession(result.access_token, result.refresh_token)
+      : await signInWithPhonePassword([e164Locked], newPassword)
     setSubmitting(false)
-    if (error) setMsg(trVerify(error.message))
+    if (error) setMsg(loginUnifiedError(error))
     else navigate(safeRedirect, { replace: true })
   }
 
@@ -256,14 +349,50 @@ export function AuthPage() {
       return
     }
     setSubmitting(true)
-    const sb = getSupabase()
-    const { error } = await sb.auth.signInWithPassword({
+    const result = await callAliyunSmsOtp({
+      action: 'password-login',
       phone: e164,
       password: loginPw,
     })
     setSubmitting(false)
-    if (error) setMsg(loginUnifiedError(error.message))
+    if (!result.ok || !result.access_token || !result.refresh_token) {
+      setMsg(loginUnifiedError(result.error ?? '手机号或密码错误'))
+      return
+    }
+
+    const { error } = await setVerifiedSession(result.access_token, result.refresh_token)
+    if (error) setMsg(loginUnifiedError(error))
     else navigate(safeRedirect, { replace: true })
+  }
+
+  async function signInWithPhonePassword(
+    phones: Array<string | null | undefined>,
+    password: string,
+  ): Promise<{ error: string | null }> {
+    const candidates = [...new Set(phones.filter((phone): phone is string => Boolean(phone)))]
+    let lastError: string | null = null
+    for (const phone of candidates) {
+      const { data, error } = await getSupabase().auth.signInWithPassword({ phone, password })
+      if (!error) {
+        setSession(data.session)
+        return { error: null }
+      }
+      lastError = error.message
+    }
+    return { error: lastError ?? '登录失败' }
+  }
+
+  async function setVerifiedSession(
+    accessToken: string,
+    refreshToken: string,
+  ): Promise<{ error: string | null }> {
+    const { data, error } = await getSupabase().auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    })
+    if (error) return { error: error.message }
+    setSession(data.session)
+    return { error: null }
   }
 
   if (!isSupabaseConfigured) {
@@ -353,34 +482,113 @@ export function AuthPage() {
       {EMAIL_AUTH && surface === 'email' && <EmailAuthPanel safeRedirect={safeRedirect} />}
 
       {surface === 'phone' && phase === 'login' && (
-        <form className="space-y-4" onSubmit={submitLoginPhone}>
-          <PhoneRow editable value={mobileInput} onChange={setMobileInput} />
-          <PasswordField
-            id="lw"
-            label="密码"
-            value={loginPw}
-            onChange={setLoginPw}
-            autocomplete="current-password"
-            reveal={showLoginPw}
-            onReveal={() => setShowLoginPw((v) => !v)}
-          />
-          <div className="flex justify-end">
+        <div className="space-y-4">
+          <div className="flex rounded-2xl bg-neutral-100 p-1 text-sm">
             <button
               type="button"
-              onClick={() => goPhoneForgot()}
-              className="text-xs text-orange-700 underline underline-offset-2"
+              className={cn(
+                'flex-1 rounded-xl py-2 font-medium transition-colors',
+                loginMode === 'password'
+                  ? 'bg-white text-neutral-900 shadow-sm'
+                  : 'text-neutral-500',
+              )}
+              onClick={() => {
+                setLoginMode('password')
+                setLoginOtpStep(1)
+                resetOtp()
+                setMsg(null)
+              }}
             >
-              忘记密码？
+              密码登录
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'flex-1 rounded-xl py-2 font-medium transition-colors',
+                loginMode === 'otp'
+                  ? 'bg-white text-neutral-900 shadow-sm'
+                  : 'text-neutral-500',
+              )}
+              onClick={() => {
+                setLoginMode('otp')
+                setLoginOtpStep(1)
+                resetOtp()
+                setMsg(null)
+              }}
+            >
+              验证码登录
             </button>
           </div>
-          {msg ? <Alert>{msg}</Alert> : null}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
-          >
-            {submitting ? '登录中…' : '登录'}
-          </button>
+
+          {loginMode === 'password' ? (
+            <form className="space-y-4" onSubmit={submitLoginPhone}>
+              <PhoneRow editable value={mobileInput} onChange={setMobileInput} />
+              <PasswordField
+                id="lw"
+                label="密码"
+                value={loginPw}
+                onChange={setLoginPw}
+                autocomplete="current-password"
+                reveal={showLoginPw}
+                onReveal={() => setShowLoginPw((v) => !v)}
+              />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => goPhoneForgot()}
+                  className="text-xs text-orange-700 underline underline-offset-2"
+                >
+                  忘记密码？
+                </button>
+              </div>
+              {msg ? <Alert>{msg}</Alert> : null}
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+              >
+                {submitting ? '登录中…' : '登录'}
+              </button>
+            </form>
+          ) : loginOtpStep === 1 ? (
+            <div className="space-y-4">
+              <PhoneRow editable value={mobileInput} onChange={setMobileInput} />
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={() => void sendOtp('login')}
+                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+              >
+                {submitting ? '发送中…' : '获取短信验证码'}
+              </button>
+              <SmsFootnote />
+              {msg ? <Alert>{msg}</Alert> : null}
+            </div>
+          ) : (
+            <form className="space-y-4" onSubmit={submitLoginOtp}>
+              <PhoneRow editable={false} value={displayMobile} onChange={() => {}} />
+              <OtpField value={otp} onChange={setOtp} />
+              <SubmitBtn loading={submitting} label="验证码登录" />
+              <Resend
+                loading={submitting}
+                secs={resendSeconds}
+                onResend={() => void sendOtp('login')}
+              />
+              <button
+                type="button"
+                className="text-xs text-neutral-500 underline underline-offset-2"
+                onClick={() => {
+                  setLoginOtpStep(1)
+                  resetOtp()
+                  setMsg(null)
+                }}
+              >
+                ← 修改手机号
+              </button>
+              {msg ? <Alert>{msg}</Alert> : null}
+            </form>
+          )}
+
           <p className="text-center text-sm text-neutral-500">
             <button
               type="button"
@@ -390,7 +598,7 @@ export function AuthPage() {
               还没有账号？注册
             </button>
           </p>
-        </form>
+        </div>
       )}
 
       {surface === 'phone' && phase === 'signup' && signupStep === 1 && (
@@ -555,6 +763,7 @@ export function AuthPage() {
           <SubmitBtn loading={submitting} label="重置密码并完成" />
         </form>
       )}
+
     </div>
   )
 }
@@ -736,7 +945,7 @@ function Alert({ children }: { children: ReactNode }) {
 function SmsFootnote() {
   return (
     <p className="text-[11px] leading-5 text-neutral-500">
-      需在 Dashboard 启用 Phone Provider 及短信网关。发送间隔、单日上限与 IP 限速以网关与服务端策略为准，可在 Edge Functions 层继续加固。
+      验证码由阿里云短信发送，5 分钟内有效。发送间隔、单日上限与 IP 限速以后可继续在 Edge Functions 层加固。
     </p>
   )
 }
@@ -747,11 +956,11 @@ function loginUnifiedError(message: string) {
   return '手机号或密码错误'
 }
 
-function trOtpSend(message: string, purpose: 'signup' | 'forgot') {
+function trOtpSend(message: string, purpose: OtpPurpose) {
   const m = message.toLowerCase()
   if (/rate|limit|429|too many/i.test(m)) return '请求过于频繁，请稍后再试'
-  if (/sms|phone|provider|not enabled/i.test(m))
-    return '短信服务不可用，请检查 Authentication → Providers → Phone'
+  if (/sms|phone|provider|not enabled|aliyun|未配置/i.test(m))
+    return '短信服务不可用，请检查阿里云短信与 Edge Function 环境变量'
   if (purpose === 'forgot' && (/exist|found|registered|unknown/i.test(m)))
     return '无法发送验证码，请确认手机号是否正确或暂未注册（安全提示已与登录对齐）。'
   return message
