@@ -17,6 +17,7 @@ interface ProfileSummary {
   bio: string | null
   city_id: string | null
   current_title_id: string | null
+  is_profile_public: boolean
 }
 
 interface PracticeRecordJoin {
@@ -93,7 +94,7 @@ export function UserProfilePage() {
       else if (cityId) q = q.eq('restaurants.city_id', cityId)
       const { data, error } = await q
       if (error) throw error
-      const rows = data ?? [] as PracticeRecordJoin[]
+      const rows = (data ?? []) as unknown as PracticeRecordJoin[]
       return rows.map((r) => ({
         practice_id: r.id,
         restaurant_id: r.restaurant_id,

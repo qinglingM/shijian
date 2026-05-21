@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Camera, Plus, Trash2 } from 'lucide-react'
+import { ImageCropDialog } from '@/components/image/ImageCropDialog'
 import { useDishesByRestaurant } from '@/features/dishes/useDishesByRestaurant'
 import { completePracticeSubmissionFlow } from '@/features/practice-submit/completePracticeSubmissionFlow'
 import { usePracticeRestaurantCardDisplay } from '@/features/practice/usePracticeRestaurantCardDisplay'
@@ -200,12 +201,26 @@ function DishItem({ dish }: { dish: DraftDishReview }) {
   const updateDish = usePracticeDraft((s) => s.updateDish)
   const removeDish = usePracticeDraft((s) => s.removeDish)
   const isNew = dish.dish_id === null
+  const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null)
 
-  async function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
+  function closeCropDialog() {
+    if (cropSourceUrl) URL.revokeObjectURL(cropSourceUrl)
+    setCropSourceUrl(null)
+  }
+
+  function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file) return
-    updateDish(dish.client_id, { image_url: await readImageAsDataUrl(file) })
+    if (file?.type.startsWith('image/')) {
+      if (cropSourceUrl) URL.revokeObjectURL(cropSourceUrl)
+      setCropSourceUrl(URL.createObjectURL(file))
+    }
     e.target.value = ''
+  }
+
+  async function applyCroppedImage(blob: Blob) {
+    const file = new File([blob], 'dish.jpg', { type: blob.type || 'image/jpeg' })
+    updateDish(dish.client_id, { image_url: await readImageAsDataUrl(file) })
+    closeCropDialog()
   }
 
   return (
@@ -244,29 +259,56 @@ function DishItem({ dish }: { dish: DraftDishReview }) {
         className="mt-2 w-full resize-none rounded-lg bg-neutral-50 px-2.5 py-1.5 text-xs leading-5 outline-none"
       />
 
-      <label className="mt-2 flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600 active:bg-neutral-100">
+      <div className="mt-2 rounded-xl border border-dashed border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
         {dish.image_url ? (
-          <>
+          <div className="flex items-center gap-2">
             <img
               src={dish.image_url}
               alt={dish.name || '菜品照片'}
-              className="size-10 rounded-lg object-cover"
+              className="size-12 shrink-0 rounded-xl object-cover"
             />
-            <span>重新上传我的图</span>
-          </>
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <label className="cursor-pointer rounded-full border border-neutral-200 bg-white px-2.5 py-1 active:bg-neutral-100">
+                更换图片
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="sr-only"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => updateDish(dish.client_id, { image_url: null })}
+                className="rounded-full border border-rose-100 bg-white px-2.5 py-1 text-rose-500 active:bg-rose-50"
+              >
+                删除图片
+              </button>
+            </div>
+          </div>
         ) : (
-          <>
+          <label className="flex cursor-pointer items-center gap-2 active:opacity-80">
             <Camera size={14} />
             <span>上传我的图</span>
-          </>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="sr-only"
+            />
+          </label>
         )}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          className="sr-only"
-        />
-      </label>
+      </div>
+
+      <ImageCropDialog
+        open={!!cropSourceUrl}
+        imageUrl={cropSourceUrl}
+        title="裁剪菜品照片"
+        cropShape="rect"
+        outputSize={1024}
+        onCancel={closeCropDialog}
+        onConfirm={applyCroppedImage}
+      />
     </li>
   )
 }

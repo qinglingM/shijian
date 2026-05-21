@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Eye, EyeOff, LayoutGrid, List, Search as SearchIcon } from 'lucide-react'
+import { Eye, EyeOff, LayoutGrid, List } from 'lucide-react'
 import { CityPicker } from '@/features/city-picker/CityPicker'
 import { TierMapCategoryFilter } from '@/features/tier-map/TierMapCategoryFilter'
 import { TierMap } from '@/features/tier-map/TierMap'
@@ -96,16 +96,8 @@ export function HomePage() {
       </header>
 
       <section className="flex-1 px-4">
-        <div className="mb-3 flex items-center gap-1.5">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <CityPicker variant="navbar" />
-          <Link
-            to="/search"
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-full bg-neutral-100 px-4 py-2.5 text-sm text-neutral-400 outline-none transition-colors active:bg-neutral-200/90"
-            aria-label="搜索我吃过的店"
-          >
-            <SearchIcon size={16} aria-hidden className="shrink-0 text-neutral-400" />
-            <span className="truncate">搜索我吃过的店</span>
-          </Link>
           {showCategoryFilter ? (
             <TierMapCategoryFilter
               buckets={map.buckets}

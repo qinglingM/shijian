@@ -224,11 +224,11 @@ export function MePage() {
   }
 
   return (
-    <div className="bg-white px-5 py-6">
-      <section className="relative overflow-hidden rounded-3xl border border-orange-200 bg-white p-5 shadow-sm shadow-orange-500/10">
-        <div className="pointer-events-none absolute -top-16 -right-12 size-36 rounded-full border-[18px] border-pink-200/50" />
-        <div className="pointer-events-none absolute -bottom-20 -left-16 size-44 rounded-full border-[22px] border-orange-200/45" />
-        <div className="flex items-center gap-4">
+    <div className="bg-white px-5 py-5">
+      <section className="relative overflow-hidden rounded-3xl border border-orange-200 bg-white p-4 shadow-sm shadow-orange-500/10">
+        <div className="pointer-events-none absolute -top-16 -right-12 z-0 size-36 rounded-full border-[18px] border-pink-200/50" />
+        <div className="pointer-events-none absolute -bottom-20 -left-16 z-0 size-44 rounded-full border-[22px] border-orange-200/45" />
+        <div className="relative z-[1] flex items-center gap-4">
           {profile?.avatar_url ? (
             <img
               src={profile.avatar_url}
@@ -264,7 +264,7 @@ export function MePage() {
           </div>
         </div>
 
-        <div className="relative mt-4 flex items-center justify-between gap-3">
+        <div className="relative z-[1] mt-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-7 text-center">
             <StatCard label="食鉴" value={data?.practiceCount ?? 0} plain />
             <StatCard label="有品" value={data?.youpinCount ?? 0} plain />
@@ -281,7 +281,35 @@ export function MePage() {
         </div>
       </section>
 
-      <section className="mt-5 rounded-2xl border border-neutral-100">
+      <section className="mt-4 rounded-2xl border border-dashed border-neutral-200 px-4 py-3.5">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium text-neutral-800">近期动态</p>
+          <span className="text-[11px] text-neutral-400">最近 3 条</span>
+        </div>
+
+        {isLoading ? (
+          <p className="mt-3 text-xs text-neutral-400">加载中…</p>
+        ) : (data?.recentActivities.length ?? 0) > 0 ? (
+          <div className="mt-2.5 space-y-1.5">
+            {data!.recentActivities.map((item) => (
+              <Link
+                key={item.id}
+                to={`/restaurants/${item.restaurantId}`}
+                className="block rounded-xl border border-neutral-100 bg-white px-3 py-2 active:bg-neutral-50"
+              >
+                <p className="text-xs font-medium text-neutral-800">
+                  在「{item.restaurantName}」完成了 {tierLabel(item.tier)} 食鉴
+                </p>
+                <p className="mt-1 text-[11px] text-neutral-400">{formatRelativeTime(item.createdAt)}</p>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-2.5 text-xs leading-5 text-neutral-400">暂无动态，去完成一次食鉴就会出现在这里。</p>
+        )}
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-neutral-100">
         <FeatureCard
           to="/me/marks"
           icon={<Bookmark size={18} />}
@@ -306,36 +334,8 @@ export function MePage() {
         />
       </section>
 
-      <section className="mt-5 rounded-3xl border border-dashed border-neutral-200 p-5">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-neutral-800">近期动态</p>
-          <span className="text-[11px] text-neutral-400">最近 3 条</span>
-        </div>
-
-        {isLoading ? (
-          <p className="mt-3 text-xs text-neutral-400">加载中…</p>
-        ) : (data?.recentActivities.length ?? 0) > 0 ? (
-          <div className="mt-3 space-y-2">
-            {data!.recentActivities.map((item) => (
-              <Link
-                key={item.id}
-                to={`/restaurants/${item.restaurantId}`}
-                className="block rounded-2xl border border-neutral-100 bg-white px-3 py-2.5 active:bg-neutral-50"
-              >
-                <p className="text-xs font-medium text-neutral-800">
-                  在「{item.restaurantName}」完成了 {tierLabel(item.tier)} 食鉴
-                </p>
-                <p className="mt-1 text-[11px] text-neutral-400">{formatRelativeTime(item.createdAt)}</p>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-3 text-xs leading-5 text-neutral-400">暂无动态，去完成一次食鉴就会出现在这里。</p>
-        )}
-      </section>
-
       {isSupabaseConfigured && userId ? (
-        <section className="mt-6 pb-2">
+        <section className="mt-5 pb-2">
           {signOutError ? (
             <p className="mb-3 rounded-xl bg-orange-50 px-3 py-2 text-[11px] leading-5 text-orange-950">
               {signOutError}
@@ -422,13 +422,13 @@ function FeatureCard({
   desc: string
 }) {
   const content = (
-    <div className="flex items-start gap-3 border-b border-neutral-100 bg-white px-4 py-3.5 last:border-b-0 active:bg-neutral-50">
-      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700">
+    <div className="flex items-start gap-3 border-b border-neutral-100 bg-white px-4 py-3 last:border-b-0 active:bg-neutral-50">
+      <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700">
         {icon}
       </span>
-      <div className="min-w-0 flex-1 pt-0.5">
+      <div className="min-w-0 flex-1">
         <p className="text-sm font-medium leading-5 text-neutral-900">{title}</p>
-        <p className="mt-1 text-[11px] leading-4 text-neutral-500">{desc}</p>
+        <p className="mt-0.5 text-[11px] leading-4 text-neutral-500">{desc}</p>
       </div>
       <ChevronRight size={15} className="mt-1 shrink-0 text-neutral-400" />
     </div>

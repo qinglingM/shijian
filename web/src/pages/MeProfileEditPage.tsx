@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Camera, ChevronDown } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
+import { ImageCropDialog } from '@/components/image/ImageCropDialog'
 import type { ProfileRow } from '@/lib/db'
 import { maskPhoneDisplay } from '@/lib/maskPhone'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
@@ -49,6 +50,7 @@ type EditProfilePick = Pick<
   | 'phone_verified_at'
   | 'phone_binding_exempt'
   | 'avatar_url'
+  | 'is_profile_public'
 >
 
 const settingsControlRight =
@@ -129,6 +131,7 @@ function pickEditProfile(row: Record<string, unknown>): EditProfilePick {
       typeof row.phone_verified_at === 'string' ? row.phone_verified_at : null,
     phone_binding_exempt: row.phone_binding_exempt === true,
     avatar_url: typeof row.avatar_url === 'string' ? row.avatar_url : null,
+    is_profile_public: row.is_profile_public !== false,
   }
 }
 
@@ -144,18 +147,30 @@ function AvatarUpload({
   const queryClient = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string | null>(null)
+  const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleFile(file: File) {
+  function handleFile(file: File) {
     if (!file.type.startsWith('image/')) { setError('请选择图片文件'); return }
     setError(null)
+    if (cropSourceUrl) URL.revokeObjectURL(cropSourceUrl)
+    setCropSourceUrl(URL.createObjectURL(file))
+  }
+
+  function closeCropDialog() {
+    if (cropSourceUrl) URL.revokeObjectURL(cropSourceUrl)
+    setCropSourceUrl(null)
+  }
+
+  async function uploadCroppedAvatar(blob: Blob) {
+    setError(null)
     setUploading(true)
-    const objectUrl = URL.createObjectURL(file)
-    setPreview(objectUrl)
+    const previewUrl = URL.createObjectURL(blob)
+    setPreview(previewUrl)
     try {
-      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
-      const path = `${userId}/avatar.${ext}`
+      const file = new File([blob], 'avatar.jpg', { type: blob.type || 'image/jpeg' })
+      const path = `${userId}/avatar.jpg`
       const sb = getSupabase()
       const { error: upErr } = await sb.storage
         .from('avatars')
@@ -168,9 +183,11 @@ function AvatarUpload({
       onUploaded(bust)
       await queryClient.invalidateQueries({ queryKey: ['me-summary'] })
       await queryClient.invalidateQueries({ queryKey: ['me-profile-edit'] })
+      closeCropDialog()
     } catch (e) {
       setError(e instanceof Error ? e.message : '上传失败，请重试')
       setPreview(null)
+      throw e
     } finally {
       setUploading(false)
     }
@@ -208,7 +225,20 @@ function AvatarUpload({
         type="file"
         accept="image/*"
         className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) handleFile(f)
+          e.target.value = ''
+        }}
+      />
+      <ImageCropDialog
+        open={!!cropSourceUrl}
+        imageUrl={cropSourceUrl}
+        title="调整头像"
+        cropShape="round"
+        outputSize={512}
+        onCancel={closeCropDialog}
+        onConfirm={uploadCroppedAvatar}
       />
     </div>
   )

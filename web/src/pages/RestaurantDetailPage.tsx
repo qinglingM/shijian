@@ -35,10 +35,16 @@ import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, type Tier } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { usePracticeDraft } from '@/stores/practiceDraft'
-import type { PoiCandidate } from '@/lib/poi/types'
+import type { PoiCandidate, PoiSource } from '@/lib/poi/types'
 import { getCategoryLabel } from '@/lib/poi/amap-category-rules'
 
 type TabKey = 'store' | 'dish'
+
+const POI_SOURCES = new Set<PoiSource>(['amap', 'manual', 'tencent', 'baidu', 'apple'])
+
+function isPoiSource(value: string | undefined): value is PoiSource {
+  return !!value && POI_SOURCES.has(value as PoiSource)
+}
 
 const dateFmt = new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'medium',
@@ -64,8 +70,9 @@ export function RestaurantDetailPage() {
   const { id: rawId, source: poiSource, poiId } = useParams()
   const poiState = location.state as { poi?: PoiCandidate } | null
   const poi = poiState?.poi ?? null
-  const isPoiRoute = Boolean(poiSource && poiId)
-  const id = rawId ?? (isPoiRoute ? `poi:${poiSource}:${poiId}` : null)
+  const routePoiSource = isPoiSource(poiSource) ? poiSource : null
+  const isPoiRoute = Boolean(routePoiSource && poiId)
+  const id = rawId ?? (isPoiRoute ? `poi:${routePoiSource}:${poiId}` : null)
   const [tab, setTab] = useState<TabKey>('store')
 
   const demoMeta = id ? lookupDemoRestaurant(id) : null
@@ -190,9 +197,9 @@ export function RestaurantDetailPage() {
   const dishFeed: RestaurantDishReviewItem[] = isDemo ? [] : (dishRQ.data ?? [])
 
   const fallbackPoi =
-    !poi && isPoiRoute && poiSource && poiId
+    !poi && isPoiRoute && routePoiSource && poiId
       ? ({
-          poi_source: poiSource,
+          poi_source: routePoiSource,
           poi_id: poiId,
           poi_name: title,
           address_text: addressText ?? '',
