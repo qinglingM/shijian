@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import Supercluster from 'supercluster'
 import { Search, UtensilsCrossed, X } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { DiscoveryTopBar } from '@/components/layout/DiscoveryTopBar'
@@ -78,15 +79,36 @@ function MapDismiss({ onDismiss }: { onDismiss: () => void }) {
   return null
 }
 
-function MapBoundsTracker({ onBoundsChange }: { onBoundsChange: (b: L.LatLngBounds) => void }) {
+function MapBoundsZoomTracker({ onChange }: { onChange: (b: L.LatLngBounds, z: number) => void }) {
   const map = useMap()
   useEffect(() => {
-    const handler = () => onBoundsChange(map.getBounds())
+    const handler = () => onChange(map.getBounds(), map.getZoom())
     map.on('moveend', handler)
     handler()
     return () => { map.off('moveend', handler) }
-  }, [map, onBoundsChange])
+  }, [map, onChange])
   return null
+}
+
+function ClusterMarker({ count, lat, lng, onClick }: { count: number; lat: number; lng: number; onClick: () => void }) {
+  const size = Math.min(50 + Math.log2(count) * 8, 80)
+  const icon = useMemo(
+    () => L.divIcon({
+      html: `<div style="
+        width:${size}px;height:${size}px;border-radius:50%;
+        background:rgba(251,146,60,0.85);
+        border:3px solid rgba(251,146,60,0.5);
+        box-shadow:0 2px 10px rgba(0,0,0,0.2);
+        display:flex;align-items:center;justify-content:center;
+        font-size:${count > 99 ? '11px' : '13px'};font-weight:900;color:#fff;cursor:pointer;
+      ">${count}</div>`,
+      className: '',
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    }),
+    [size],
+  )
+  return <Marker position={[lat, lng]} icon={icon} eventHandlers={{ click: onClick }} />
 }
 
 function GeolocateOnMount() {
@@ -371,22 +393,45 @@ export function HomeMap() {
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
   const [selectedTier, setSelectedTier] = useState<Tier | null>(null)
   const [bounds, setBounds] = useState<L.LatLngBounds | null>(null)
+  const [zoom, setZoom] = useState(4)
   const mapRef = useRef<L.Map | null>(null)
   const navigate = useNavigate()
+  const superclusterRef = useRef<Supercluster | null>(null)
 
   const visibleRestaurants = useMemo(
     () => (selectedTier ? restaurants.filter((r) => r.tier === selectedTier) : restaurants),
     [restaurants, selectedTier],
   )
 
-  const displayMarkers = useMemo(
-    () => bounds ? visibleRestaurants.filter((r) => bounds.contains([r.latitude, r.longitude])) : visibleRestaurants,
-    [visibleRestaurants, bounds],
-  )
+  const clusters = useMemo(() => {
+    if (!bounds || visibleRestaurants.length === 0) return null
+    const sc = superclusterRef.current
+    if (!sc) return null
+    const [west, south, east, north] = bounds.toBBoxString().split(',').map(Number)
+    return sc.getClusters([west, south, east, north], Math.round(zoom))
+  }, [visibleRestaurants, bounds, zoom])
 
-  const handleBoundsChange = useCallback((b: L.LatLngBounds) => {
+  const handleBoundsChange = useCallback((b: L.LatLngBounds, z: number) => {
     setBounds(b)
+    setZoom(z)
   }, [])
+
+  useEffect(() => {
+    if (visibleRestaurants.length === 0) {
+      superclusterRef.current = null
+      return
+    }
+    const sc = new Supercluster({
+      radius: 60,
+      maxZoom: 16,
+    })
+    sc.load(visibleRestaurants.map((r) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [r.longitude, r.latitude] },
+      properties: { restaurant: r },
+    })))
+    superclusterRef.current = sc
+  }, [visibleRestaurants])
 
   const dismiss = useCallback(() => setSelected(null), [])
 
@@ -448,11 +493,34 @@ export function HomeMap() {
         />
         <GeolocateOnMount />
         <MapDismiss onDismiss={dismiss} />
-        <MapBoundsTracker onBoundsChange={handleBoundsChange} />
+        <MapBoundsZoomTracker onChange={handleBoundsChange} />
         <MapRefCapture onCapture={handleMapCapture} />
-        {displayMarkers.map((r) => (
-          <MapMarker key={r.id} restaurant={r} onSelect={handleMarkerClick} />
-        ))}
+        {(clusters ?? (
+          bounds
+            ? visibleRestaurants.filter((r) => bounds.contains([r.latitude, r.longitude]))
+            : visibleRestaurants
+        )).map((f: any) => {
+          const [lng, lat] = f.geometry ? f.geometry.coordinates : [f.longitude, f.latitude]
+          const isCluster = f.properties?.cluster
+          if (isCluster) {
+            return (
+              <ClusterMarker
+                key={`c-${f.properties.cluster_id}`}
+                count={f.properties.point_count}
+                lat={lat}
+                lng={lng}
+                onClick={() => {
+                  const map = mapRef.current
+                  if (map) map.flyTo([lat, lng], Math.min(zoom + 2, 18), { animate: true, duration: 0.5 })
+                }}
+              />
+            )
+          }
+          const restaurant: MapRestaurant = f.properties?.restaurant ?? f
+          return (
+            <MapMarker key={restaurant.id} restaurant={restaurant} onSelect={setSelected} />
+          )
+        })}
       </MapContainer>
 
       {selected && <BottomSheet restaurant={selected} onClose={dismiss} />}

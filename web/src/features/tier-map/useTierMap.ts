@@ -310,6 +310,7 @@ export function useTierMap() {
   const query = useQuery<TierMapResult>({
     queryKey: ['tier-map', userId],
     enabled: !!userId,
+    staleTime: 60_000,
     queryFn: async (): Promise<TierMapResult> => {
       const supabase = getSupabase()
       const { data, error } = await supabase

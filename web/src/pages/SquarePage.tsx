@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Image as ImageIcon, PenSquare } from 'lucide-react'
+import { Search, PenSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TIER_SOFT_VAR, type Tier } from '@/lib/db'
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
@@ -80,7 +80,6 @@ function splitIntoMasonryColumns(items: SquareFeedItem[]) {
 }
 
 function estimateCardHeight(item: SquareFeedItem) {
-  if (item.kind !== 'practice') return 2
   const tierRank: Record<string, number> = {
     boom: 0,
     hang: 1,
@@ -96,54 +95,37 @@ function estimateCardHeight(item: SquareFeedItem) {
 function SquareCard({ item }: { item: SquareFeedItem }) {
   return (
     <article className="overflow-hidden rounded-2xl bg-white ring-1 ring-neutral-100">
-      {item.kind === 'practice' ? (
-        <Link to={`/restaurants/${item.restaurant_id}`} className="block">
-          <div
-            className="relative flex items-stretch justify-stretch p-3 text-white"
-            style={{
-              background: tierBg(item.tier),
-              aspectRatio: tierAspect(item.tier),
-            }}
-          >
-            <div className="flex w-full flex-col justify-between">
-              <p className="truncate text-[11px] font-semibold opacity-90">{item.restaurant_name}</p>
-              <div className="flex flex-1 items-center justify-center px-2 text-center">
-                <p
-                  className={cn(
-                    'line-clamp-2 font-black leading-tight text-black',
-                    item.tier === 'boom' && 'text-[16px]',
-                    item.tier === 'hang' && 'text-[15.5px]',
-                    item.tier === 'top' && 'text-[15px]',
-                    item.tier === 'upper' && 'text-[14.5px]',
-                    item.tier === 'npc' && 'text-[14px]',
-                    item.tier === 'bad' && 'text-[13.5px]',
-                  )}
-                >
-                  {item.content}
-                </p>
-              </div>
-              <p className="text-[11px] font-medium opacity-85">{item.tier_label}</p>
+      <Link to={`/restaurants/${item.restaurant_id}`} className="block">
+        <div
+          className="relative flex items-stretch justify-stretch p-3 text-white"
+          style={{
+            background: tierBg(item.tier),
+            aspectRatio: tierAspect(item.tier),
+          }}
+        >
+          <div className="flex w-full flex-col justify-between">
+            <p className="truncate text-[11px] font-semibold opacity-90">{item.restaurant_name}</p>
+            <div className="flex flex-1 items-center justify-center px-2 text-center">
+              <p
+                className={cn(
+                  'line-clamp-2 font-black leading-tight text-black',
+                  item.tier === 'boom' && 'text-[16px]',
+                  item.tier === 'hang' && 'text-[15.5px]',
+                  item.tier === 'top' && 'text-[15px]',
+                  item.tier === 'upper' && 'text-[14.5px]',
+                  item.tier === 'npc' && 'text-[14px]',
+                  item.tier === 'bad' && 'text-[13.5px]',
+                )}
+              >
+                {item.content}
+              </p>
             </div>
+            <p className="text-[11px] font-medium opacity-85">{item.tier_label}</p>
           </div>
-        </Link>
-      ) : (
-        <Link to={`/square/post/${item.id.split(':')[1]}`} className="block">
-          <div className="aspect-[4/5] bg-neutral-100">
-            {item.cover_image_url ? (
-              <img src={item.cover_image_url} alt={item.title} className="size-full object-cover" />
-            ) : (
-              <div className="flex size-full items-center justify-center bg-neutral-100 text-neutral-400">
-                <ImageIcon size={28} />
-              </div>
-            )}
-          </div>
-        </Link>
-      )}
+        </div>
+      </Link>
 
       <div className="px-3 pb-3 pt-2">
-        {item.kind === 'post' ? (
-          <p className="line-clamp-2 text-[13px] font-semibold leading-5 text-neutral-900">{item.title}</p>
-        ) : null}
         <div className="mt-2 flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
