@@ -196,15 +196,17 @@ export function DishDetailPage() {
         </div>
 
         <section className="mt-8 px-4">
-          <h2 className="mb-3 text-xs font-bold tracking-[0.2em] text-neutral-400 uppercase">
-            用户评价
-          </h2>
           {reviewsQ.isPending ? (
             <p className="py-10 text-center text-sm text-neutral-400">载入评价列表…</p>
           ) : reviewsQ.data && reviewsQ.data.length > 0 ? (
             <>
-              <ReviewSortBar value={sort} onChange={setSort} />
-              <ul className="mt-3 space-y-3">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-xs font-bold tracking-[0.2em] text-neutral-400 uppercase">
+                  用户评价
+                </h2>
+                <ReviewSortBar value={sort} onChange={setSort} />
+              </div>
+              <ul className="space-y-3">
                 {sortedReviews.map((rv) => {
                 const votingThis =
                   voteMut.isPending && voteMut.variables?.dishReviewId === rv.id
@@ -236,7 +238,7 @@ export function DishDetailPage() {
                         {dateFmt.format(new Date(rv.created_at))}
                       </span>
                     </div>
-                    <div className="mt-1 flex items-start gap-2">
+                    <div className="mt-[9px] flex items-start gap-2">
                       <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['\201C'] [&::after]:content-['\201D']">
                         {rv.comment?.trim() || '（未填写菜品锐评）'}
                       </p>
@@ -327,7 +329,7 @@ function ReviewSortBar({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+          className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
             value === opt.value
               ? 'bg-orange-100 text-orange-900'
               : 'text-neutral-400 active:bg-neutral-100'

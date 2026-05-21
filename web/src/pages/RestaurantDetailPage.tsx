@@ -360,10 +360,10 @@ export function RestaurantDetailPage() {
                 </p>
               ) : null}
 
-              {addressText ? (
+              {addressText || cityDistrictText ? (
                 <p className="flex items-start gap-1.5 text-[12px] leading-snug text-neutral-700">
                   <MapPin className="mt-0.5 size-3 shrink-0 text-neutral-400" aria-hidden />
-                  <span>{addressText}</span>
+                  <span>{[cityDistrictText, addressText].filter(Boolean).join(' · ')}</span>
                 </p>
               ) : isUuid && !isDemo ? (
                 <p className="text-[12px] text-neutral-400">暂未录入城市与地址</p>
@@ -396,9 +396,12 @@ export function RestaurantDetailPage() {
                           待首评
                         </span>
                       </div>
+                      {categoryText ? (
+                        <p className="text-[12px] font-semibold text-neutral-700">{categoryText}</p>
+                      ) : null}
                       <p className="flex items-start gap-1.5 pt-0.5 text-[13px] leading-snug text-neutral-700">
                         <MapPin className="mt-0.5 size-3.5 shrink-0 text-neutral-400" aria-hidden />
-                        <span>{addressText || '地址暂未录入'}</span>
+                        <span>{[cityDistrictText, addressText].filter(Boolean).join(' · ') || '地址暂未录入'}</span>
                       </p>
                       <p className="text-[11px] text-neutral-400">快来成为第一个伯乐吧</p>
                     </div>
@@ -1139,25 +1142,26 @@ function DishTabFeed({
     <div className="space-y-6">
       {groupedDisplays.length > 0 ? (
         <div>
-          <h2 className="text-[12px] font-semibold tracking-tight text-neutral-600">
-            所有菜品评价
-          </h2>
-
-          <div className="mt-2 flex items-center gap-1">
-            {SORT_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setSort(opt.value)}
-                className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors ${
-                  sort === opt.value
-                    ? 'bg-orange-100 text-orange-900'
-                    : 'text-neutral-400 active:bg-neutral-100'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-[12px] font-semibold tracking-tight text-neutral-600">
+              所有菜品评价
+            </h2>
+            <div className="flex items-center gap-1">
+              {SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setSort(opt.value)}
+                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
+                    sort === opt.value
+                      ? 'bg-orange-100 text-orange-900'
+                      : 'text-neutral-400 active:bg-neutral-100'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <ul className="mt-3 space-y-3">
