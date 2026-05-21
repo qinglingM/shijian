@@ -94,7 +94,7 @@ on conflict (name) do nothing;
 -- ----------------------------------------------------------------
 insert into titles (name, rarity, description, unlock_rule) values
   ('食鉴新生',   'common',     '完成第一次有效实践',              jsonb_build_object('type','valid_practice_count','threshold',1)),
-  ('八方食客',   'rare',       '累计食鉴 10 家店',                 jsonb_build_object('type','total_practice_count','threshold',10)),
+  ('八方食客',   'rare',       '累计食鉴 8 家店',                 jsonb_build_object('type','total_practice_count','threshold',8)),
   ('一城伯乐',   'epic',       '在一个城市内获得 5 次伯乐',         jsonb_build_object('type','bole_count_in_city','threshold',5)),
   ('夯爆收藏家', 'legendary',  '夯爆了 档位累计收藏 20 家',         jsonb_build_object('type','tier_count','tier','boom','threshold',20))
 on conflict (name) do nothing;
