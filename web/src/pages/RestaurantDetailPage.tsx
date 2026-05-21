@@ -1112,22 +1112,22 @@ function DishTabFeed({
                   onClick={() => navigate(`/dishes/${r.dish_id}`)}
                   className="cursor-pointer rounded-2xl border border-orange-100 bg-white px-3 py-3 shadow-sm shadow-orange-500/6 active:bg-orange-50/50"
                 >
+                  <span className="mb-[10px] block truncate text-[12px] font-bold leading-tight text-orange-700">
+                    {r.dish_name}
+                  </span>
                   <div className="flex items-start gap-3">
                     <div className="shrink-0">
-                      <span className="ml-[10px] block truncate text-[12px] font-bold leading-tight text-orange-700">
-                        {r.dish_name}
-                      </span>
                       <Link
                         to={`/dishes/${r.dish_id}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="mt-[10px] flex size-16 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-100"
+                        className="flex size-16 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-100"
                         aria-label={`查看菜品 ${r.dish_name}`}
                       >
                         {dishImg}
                       </Link>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2 pt-[24px]">
+                      <div className="flex items-start justify-between gap-2">
                         <span className="text-[11px] font-semibold text-sky-700">
                           {r.reviewer_nickname}
                         </span>
