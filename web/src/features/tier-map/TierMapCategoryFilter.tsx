@@ -44,10 +44,10 @@ export function TierMapCategoryFilter({
   }, [buckets, catalog, categoryIds])
 
   return (
-    <div className="relative max-w-[8.75rem] min-w-[6.75rem]">
+    <div className="relative max-w-[7.5rem] min-w-[5.5rem]">
       <select
         aria-label="按美食分类筛选食鉴图"
-        className="w-full appearance-none truncate rounded-xl border border-neutral-200 bg-white py-1.5 pr-8 pl-2.5 text-[11px] font-semibold text-neutral-800 outline-none shadow-sm"
+        className="w-full appearance-none truncate rounded-xl border border-neutral-200 bg-white py-1 pr-6 pl-2 text-[10px] font-semibold text-neutral-800 outline-none shadow-sm"
         value={selected ?? ''}
         onChange={(e) => {
           const v = e.target.value

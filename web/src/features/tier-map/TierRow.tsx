@@ -23,10 +23,10 @@ export function TierRow({
   const borderNoCover = 'box-border border-[0.5px] border-solid border-neutral-400/75'
 
   return (
-    <div className="grid grid-cols-[20%_1fr] items-start gap-0">
+    <div className="grid grid-cols-[90px_1fr] items-center gap-0">
       <TierLabelBlock tier={tier} count={count} href={`/tiers/${tier}`} />
 
-      <div className="flex overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-x-[2.5px] overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {slots.map((i) => {
           const restaurant = displayRestaurants[i]
           if (restaurant) {
@@ -34,7 +34,7 @@ export function TierRow({
               <Link
                 key={i}
                 to={`/restaurants/${restaurant.id}`}
-                className={`group relative flex aspect-square basis-1/4 shrink-0 flex-col overflow-hidden rounded-[5px] ${
+                className={`group relative flex aspect-square w-[85px] shrink-0 flex-col overflow-hidden rounded-[5px] ${
                   restaurant.cover_image_url ? '' : borderNoCover
                 }`}
                 title={restaurant.display_name}
@@ -42,18 +42,15 @@ export function TierRow({
               >
                 {restaurant.cover_image_url ? (
                   <>
-                    <div className="min-h-0 flex-[3] overflow-hidden">
-                      <img
-                        src={restaurant.cover_image_url}
-                        alt=""
-                        className="size-full object-cover"
-                      />
-                    </div>
-                    <div className="flex flex-[1] items-center justify-center bg-white px-1">
-                      <p className="line-clamp-1 text-center text-[9px] font-medium text-neutral-800">
-                        {restaurant.display_name}
-                      </p>
-                    </div>
+                    <img
+                      src={restaurant.cover_image_url}
+                      alt=""
+                      className="size-full object-cover"
+                    />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[16%] bg-gradient-to-t from-black/65 to-transparent" />
+                    <p className="absolute inset-x-0 bottom-0 truncate text-center text-[9px] font-medium text-white px-1">
+                      {restaurant.display_name}
+                    </p>
                   </>
                 ) : (
                   <div
@@ -70,7 +67,7 @@ export function TierRow({
           return (
             <div
               key={i}
-              className="aspect-square basis-1/4 shrink-0 bg-neutral-50"
+              className="aspect-square w-[85px] shrink-0 bg-neutral-50"
               aria-hidden="true"
             />
           )

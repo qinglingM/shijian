@@ -377,7 +377,7 @@ export function AuthPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-medium text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
           >
             {submitting ? '登录中…' : '登录'}
           </button>
@@ -400,7 +400,7 @@ export function AuthPage() {
             type="button"
             disabled={submitting}
             onClick={() => void sendOtp('signup')}
-            className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-medium text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
           >
             {submitting ? '发送中…' : '获取短信验证码'}
           </button>
@@ -479,7 +479,7 @@ export function AuthPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-medium text-white disabled:opacity-50"
+            className="bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
           >
             {submitting ? '提交中…' : '同意协议并注册'}
           </button>
@@ -493,7 +493,7 @@ export function AuthPage() {
             type="button"
             disabled={submitting}
             onClick={() => void sendOtp('forgot')}
-            className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-medium text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
           >
             {submitting ? '发送中…' : '获取验证码'}
           </button>

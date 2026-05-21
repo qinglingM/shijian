@@ -57,7 +57,7 @@ export function AppLayout() {
           hideTabs
             ? 'pb-[max(1rem,env(safe-area-inset-bottom))]'
             : isHome
-              ? 'pb-0 overflow-hidden'
+              ? 'pb-0 overflow-y-auto'
               : 'pb-20',
         )}
       >

@@ -169,7 +169,7 @@ export function MePage() {
           <div className="mt-6 flex flex-col gap-2">
             <Link
               to="/auth?redirect=/me"
-              className="block rounded-xl bg-neutral-900 py-3 text-center text-sm font-medium text-white shadow-sm"
+              className="block rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-center text-sm font-medium text-white shadow-sm"
             >
               登录
             </Link>
@@ -373,7 +373,7 @@ export function MePage() {
               </button>
               <button
                 type="button"
-                className="flex-1 rounded-xl bg-neutral-900 py-2.5 text-sm font-medium text-white"
+                className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-2.5 text-sm font-medium text-white shadow-sm"
                 onClick={() => {
                   setShowLogoutConfirm(false)
                   void handleSignOut()

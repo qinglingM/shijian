@@ -24,7 +24,7 @@ export function TierLabelBlock({
     >
       <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center px-1">
         <span
-          className={`max-w-full text-center text-[clamp(15px,5.75vw,24px)] font-bold leading-tight tracking-tight text-neutral-950 [font-family:SimHei,STHeiti,"Heiti_SC","Microsoft_YaHei","PingFang_SC",sans-serif]`}
+          className={`max-w-full text-center text-[clamp(13px,4.5vw,20px)] font-semibold leading-tight tracking-tight text-neutral-950 [font-family:SimHei,STHeiti,"Heiti_SC","Microsoft_YaHei","PingFang_SC",sans-serif]`}
         >
           {TIER_LABEL[tier]}
         </span>

@@ -150,9 +150,9 @@ export function EmailAuthPanel({ safeRedirect }: { safeRedirect: string }) {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {submitting ? '登录中…' : '登录'}
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+          >
+            {submitting ? '登录中…' : '登录'}
             </button>
           </form>
         </>
@@ -195,7 +195,7 @@ export function EmailAuthPanel({ safeRedirect }: { safeRedirect: string }) {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-xl bg-gradient-to-r from-[#ff4d00] to-[#ff1f6d] py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
           >
             {submitting ? '提交中…' : '注册'}
           </button>
@@ -223,7 +223,7 @@ export function EmailAuthPanel({ safeRedirect }: { safeRedirect: string }) {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-medium text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
           >
             {submitting ? '发送中…' : '发送重置邮件'}
           </button>

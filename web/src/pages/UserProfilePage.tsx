@@ -152,7 +152,7 @@ export function UserProfilePage() {
               <button
                 type="button"
                 onClick={() => followMut.mutate(followQ.data?.following ?? false)}
-                className="shrink-0 rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white active:bg-neutral-800"
+                className="shrink-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm"
               >
                 {followQ.data?.following ? '取关' : '关注'}
               </button>
@@ -163,7 +163,7 @@ export function UserProfilePage() {
               <Link to="/me/edit" className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-neutral-800 ring-1 ring-neutral-200">
                 编辑资料
               </Link>
-              <Link to="/me" className="rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white">
+              <Link to="/me" className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm">
                 我的主页
               </Link>
             </div>

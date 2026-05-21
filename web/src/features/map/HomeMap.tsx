@@ -380,7 +380,7 @@ function BottomSheet({
         <div className="px-4 pb-4 pt-1">
           <Link
             to={`/restaurants/${r.id}`}
-            className="block w-full py-2.5 rounded-xl bg-neutral-900 text-white text-[13px] font-semibold text-center"
+            className="block w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[13px] font-semibold text-center shadow-sm"
           >
             查看店铺详情
           </Link>

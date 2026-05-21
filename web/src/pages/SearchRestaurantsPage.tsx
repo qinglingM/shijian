@@ -69,7 +69,7 @@ export function SearchRestaurantsPage() {
           </div>
           <button
             type="submit"
-            className="shrink-0 rounded-full bg-neutral-900 px-4 py-2 text-sm font-semibold text-white active:bg-neutral-800"
+            className="shrink-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm"
           >
             搜索
           </button>

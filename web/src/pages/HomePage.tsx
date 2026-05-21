@@ -78,7 +78,7 @@ export function HomePage() {
     (categoryCatalog.length > 0 || categoryIds.size > 0 || hasUncategorized || showingDemo)
 
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] flex-col">
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col">
       <header className="flex items-center justify-between px-4 pt-4 pb-2">
         <div className="w-16" />
         <h1 className="text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
@@ -96,7 +96,7 @@ export function HomePage() {
       </header>
 
       <section className="flex-1 px-4">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-1.5">
           <CityPicker variant="navbar" />
           <Link
             to="/search"
@@ -130,13 +130,13 @@ export function HomePage() {
 
         <Link
           to="/practice/step1"
-          className="mt-4 mb-2 flex w-full items-center justify-center rounded-2xl bg-neutral-900 py-3.5 text-sm font-medium text-white active:bg-neutral-700"
+          className="mt-4 mb-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-medium text-white shadow-sm active:opacity-90"
         >
           开始食鉴
         </Link>
       </section>
 
-      <div className="px-5 pt-4 pb-2">
+      <div className="px-4 pt-4 pb-2">
         {manualShowDemo ? (
           <p className="text-center text-[11px] text-amber-700">
             当前为示例数据视图，仅用于查看 UI 状态
@@ -162,12 +162,12 @@ export function HomePage() {
 }
 
 const TIER_BG: Record<Tier, string> = {
-  boom: 'bg-red-50 text-red-700',
-  hang: 'bg-orange-50 text-orange-700',
-  top: 'bg-amber-50 text-amber-700',
-  upper: 'bg-yellow-50 text-yellow-800',
-  npc: 'bg-neutral-100 text-neutral-600',
-  bad: 'bg-slate-100 text-slate-600',
+  boom: 'bg-[var(--color-tier-boom)] text-white',
+  hang: 'bg-[var(--color-tier-hang)] text-white',
+  top: 'bg-[var(--color-tier-top)] text-white',
+  upper: 'bg-[var(--color-tier-upper)] text-neutral-900',
+  npc: 'bg-[var(--color-tier-npc)] text-neutral-900',
+  bad: 'bg-white text-neutral-900 border-2 border-black',
 }
 
 function TierListView({ items }: { items: FlatItem[] }) {
@@ -206,7 +206,7 @@ function TierListView({ items }: { items: FlatItem[] }) {
               )}
             </div>
             <span
-              className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${TIER_BG[item.tier]}`}
+              className={`shrink-0 w-14 rounded-full py-1 text-center text-[11px] font-semibold ${TIER_BG[item.tier]}`}
             >
               {TIER_LABEL[item.tier]}
             </span>
