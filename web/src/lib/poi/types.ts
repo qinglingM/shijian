@@ -30,6 +30,7 @@ export interface PoiCandidate {
 export interface PoiSearchParams {
   keyword: string
   city?: string
+  signal?: AbortSignal
 }
 
 export interface PoiProvider {

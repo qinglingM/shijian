@@ -151,7 +151,7 @@ const MOCK_BEIJING: PoiCandidate[] = [
 export class MockPoiProvider implements PoiProvider {
   readonly source = 'amap' as const
 
-  async search({ keyword }: PoiSearchParams): Promise<PoiCandidate[]> {
+  async search({ keyword, signal: _signal }: PoiSearchParams): Promise<PoiCandidate[]> {
     await new Promise((r) => setTimeout(r, 250))
     if (!keyword.trim()) return []
     const kw = keyword.trim().toLowerCase()

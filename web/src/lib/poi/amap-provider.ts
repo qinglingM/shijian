@@ -74,7 +74,7 @@ export class AmapPoiProvider implements PoiProvider {
     this.apiKey = apiKey
   }
 
-  async search({ keyword, city }: PoiSearchParams): Promise<PoiCandidate[]> {
+  async search({ keyword, city, signal }: PoiSearchParams): Promise<PoiCandidate[]> {
     const kw = keyword.trim()
     if (!kw) return []
 
@@ -90,7 +90,16 @@ export class AmapPoiProvider implements PoiProvider {
       params.set('citylimit', 'true')
     }
 
-    const res = await fetch(`https://restapi.amap.com/v3/place/text?${params.toString()}`)
+    const ctrl = new AbortController()
+    const timeoutId = setTimeout(() => ctrl.abort(new DOMException('高德 POI 超时', 'TimeoutError')), 10_000)
+    if (signal) {
+      signal.addEventListener('abort', () => ctrl.abort(signal.reason), { once: true })
+    }
+
+    const res = await fetch(`https://restapi.amap.com/v3/place/text?${params.toString()}`, {
+      signal: ctrl.signal,
+    })
+    clearTimeout(timeoutId)
     if (!res.ok) throw new Error(`高德 POI：HTTP ${res.status}`)
 
     const json = (await res.json()) as AmapTextResponse

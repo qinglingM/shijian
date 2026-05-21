@@ -12,6 +12,7 @@ import { useCandidatesPracticeStatus } from '@/features/poi-search/useCandidates
 import { fetchExistingPracticeHydration } from '@/features/practice/hydratePracticeDraftFromServer'
 import { usePracticeDraft } from '@/stores/practiceDraft'
 import { useAuthStore } from '@/stores/authStore'
+import { useDebounce } from '@/lib/useDebounce'
 import type { PoiCandidate } from '@/lib/poi'
 import { PracticeStep1SloganImage } from './PracticeStep1SloganImage'
 import { poiPracticeKey } from '@/features/poi-search/poiPracticeKey'
@@ -29,8 +30,9 @@ export function PracticeStep1Page() {
   }, [resetDraft])
 
   const [keyword, setKeyword] = useState('')
+  const debouncedKeyword = useDebounce(keyword, 300)
   const [picking, setPicking] = useState<string | null>(null)
-  const { data: candidates = [], isLoading, isFetching } = usePoiSearch(keyword, cityName)
+  const { data: candidates = [], isLoading, isFetching } = usePoiSearch(debouncedKeyword, cityName)
   const practicedQ = useCandidatesPracticeStatus(candidates)
   const emptyPracticed = useMemo(() => new Set<string>(), [])
   const practicedPoiKeys = practicedQ.data ?? emptyPracticed
@@ -88,10 +90,9 @@ export function PracticeStep1Page() {
           </div>
         </div>
 
-        <div className="mx-auto mt-3 flex max-w-[22rem] items-center justify-between gap-2 text-[11px] text-neutral-500 sm:max-w-none">
-          <span>POI 候选只用于确认，不会立刻入库</span>
+        <div className="mx-auto mt-3 flex max-w-[22rem] items-center justify-end gap-2 text-[11px] text-neutral-500 sm:max-w-none">
           {(isLoading || isFetching) && !showInitialHint && (
-            <span className="shrink-0 font-medium text-neutral-700">搜寻中…</span>
+            <span className="font-medium text-neutral-700">搜寻中…</span>
           )}
         </div>
       </section>

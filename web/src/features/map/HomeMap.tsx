@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { DiscoveryTopBar } from '@/components/layout/DiscoveryTopBar'
 import { lookupExistingRestaurantByPoi, usePoiSearch } from '@/features/poi-search/usePoiSearch'
 import { useCityStore } from '@/features/city-picker/cityStore'
+import { useDebounce } from '@/lib/useDebounce'
 import { useMapRestaurants, type MapRestaurant } from './useMapRestaurants'
 import { TIER_ORDER, TIER_LABEL, type Tier } from '@/lib/db'
 import type { PoiCandidate } from '@/lib/poi'
@@ -142,10 +143,11 @@ function SearchBar({
   const cityName = useCityStore((s) => s.cityName)
   const tierMapShowsAllChina = useCityStore((s) => s.tierMapShowsAllChina)
   const [query, setQuery] = useState('')
+  const debouncedQuery = useDebounce(query, 300)
   const [focused, setFocused] = useState(false)
   const [openingPoiId, setOpeningPoiId] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const keyword = query.trim()
+  const keyword = debouncedQuery.trim()
   const { data: results = [], isLoading, isFetching } = usePoiSearch(
     keyword,
     tierMapShowsAllChina ? undefined : cityName,
