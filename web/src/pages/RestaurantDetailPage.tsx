@@ -173,7 +173,9 @@ export function RestaurantDetailPage() {
     coverUrl = restaurantQ.data.cover_image_url
     cityDistrictText = restaurantCityDistrictLine(restaurantQ.data)
     addressText = restaurantStreetLine(restaurantQ.data)
-    categoryText = restaurantQ.data.category_name?.trim() || null
+    categoryText = restaurantQ.data.category_name?.trim()
+      || restaurantQ.data.display_category_label?.trim()
+      || null
   } else if (poi) {
     title = poi.poi_name
     coverUrl = poi.cover_image_url ?? null
