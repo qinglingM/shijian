@@ -32,5 +32,5 @@ export async function completePracticeSubmissionFlow(opts: {
   const returnTo = usePracticeDraft.getState().returnTo ?? '/tier-map'
   navigate(returnTo, { replace: true })
 
-  usePracticeDraft.getState().reset()
+  setTimeout(() => usePracticeDraft.getState().reset(), 0)
 }
