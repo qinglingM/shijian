@@ -1,7 +1,7 @@
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X } from 'lucide-react'
+import { ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X, Bookmark, BookmarkCheck } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { lookupExistingRestaurantByPoi } from '@/features/poi-search/usePoiSearch'
 import { fetchExistingPracticeHydration } from '@/features/practice/hydratePracticeDraftFromServer'
@@ -32,6 +32,8 @@ import { useStoreReviewVoteMutation } from '@/features/restaurants/useStoreRevie
 import { useDishReviewVoteMutation } from '@/features/restaurants/useDishReviewVoteMutation'
 import { useRestaurantBole, type RestaurantBoleView } from '@/features/restaurants/useRestaurantBole'
 import { useRestaurantGuidanceSummary } from '@/features/restaurants/useRestaurantGuidanceSummary'
+import { useRestaurantMarkStatus } from '@/features/marks/useRestaurantMarkStatus'
+import { useInsertMarkMutation, useDeleteMarkMutation, useMarkPoiMutation } from '@/features/marks/useRestaurantMarkMutations'
 import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, type Tier } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -177,22 +179,6 @@ export function RestaurantDetailPage() {
     return bestUrl;
   }, [isDemo, demoMeta, isUuid, restaurantQ.data, poi, dishRQ.data])
 
-  if (!id) return <Navigate to="/" replace />
-
-  if (!isDemo && !isUuid && !isPoiRoute) {
-    return (
-      <>
-        <BackHeader title="店铺详情" />
-        <div className="px-5 py-16 text-center text-sm text-neutral-500">
-          无法识别门店链接，返回食鉴首页再进入。
-          <Link to="/" className="mt-4 inline-block font-medium text-orange-600">
-            回首页
-          </Link>
-        </div>
-      </>
-    )
-  }
-
   const awaitingBackend =
     isUuid &&
     !isDemo &&
@@ -200,26 +186,7 @@ export function RestaurantDetailPage() {
     restaurantQ.isPending &&
     !restaurantQ.data
 
-  if (awaitingBackend) {
-    return (
-      <>
-        <BackHeader title="餐厅详情" />
-        <div className="px-5 py-10 text-center text-sm text-neutral-400">载入门店信息…</div>
-      </>
-    )
-  }
-
   const notConfigured = isUuid && !isDemo && !isPoiRoute && !isSupabaseConfigured
-  if (notConfigured) {
-    return (
-      <>
-        <BackHeader title="餐厅详情" />
-        <div className="px-5 py-10 text-center text-sm text-neutral-500">
-          查看真实门店需要先配置 Supabase（VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY）。
-        </div>
-      </>
-    )
-  }
 
   let title = '店铺详情'
   let coverUrl: string | null = null
@@ -273,8 +240,84 @@ export function RestaurantDetailPage() {
           district_name: cityDistrictText?.split(' ').slice(1).join(' ') || null,
           category: categoryText,
           cover_image_url: coverUrl,
+          display_label: categoryText,
         } satisfies PoiCandidate)
       : null
+  const detailPoi = poi ?? fallbackPoi
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !viewerId || isUuid || !detailPoi) return
+    let cancelled = false
+    const sb = getSupabase()
+    void sb
+      .rpc('ensure_pending_poi_restaurant', {
+        p_poi_source: detailPoi.poi_source,
+        p_poi_id: detailPoi.poi_id,
+        p_display_name: detailPoi.poi_name,
+        p_address_text: detailPoi.address_text || null,
+        p_location_hint: null,
+        p_latitude: detailPoi.latitude || null,
+        p_longitude: detailPoi.longitude || null,
+        p_city_name: detailPoi.city_name || null,
+        p_district_name: detailPoi.district_name || null,
+        p_category_name: detailPoi.display_label || detailPoi.category || null,
+        p_cover_image_url: detailPoi.cover_image_url || null,
+      })
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) {
+          console.warn('[shijian] ensure pending restaurant failed:', error.message)
+          return
+        }
+        if (typeof data === 'string' && data) {
+          navigate(`/restaurants/${data}`, { replace: true })
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    viewerId,
+    isUuid,
+    detailPoi,
+    navigate,
+  ])
+
+  if (!id) return <Navigate to="/" replace />
+
+  if (!isDemo && !isUuid && !isPoiRoute) {
+    return (
+      <>
+        <BackHeader title="店铺详情" />
+        <div className="px-5 py-16 text-center text-sm text-neutral-500">
+          无法识别门店链接，返回食鉴首页再进入。
+          <Link to="/" className="mt-4 inline-block font-medium text-orange-600">
+            回首页
+          </Link>
+        </div>
+      </>
+    )
+  }
+
+  if (awaitingBackend) {
+    return (
+      <>
+        <BackHeader title="餐厅详情" />
+        <div className="px-5 py-10 text-center text-sm text-neutral-400">载入门店信息…</div>
+      </>
+    )
+  }
+
+  if (notConfigured) {
+    return (
+      <>
+        <BackHeader title="餐厅详情" />
+        <div className="px-5 py-10 text-center text-sm text-neutral-500">
+          查看真实门店需要先配置 Supabase（VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY）。
+        </div>
+      </>
+    )
+  }
 
   const dominantPublicTier = dominantTierFromReviewList(storeList)
   const headerTierShown =
@@ -383,6 +426,8 @@ export function RestaurantDetailPage() {
     <>
       <RestaurantDetailHeader
         title={title}
+        restaurantId={isUuid ? id ?? null : null}
+        poi={detailPoi}
         restaurant={{
           name: title,
           category: categoryText,
@@ -625,7 +670,7 @@ function TierCapsule({
   const hasTier = tier !== null && !empty
 
   let outerCls = 'flex flex-col items-center rounded-md px-1 py-1.5 ml-4 min-w-[4rem]'
-  let outerStyle: React.CSSProperties = {}
+  const outerStyle: React.CSSProperties = {}
 
   if (!hasTier) {
     outerCls += ' bg-neutral-200'
@@ -1031,21 +1076,127 @@ function StoreTab({
 
 function RestaurantDetailHeader({
   title,
+  restaurantId,
   restaurant,
   review,
+  poi,
 }: {
   title: string
+  restaurantId: string | null
   restaurant: SharePosterProps['restaurant']
   review: SharePosterProps['review']
+  poi: import('@/lib/poi').PoiCandidate | null
 }) {
   const [moreOpen, setMoreOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const [toastMsg, setToastMsg] = useState('')
   const moreRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
+  
+  const viewerId = useAuthStore((s) => s.user?.id ?? null)
+  const markStatusQ = useRestaurantMarkStatus(viewerId, restaurantId)
+  const status = markStatusQ.data ?? 'fresh'
+  
+  const insertMark = useInsertMarkMutation(restaurantId ?? '')
+  const deleteMark = useDeleteMarkMutation(restaurantId ?? '')
+  const markPoi = useMarkPoiMutation(poi)
+  const markPending = insertMark.isPending || deleteMark.isPending || markPoi.isPending
+  
+  function showToast(msg: string) {
+    setToastMsg(msg)
+    setTimeout(() => setToastMsg(''), 3000)
+  }
+
+  function mutationErrorMessage(err: unknown) {
+    if (err instanceof Error) return err.message
+    if (typeof err === 'object' && err) {
+      const maybe = err as { message?: unknown; details?: unknown }
+      if (typeof maybe.message === 'string') return maybe.message
+      if (typeof maybe.details === 'string') return maybe.details
+    }
+    return '请稍后再试'
+  }
+
+  function handleMarkClick() {
+    if (!viewerId) {
+      showToast('请先登录后才能标记想去')
+      return
+    }
+    
+    // Demo 数据无 restaurantId 且无真实 POI，不支持标记
+    if (!restaurantId && !poi) {
+      showToast('示例数据无法加入标记清单。')
+      return
+    }
+    
+    if (status === 'reviewed') {
+      return
+    }
+    
+    if (status === 'marked') {
+      if (restaurantId) {
+        deleteMark.mutate(undefined, {
+          onSuccess() {
+            showToast('已取消想去标记')
+          },
+          onError(err) {
+            showToast(`取消失败：${mutationErrorMessage(err)}`)
+          },
+        })
+      }
+    } else {
+      if (restaurantId) {
+        insertMark.mutate(undefined, {
+          onSuccess() {
+            showToast('已加入想去')
+          },
+          onError(err) {
+            showToast(`标记失败：${mutationErrorMessage(err)}`)
+          },
+        })
+      } else if (poi) {
+        // 如果是全新 POI，调用 RPC 自动收录并标记
+        markPoi.mutate(undefined, {
+          onSuccess(newRestaurantId) {
+            showToast('已加入想去')
+            navigate(`/restaurants/${newRestaurantId}`, { replace: true })
+          },
+          onError(err) {
+            showToast(`标记失败：${mutationErrorMessage(err)}`)
+          },
+        })
+      }
+    }
+  }
 
   return (
     <>
+      {toastMsg && (
+        <div className="fixed left-1/2 top-16 z-[100] w-[90%] max-w-sm -translate-x-1/2 animate-in fade-in slide-in-from-top-4 rounded-xl bg-neutral-900/95 px-4 py-3 text-center text-[13px] font-medium leading-relaxed text-white shadow-xl backdrop-blur-md">
+          {toastMsg}
+        </div>
+      )}
       <BackHeader title={title} backTo="/tier-map" rightSlot={
-      <>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={handleMarkClick}
+          disabled={markPending}
+          className={`flex size-9 items-center justify-center rounded-full active:bg-neutral-100 ${
+            status === 'reviewed' ? 'text-emerald-600' :
+            status === 'marked' ? 'text-orange-600' : 'text-neutral-500'
+          }`}
+          aria-label={markPending ? "标记处理中" : status === 'reviewed' ? "已食鉴" : status === 'marked' ? "取消想去" : "标记想去"}
+        >
+          {status === 'reviewed' ? (
+            <BookmarkCheck size={16} strokeWidth={2} />
+          ) : status === 'marked' ? (
+            <Bookmark size={16} strokeWidth={2} fill="currentColor" />
+          ) : (
+            <Bookmark size={16} strokeWidth={1.6} />
+          )}
+        </button>
+
         <button
           type="button"
           onClick={() => setShareOpen(true)}
@@ -1071,7 +1222,7 @@ function RestaurantDetailHeader({
               <div className="absolute right-0 top-full z-30 mt-1 w-44 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg">
                 <button
                   type="button"
-                  onClick={() => { setMoreOpen(false); alert('反馈错误信息功能开发中') }}
+                  onClick={() => { setMoreOpen(false); showToast('反馈错误信息功能开发中') }}
                   className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-neutral-700 active:bg-neutral-50"
                 >
                   <Flag size={14} strokeWidth={1.6} className="text-neutral-400" />
@@ -1079,7 +1230,7 @@ function RestaurantDetailHeader({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setMoreOpen(false); alert('反馈重复店铺功能开发中') }}
+                  onClick={() => { setMoreOpen(false); showToast('反馈重复店铺功能开发中') }}
                   className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-neutral-700 active:bg-neutral-50"
                 >
                   <Flag size={14} strokeWidth={1.6} className="text-neutral-400" />
@@ -1089,7 +1240,7 @@ function RestaurantDetailHeader({
             </>
           )}
         </div>
-      </>
+      </div>
     } />
     <SharePosterSheet
       open={shareOpen}
@@ -1140,21 +1291,6 @@ function DishTabFeed({
   const user = useAuthStore((s) => s.user)
   const voteMut = useDishReviewVoteMutation(!isDemo ? restaurantId : null)
   const [sort, setSort] = useState<'latest' | 'hot' | 'score'>('hot')
-
-  if (isDemo) {
-    return (
-      <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm leading-6 text-neutral-500">
-        示例模式下没有后端菜品实体。
-        <br />
-        完成提交食鉴或使用真实 UUID 后即可查看收录菜品与匿名菜评。
-      </p>
-    )
-  }
-
-  const busy = dishFeedPending
-  if (busy) {
-    return <p className="py-14 text-center text-sm text-neutral-400">载入菜评与菜品列表…</p>
-  }
 
   const groupedDisplays = useMemo(() => {
     const groups = new Map<string, RestaurantDishReviewItem[]>()
@@ -1207,6 +1343,21 @@ function DishTabFeed({
 
     return entries
   }, [dishReviews, sort])
+
+  if (isDemo) {
+    return (
+      <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm leading-6 text-neutral-500">
+        示例模式下没有后端菜品实体。
+        <br />
+        完成提交食鉴或使用真实 UUID 后即可查看收录菜品与匿名菜评。
+      </p>
+    )
+  }
+
+  const busy = dishFeedPending
+  if (busy) {
+    return <p className="py-14 text-center text-sm text-neutral-400">载入菜评与菜品列表…</p>
+  }
 
   return (
     <div className="space-y-6">

@@ -166,6 +166,7 @@ export interface RestaurantRow {
   cover_image_url: string | null
   created_by: string
   status: RestaurantStatus
+  discovered_from?: 'detail_view' | 'mark' | 'practice' | 'manual'
   merged_to_id: string | null
   search_text: string | null
   created_at: string

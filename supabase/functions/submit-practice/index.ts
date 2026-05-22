@@ -404,6 +404,14 @@ async function resolveRestaurant(
     if (existingError) throw existingError
     if (existing?.id) {
       await maybeMergeRestaurantCover(admin, existing.id, poi.cover_image_url ?? null)
+      const { error: activateError } = await admin
+        .from('restaurants')
+        .update({
+          status: 'active',
+          discovered_from: 'practice',
+        })
+        .eq('id', existing.id)
+      if (activateError) throw activateError
       return existing.id
     }
 
@@ -443,6 +451,7 @@ async function resolveRestaurant(
         amap_small_category: poi.amap_small_category ?? null,
         created_by: userId,
         status: 'active',
+        discovered_from: 'practice',
         search_text: [displayName, poi.address_text, poi.district_name, mapping.displayLabel]
           .filter(Boolean)
           .join(' '),
@@ -492,6 +501,7 @@ async function resolveRestaurant(
       cover_image_url: manual.cover_image_url,
       created_by: userId,
       status: 'active',
+      discovered_from: 'manual',
       search_text: [
         displayName,
         manual.address_text,

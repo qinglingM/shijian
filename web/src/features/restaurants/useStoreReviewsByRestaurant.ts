@@ -6,6 +6,7 @@ import type { VoteType } from '@/lib/db'
 
 export interface StoreReviewItem {
   id: string
+  user_id?: string
   nickname: string
   avatar_url: string | null
   tier: Tier
@@ -99,6 +100,7 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
         const profile = r.is_anonymous ? null : profileMap.get(r.user_id) ?? null
         return {
           id: r.id,
+          user_id: r.user_id,
           nickname: profile ? profile.nickname : ANONYMOUS_REVIEWER,
           avatar_url: profile ? profile.avatar_url : null,
           tier: r.tier as Tier,
