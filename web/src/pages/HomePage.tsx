@@ -18,7 +18,7 @@ import {
   type TierMapItem,
 } from '@/features/tier-map/useTierMap'
 import { useCategories } from '@/features/categories/useCategories'
-import { TIER_LABEL, type Tier } from '@/lib/db'
+import { TIER_LABEL, TIER_COLOR_VAR, type Tier } from '@/lib/db'
 
 type ViewMode = 'grid' | 'list'
 
@@ -230,14 +230,15 @@ export function HomePage() {
   )
 }
 
-const TIER_BG: Record<Tier, string> = {
-  boom: 'bg-red-50 text-red-700',
-  hang: 'bg-orange-50 text-orange-700',
-  top: 'bg-amber-50 text-amber-700',
-  upper: 'bg-yellow-50 text-yellow-800',
-  npc: 'bg-neutral-100 text-neutral-600',
-  bad: 'bg-slate-100 text-slate-600',
+const TIER_TEXT_COLOR: Record<Tier, string> = {
+  boom: '#fff',
+  hang: '#fff',
+  top: '#fff',
+  upper: '#5a4a00',
+  npc: '#6b5a3a',
+  bad: '#999',
 }
+function tierTextColor(tier: Tier): string { return TIER_TEXT_COLOR[tier] }
 
 function TierListView({ items }: { items: FlatItem[] }) {
   if (items.length === 0) {
@@ -275,7 +276,8 @@ function TierListView({ items }: { items: FlatItem[] }) {
               )}
             </div>
             <span
-              className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${TIER_BG[item.tier]}`}
+              className="shrink-0 w-[3.5rem] text-center rounded-full px-1.5 py-1 text-[11px] font-semibold leading-none"
+              style={{ background: TIER_COLOR_VAR[item.tier], color: tierTextColor(item.tier) }}
             >
               {TIER_LABEL[item.tier]}
             </span>
