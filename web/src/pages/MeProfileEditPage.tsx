@@ -13,7 +13,6 @@ import { useProfilePrivacyMutation } from '@/features/profile/useProfilePrivacyM
 /** 与用户资料 gender 校验一致（空串→存 null） */
 const GENDER_SELECT: { value: string; label: string }[] = [
   { value: '', label: '未选择' },
-  { value: 'unspecified', label: '未告知' },
   { value: 'male', label: '男' },
   { value: 'female', label: '女' },
   { value: 'other', label: '其他' },
@@ -77,37 +76,89 @@ function SettingsRow({
   )
 }
 
-function SettingsSelect({
-  value,
-  onChange,
-  options,
-  ariaLabel,
-}: {
-  value: string
-  onChange: (v: string) => void
-  options: { value: string; label: string }[]
-  ariaLabel: string
-}) {
+function pickEditProfile(row: Record<string, unknown>): EditProfilePick {
+  const bd = row.birth_date
+  let birth_date: string | null = null
+  if (bd != null && bd !== '') {
+    const s = typeof bd === 'string' ? bd : String(bd)
+    birth_date = s.slice(0, 10)
+  }
+  return {
+    user_code: String(row.user_code ?? ''),
+    nickname: String(row.nickname ?? ''),
+    bio: typeof row.bio === 'string' ? row.bio : null,
+    gender: typeof row.gender === 'string' ? row.gender : null,
+    zodiac_sign: typeof row.zodiac_sign === 'string' ? row.zodiac_sign : null,
+    hometown: typeof row.hometown === 'string' ? row.hometown : null,
+    birth_date,
+    phone: typeof row.phone === 'string' ? row.phone : null,
+    phone_verified_at:
+      typeof row.phone_verified_at === 'string' ? row.phone_verified_at : null,
+    phone_binding_exempt: row.phone_binding_exempt === true,
+    avatar_url: typeof row.avatar_url === 'string' ? row.avatar_url : null,
+    is_profile_public: row.is_profile_public !== false,
+  }
+}
+
+function GenderPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const current = GENDER_SELECT.find((o) => o.value === value)
   return (
-    <div className="relative flex justify-end">
-      <select
-        aria-label={ariaLabel}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={`cursor-pointer appearance-none pr-7 ${settingsControlRight}`}
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`flex items-center gap-1 text-sm transition-colors ${
+          value ? 'text-neutral-900' : 'text-neutral-400'
+        }`}
       >
-        {options.map((o) => (
-          <option key={o.value === '' ? '_empty' : o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        aria-hidden
-        className="pointer-events-none absolute right-0 top-1/2 size-[17px] -translate-y-1/2 text-neutral-400"
-        strokeWidth={2}
-      />
-    </div>
+        <span>{current?.label ?? '未选择'}</span>
+        <ChevronDown size={14} className="text-neutral-400" />
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label="关闭"
+            className="fixed inset-0 z-40 cursor-default bg-black/40"
+            onClick={() => setOpen(false)}
+          />
+          <div
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-3xl bg-white shadow-xl overflow-hidden"
+            style={{ animation: 'shijian-slide-up 0.22s ease-out' }}
+          >
+            <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+              <p className="text-[15px] font-semibold text-neutral-900">选择性别</p>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="shrink-0 rounded-full px-2 py-1 text-sm text-orange-700 active:bg-orange-50"
+              >
+                关闭
+              </button>
+            </div>
+            <div className="overflow-y-auto px-4 py-4">
+              <div className="flex flex-wrap gap-2">
+                {GENDER_SELECT.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => { onChange(opt.value); setOpen(false) }}
+                    className={`rounded-xl px-4 py-2.5 text-[13px] font-medium transition-colors ${
+                      value === opt.value
+                        ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
+                        : 'bg-neutral-100 text-neutral-700 active:bg-neutral-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   )
 }
 
@@ -171,30 +222,6 @@ function ZodiacPicker({ value, onChange }: { value: string; onChange: (v: string
       )}
     </>
   )
-}
-
-function pickEditProfile(row: Record<string, unknown>): EditProfilePick {
-  const bd = row.birth_date
-  let birth_date: string | null = null
-  if (bd != null && bd !== '') {
-    const s = typeof bd === 'string' ? bd : String(bd)
-    birth_date = s.slice(0, 10)
-  }
-  return {
-    user_code: String(row.user_code ?? ''),
-    nickname: String(row.nickname ?? ''),
-    bio: typeof row.bio === 'string' ? row.bio : null,
-    gender: typeof row.gender === 'string' ? row.gender : null,
-    zodiac_sign: typeof row.zodiac_sign === 'string' ? row.zodiac_sign : null,
-    hometown: typeof row.hometown === 'string' ? row.hometown : null,
-    birth_date,
-    phone: typeof row.phone === 'string' ? row.phone : null,
-    phone_verified_at:
-      typeof row.phone_verified_at === 'string' ? row.phone_verified_at : null,
-    phone_binding_exempt: row.phone_binding_exempt === true,
-    avatar_url: typeof row.avatar_url === 'string' ? row.avatar_url : null,
-    is_profile_public: row.is_profile_public !== false,
-  }
 }
 
 function AvatarUpload({
@@ -432,12 +459,7 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
         </SettingsRow>
 
         <SettingsRow label="性别">
-          <SettingsSelect
-            ariaLabel="性别"
-            value={gender}
-            onChange={setGender}
-            options={GENDER_SELECT}
-          />
+          <GenderPicker value={gender} onChange={setGender} />
         </SettingsRow>
 
         <SettingsRow label="生日">
