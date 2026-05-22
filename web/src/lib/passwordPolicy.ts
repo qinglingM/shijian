@@ -1,5 +1,5 @@
 /** 与产品说明书对齐的口令规则提示（中英混排句，勿改前缀以便 UI 多处复用） */
-export const PASSWORD_RULE_HINT = '密码需为 8–20 位，包含字母和数字'
+export const PASSWORD_RULE_HINT = '密码需为 8–20 位，包含字母和数字，不能包含中文'
 
 const WEAK_COMMON = new Set([
   '12345678',
@@ -12,6 +12,7 @@ const WEAK_COMMON = new Set([
 export function validatePasswordForAccount(password: string): string | null {
   const p = password
   if (p.length < 8 || p.length > 20) return PASSWORD_RULE_HINT
+  if (/[\u4e00-\u9fff]/.test(p)) return '密码不能包含中文字符'
   if (!/[A-Za-z]/.test(p) || !/[0-9]/.test(p)) return PASSWORD_RULE_HINT
   if (WEAK_COMMON.has(p.toLowerCase())) return '请勿使用过于简单的密码'
   return null

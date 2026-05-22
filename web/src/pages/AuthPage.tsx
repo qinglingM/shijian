@@ -416,8 +416,8 @@ export function AuthPage() {
       : e164Locked ?? mobileInput
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col bg-white px-6 pb-14 pt-10">
-      <header className="mb-6">
+    <div className="mx-auto flex min-h-full max-w-md flex-col bg-gradient-to-b from-white via-orange-50/30 to-white px-6 pb-14 pt-8">
+      <header className="mb-7">
         <button
           type="button"
           onClick={() => {
@@ -427,12 +427,12 @@ export function AuthPage() {
               navigate('/tier-map', { replace: true })
             }
           }}
-          className="text-sm text-neutral-500"
+          className="flex items-center gap-1 text-sm text-neutral-500"
         >
-          ← 返回
+          <span aria-hidden="true">←</span> 返回
         </button>
-        <h1 className="mt-4 text-2xl font-semibold text-neutral-950">{headerTitle(phase)}</h1>
-        <p className="mt-2 text-xs text-neutral-500">{subtitle(surface, phase)}</p>
+        <h1 className="mt-5 text-[26px] font-semibold text-neutral-950">{headerTitle(phase)}</h1>
+        <p className="mt-1.5 text-sm text-neutral-500">{subtitle(surface, phase)}</p>
         {AUTH_LAX_DEV && (
           <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-950">
             开发放行（本地 npm run dev 默认开启）：先尝试配置的{' '}
@@ -483,43 +483,6 @@ export function AuthPage() {
 
       {surface === 'phone' && phase === 'login' && (
         <div className="space-y-4">
-          <div className="flex rounded-2xl bg-neutral-100 p-1 text-sm">
-            <button
-              type="button"
-              className={cn(
-                'flex-1 rounded-xl py-2 font-medium transition-colors',
-                loginMode === 'password'
-                  ? 'bg-white text-neutral-900 shadow-sm'
-                  : 'text-neutral-500',
-              )}
-              onClick={() => {
-                setLoginMode('password')
-                setLoginOtpStep(1)
-                resetOtp()
-                setMsg(null)
-              }}
-            >
-              密码登录
-            </button>
-            <button
-              type="button"
-              className={cn(
-                'flex-1 rounded-xl py-2 font-medium transition-colors',
-                loginMode === 'otp'
-                  ? 'bg-white text-neutral-900 shadow-sm'
-                  : 'text-neutral-500',
-              )}
-              onClick={() => {
-                setLoginMode('otp')
-                setLoginOtpStep(1)
-                resetOtp()
-                setMsg(null)
-              }}
-            >
-              验证码登录
-            </button>
-          </div>
-
           {loginMode === 'password' ? (
             <form className="space-y-4" onSubmit={submitLoginPhone}>
               <PhoneRow editable value={mobileInput} onChange={setMobileInput} />
@@ -532,7 +495,14 @@ export function AuthPage() {
                 reveal={showLoginPw}
                 onReveal={() => setShowLoginPw((v) => !v)}
               />
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => { setLoginMode('otp'); setLoginOtpStep(1); resetOtp(); setMsg(null) }}
+                  className="text-xs text-orange-700 underline underline-offset-2"
+                >
+                  用验证码登录
+                </button>
                 <button
                   type="button"
                   onClick={() => goPhoneForgot()}
@@ -545,7 +515,7 @@ export function AuthPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
               >
                 {submitting ? '登录中…' : '登录'}
               </button>
@@ -557,9 +527,16 @@ export function AuthPage() {
                 type="button"
                 disabled={submitting}
                 onClick={() => void sendOtp('login')}
-                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
               >
-                {submitting ? '发送中…' : '获取短信验证码'}
+                {submitting ? '发送中…' : '发送验证码'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setLoginMode('password'); setMsg(null) }}
+                className="flex items-center gap-1 text-xs text-neutral-500"
+              >
+                <span aria-hidden="true">←</span> 使用密码登录
               </button>
               <SmsFootnote />
               {msg ? <Alert>{msg}</Alert> : null}
@@ -568,7 +545,13 @@ export function AuthPage() {
             <form className="space-y-4" onSubmit={submitLoginOtp}>
               <PhoneRow editable={false} value={displayMobile} onChange={() => {}} />
               <OtpField value={otp} onChange={setOtp} />
-              <SubmitBtn loading={submitting} label="验证码登录" />
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
+              >
+                {submitting ? '登录中…' : '登录'}
+              </button>
               <Resend
                 loading={submitting}
                 secs={resendSeconds}
@@ -576,28 +559,27 @@ export function AuthPage() {
               />
               <button
                 type="button"
-                className="text-xs text-neutral-500 underline underline-offset-2"
-                onClick={() => {
-                  setLoginOtpStep(1)
-                  resetOtp()
-                  setMsg(null)
-                }}
+                className="flex items-center gap-1 text-xs text-neutral-500"
+                onClick={() => { setLoginOtpStep(1); resetOtp(); setMsg(null) }}
               >
-                ← 修改手机号
+                <span aria-hidden="true">←</span> 修改手机号
               </button>
               {msg ? <Alert>{msg}</Alert> : null}
             </form>
           )}
 
-          <p className="text-center text-sm text-neutral-500">
-            <button
-              type="button"
-              className="font-medium text-orange-700 underline-offset-4 hover:underline"
-              onClick={() => goPhoneSignup()}
-            >
-              还没有账号？注册
-            </button>
-          </p>
+          <div className="pt-2 text-center">
+            <p className="text-sm text-neutral-500">
+              还没有账号？
+              <button
+                type="button"
+                className="ml-1 font-semibold text-orange-700 underline-offset-4 hover:underline"
+                onClick={() => goPhoneSignup()}
+              >
+                注册
+              </button>
+            </p>
+          </div>
         </div>
       )}
 
@@ -608,17 +590,18 @@ export function AuthPage() {
             type="button"
             disabled={submitting}
             onClick={() => void sendOtp('signup')}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
           >
-            {submitting ? '发送中…' : '获取短信验证码'}
+            {submitting ? '发送中…' : '发送验证码'}
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-1 text-xs text-neutral-500"
+            onClick={() => goPhoneLogin()}
+          >
+            <span aria-hidden="true">←</span> 已有账号？去登录
           </button>
           <SmsFootnote />
-          <p className="text-center text-xs text-neutral-500">
-            若该手机号已注册，请先
-            <button type="button" className="px-1 text-orange-700" onClick={() => goPhoneLogin()}>
-              登录
-            </button>
-          </p>
           {msg ? <Alert>{msg}</Alert> : null}
         </div>
       )}
@@ -631,7 +614,13 @@ export function AuthPage() {
         >
           <PhoneRow editable={false} value={displayMobile} onChange={() => {}} />
           <OtpField value={otp} onChange={setOtp} />
-          <SubmitBtn loading={submitting} label="校验并继续" />
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
+          >
+            {submitting ? '验证中…' : '验证'}
+          </button>
           <Resend
             loading={submitting}
             secs={resendSeconds}
@@ -639,14 +628,10 @@ export function AuthPage() {
           />
           <button
             type="button"
-            className="text-xs text-neutral-500 underline underline-offset-2"
-            onClick={() => {
-              setSignupStep(1)
-              resetOtp()
-              setMsg(null)
-            }}
+            className="flex items-center gap-1 text-xs text-neutral-500"
+            onClick={() => { setSignupStep(1); resetOtp(); setMsg(null) }}
           >
-            ← 修改手机号
+            <span aria-hidden="true">←</span> 修改手机号
           </button>
           {msg ? <Alert>{msg}</Alert> : null}
         </form>
@@ -654,16 +639,19 @@ export function AuthPage() {
 
       {surface === 'phone' && phase === 'signup' && signupStep === 3 && (
         <form className="space-y-4" onSubmit={submitRegisterPassword}>
-          <p className="text-xs text-neutral-500">{PASSWORD_RULE_HINT}</p>
-          <label className="block text-xs font-medium text-neutral-600">
-            昵称（可选）
+          <div className="rounded-xl bg-amber-50 px-3 py-2">
+            <p className="text-xs text-amber-800">{PASSWORD_RULE_HINT}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-neutral-600">昵称（可选）</label>
             <input
               maxLength={32}
               value={regNickname}
               onChange={(e) => setRegNickname(e.target.value)}
+              placeholder="输入昵称"
               className="mt-1.5 block w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm outline-none ring-orange-400/40 focus:border-orange-400 focus:ring"
             />
-          </label>
+          </div>
           <PasswordField
             id="rp1"
             label="设置密码"
@@ -686,10 +674,10 @@ export function AuthPage() {
           {msg ? <Alert>{msg}</Alert> : null}
           <button
             type="submit"
-            disabled={submitting}
-            className="bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+            disabled={submitting || !agreedTerms}
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
           >
-            {submitting ? '提交中…' : '同意协议并注册'}
+            {submitting ? '注册中…' : '注册'}
           </button>
         </form>
       )}
@@ -701,18 +689,18 @@ export function AuthPage() {
             type="button"
             disabled={submitting}
             onClick={() => void sendOtp('forgot')}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
           >
-            {submitting ? '发送中…' : '获取验证码'}
+            {submitting ? '发送中…' : '发送验证码'}
           </button>
-          <SmsFootnote />
           <button
             type="button"
-            className="text-xs text-neutral-500 underline underline-offset-2"
+            className="flex items-center gap-1 text-xs text-neutral-500"
             onClick={() => goPhoneLogin()}
           >
-            ← 返回登录
+            <span aria-hidden="true">←</span> 返回登录
           </button>
+          <SmsFootnote />
           {msg ? <Alert>{msg}</Alert> : null}
         </div>
       )}
@@ -725,14 +713,20 @@ export function AuthPage() {
         >
           <PhoneRow editable={false} value={displayMobile} onChange={() => {}} />
           <OtpField value={otp} onChange={setOtp} />
-          <SubmitBtn loading={submitting} label="校验并继续" />
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
+          >
+            {submitting ? '验证中…' : '验证'}
+          </button>
           <Resend
             loading={submitting}
             secs={resendSeconds}
             onResend={() => void sendOtp('forgot')}
           />
-          <button type="button" className="text-xs text-neutral-500" onClick={() => goPhoneLogin()}>
-            ← 返回登录
+          <button type="button" className="flex items-center gap-1 text-xs text-neutral-500" onClick={() => goPhoneLogin()}>
+            <span aria-hidden="true">←</span> 返回登录
           </button>
           {msg ? <Alert>{msg}</Alert> : null}
         </form>
@@ -740,7 +734,9 @@ export function AuthPage() {
 
       {surface === 'phone' && phase === 'forgot' && forgotStep === 3 && (
         <form className="space-y-4" onSubmit={submitForgotPassword}>
-          <p className="text-xs text-neutral-500">{PASSWORD_RULE_HINT}</p>
+          <div className="rounded-xl bg-amber-50 px-3 py-2">
+            <p className="text-xs text-amber-800">{PASSWORD_RULE_HINT}</p>
+          </div>
           <PasswordField
             id="fp1"
             label="新密码"
@@ -760,7 +756,40 @@ export function AuthPage() {
             onReveal={() => setShowForgotPw((v) => !v)}
           />
           {msg ? <Alert>{msg}</Alert> : null}
-          <SubmitBtn loading={submitting} label="重置密码并完成" />
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
+          >
+            {submitting ? '重置中…' : '重置密码'}
+          </button>
+        </form>
+      )}
+
+      {surface === 'phone' && phase === 'forgot' && forgotStep === 2 && (
+        <form className="space-y-4" onSubmit={(e) => {
+          e.preventDefault()
+          void verifyOtpAdvance('forgot')
+        }}
+        >
+          <PhoneRow editable={false} value={displayMobile} onChange={() => {}} />
+          <OtpField value={otp} onChange={setOtp} />
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
+          >
+            {submitting ? '验证中…' : '验证'}
+          </button>
+          <Resend
+            loading={submitting}
+            secs={resendSeconds}
+            onResend={() => void sendOtp('forgot')}
+          />
+          <button type="button" className="flex items-center gap-1 text-xs text-neutral-500" onClick={() => goPhoneLogin()}>
+            <span aria-hidden="true">←</span> 返回登录
+          </button>
+          {msg ? <Alert>{msg}</Alert> : null}
         </form>
       )}
 
@@ -775,10 +804,10 @@ function headerTitle(phase: Phase) {
 }
 
 function subtitle(surface: 'phone' | 'email', phase: Phase) {
-  if (surface === 'email') return '研发环境可选用邮箱账号；默认生产以手机号为准。'
-  if (phase === 'login') return '使用手机号与密码登录。'
-  if (phase === 'signup') return '先验证手机号，再设置登录密码并完成注册。'
-  return '通过短信验证码后设置新密码。'
+  if (surface === 'email') return '研发环境可选用邮箱账号'
+  if (phase === 'login') return ''
+  if (phase === 'signup') return '验证手机号后设置密码，快速完成注册'
+  return '通过短信验证码验证身份后重置密码'
 }
 
 function PhoneRow({
@@ -853,18 +882,18 @@ function PasswordField({
 
 function OtpField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <label className="block text-xs font-medium text-neutral-600">
-      短信验证码（6 位）
+    <div>
+      <p className="text-xs font-medium text-neutral-600">验证码</p>
       <input
         inputMode="numeric"
         autoComplete="one-time-code"
         maxLength={8}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="请输入验证码"
-        className="mt-1.5 block w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm tracking-widest outline-none ring-orange-400/40 focus:border-orange-400 focus:ring"
+        placeholder="请输入 6 位验证码"
+        className="mt-1.5 block w-full rounded-xl border border-neutral-200 px-3 py-3 text-base tracking-[0.5em] outline-none ring-orange-400/40 placeholder:tracking-normal focus:border-orange-400 focus:ring"
       />
-    </label>
+    </div>
   )
 }
 
@@ -894,24 +923,6 @@ function TermsBox({
         </Link>
       </span>
     </label>
-  )
-}
-
-function SubmitBtn({
-  loading,
-  label,
-}: {
-  loading: boolean
-  label: string
-}) {
-  return (
-    <button
-      type="submit"
-      disabled={loading}
-      className="w-full rounded-xl bg-gradient-to-r from-[#ff4d00] to-[#ff1f6d] py-3 text-sm font-medium text-white shadow-sm disabled:opacity-50"
-    >
-      {loading ? '处理中…' : label}
-    </button>
   )
 }
 
@@ -945,7 +956,7 @@ function Alert({ children }: { children: ReactNode }) {
 function SmsFootnote() {
   return (
     <p className="text-[11px] leading-5 text-neutral-500">
-      验证码由阿里云短信发送，5 分钟内有效。发送间隔、单日上限与 IP 限速以后可继续在 Edge Functions 层加固。
+      验证码由阿里云短信发送，5 分钟内有效
     </p>
   )
 }

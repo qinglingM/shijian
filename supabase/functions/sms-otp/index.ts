@@ -308,7 +308,9 @@ Deno.serve(async (req) => {
       const accountEmail = await phoneAccountEmail(e164Phone)
       const { error } = await admin.auth.admin.updateUserById(existingUser.id, {
         email: accountEmail,
+        phone: e164Phone,
         email_confirm: true,
+        phone_confirm: true,
         user_metadata: {
           ...(existingUser.user_metadata ?? {}),
           phone_e164: e164Phone,
@@ -356,6 +358,7 @@ Deno.serve(async (req) => {
         const accountEmail = await phoneAccountEmail(e164Phone)
         const { error } = await admin.auth.admin.updateUserById(existingUser.id, {
           email: accountEmail,
+          phone: e164Phone,
           email_confirm: true,
           password: tempPassword,
           phone_confirm: true,
@@ -387,8 +390,10 @@ Deno.serve(async (req) => {
         const accountEmail = await phoneAccountEmail(e164Phone)
         const { error } = await admin.auth.admin.createUser({
           email: accountEmail,
+          phone: e164Phone,
           password,
           email_confirm: true,
+          phone_confirm: true,
           user_metadata: {
             phone_e164: e164Phone,
             ...(nickname?.trim() ? { nickname: nickname.trim() } : {}),
@@ -412,7 +417,9 @@ Deno.serve(async (req) => {
       const accountEmail = await phoneAccountEmail(e164Phone)
       const { error } = await admin.auth.admin.updateUserById(existingUser.id, {
         email: accountEmail,
+        phone: e164Phone,
         email_confirm: true,
+        phone_confirm: true,
         password,
         user_metadata: {
           ...(existingUser.user_metadata ?? {}),
