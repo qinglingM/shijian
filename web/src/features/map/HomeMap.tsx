@@ -581,13 +581,13 @@ export function HomeMap() {
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'city' && filterOpen
                 ? 'text-blue-600'
-                : appliedCity
+                : pendingCity || appliedCity
                   ? 'text-blue-600'
                   : 'text-neutral-600'
             }`}
           >
-            {appliedCity || '城市'}
-            {(filterTab === 'city' && filterOpen) || appliedCity ? (
+            {pendingCity || appliedCity || '城市'}
+            {(filterTab === 'city' && filterOpen) || pendingCity || appliedCity ? (
               <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
             ) : null}
           </button>
@@ -600,13 +600,13 @@ export function HomeMap() {
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'tier' && filterOpen
                 ? 'text-blue-600'
-                : appliedTier
+                : pendingTier || appliedTier
                   ? 'text-blue-600'
                   : 'text-neutral-600'
             }`}
           >
-            {appliedTier ? TIER_LABEL[appliedTier] : '等级'}
-            {(filterTab === 'tier' && filterOpen) || appliedTier ? (
+            {pendingTier ? TIER_LABEL[pendingTier] : appliedTier ? TIER_LABEL[appliedTier] : '等级'}
+            {(filterTab === 'tier' && filterOpen) || pendingTier || appliedTier ? (
               <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
             ) : null}
           </button>
@@ -619,13 +619,13 @@ export function HomeMap() {
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'category' && filterOpen
                 ? 'text-blue-600'
-                : appliedCategory
+                : pendingCategory || appliedCategory
                   ? 'text-blue-600'
                   : 'text-neutral-600'
             }`}
           >
-            {appliedCategory || '分类'}
-            {(filterTab === 'category' && filterOpen) || appliedCategory ? (
+            {pendingCategory || appliedCategory || '分类'}
+            {(filterTab === 'category' && filterOpen) || pendingCategory || appliedCategory ? (
               <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
             ) : null}
           </button>
