@@ -124,51 +124,52 @@ function HometownPicker({ value, onChange, provinces }: { value: string; onChang
             className="fixed inset-0 z-40 cursor-default bg-black/40"
             onClick={() => setOpen(false)}
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-            <div className="pointer-events-auto mx-4 w-full max-w-[18rem] rounded-2xl bg-white shadow-xl overflow-hidden">
-              <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
-                <p className="text-[15px] font-semibold text-neutral-900">
-                  {selectedProvince || '选择省份'}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="shrink-0 rounded-full px-2 py-1 text-sm text-orange-700 active:bg-orange-50"
-                >
-                  关闭
-                </button>
+          <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-3xl bg-white shadow-xl overflow-hidden" style={{ animation: 'shijian-slide-up 0.22s ease-out', maxHeight: '60dvh' }}>
+            <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+              <p className="text-[15px] font-semibold text-neutral-900">选择城市</p>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="shrink-0 rounded-full px-2 py-1 text-sm text-orange-700 active:bg-orange-50"
+              >
+                关闭
+              </button>
+            </div>
+            <div className="flex" style={{ height: '40dvh' }}>
+              <div className="w-[120px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                {provinces.map(([pname]) => (
+                  <button
+                    key={pname}
+                    type="button"
+                    onClick={() => setSelectedProvince(pname)}
+                    className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${
+                      selectedProvince === pname
+                        ? 'bg-white font-semibold text-blue-600'
+                        : 'text-neutral-700 hover:bg-white/80'
+                    }`}
+                  >
+                    {pname}
+                  </button>
+                ))}
               </div>
-              <div className="overflow-y-auto px-4 py-4" style={{ maxHeight: '50dvh' }}>
-                {!selectedProvince ? (
-                  <div className="flex flex-wrap gap-2">
-                    {provinces.map(([pname]) => (
-                      <button
-                        key={pname}
-                        type="button"
-                        onClick={() => setSelectedProvince(pname)}
-                        className="rounded-xl bg-neutral-100 px-4 py-2.5 text-[13px] font-medium text-neutral-700 active:bg-neutral-200"
-                      >
-                        {pname}
-                      </button>
-                    ))}
-                  </div>
+              <div className="flex-1 overflow-y-auto">
+                {citiesInProvince.length > 0 ? (
+                  citiesInProvince.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => { onChange(name); setOpen(false) }}
+                      className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${
+                        value === name
+                          ? 'font-semibold text-blue-600'
+                          : 'text-neutral-700'
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  ))
                 ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {citiesInProvince.map((name) => (
-                      <button
-                        key={name}
-                        type="button"
-                        onClick={() => { onChange(name); setOpen(false) }}
-                        className={`rounded-xl px-4 py-2.5 text-[13px] font-medium transition-colors ${
-                          value === name
-                            ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
-                            : 'bg-neutral-100 text-neutral-700 active:bg-neutral-200'
-                        }`}
-                      >
-                        {name}
-                      </button>
-                    ))}
-                  </div>
+                  <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
                 )}
               </div>
             </div>
@@ -558,7 +559,7 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
             max={new Date().toISOString().slice(0, 10)}
             min="1920-01-01"
             lang="zh-CN"
-            className={`${settingsControlRight} ml-auto w-auto [-webkit-appearance:none] [&::-webkit-calendar-picker-indicator]:hidden`}
+            className={`${settingsControlRight} ml-auto w-auto cursor-pointer`}
           />
         </SettingsRow>
 
