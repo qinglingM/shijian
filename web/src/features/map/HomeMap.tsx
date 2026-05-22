@@ -440,26 +440,23 @@ export function HomeMap() {
 
   const categoryGroups = useMemo(() => {
     const labels = new Set(restaurants.map(r => r.category_label).filter(Boolean) as string[])
-    const groups = new Map<ShijianCategoryCode, { name: string; subs: string[] }>()
-    for (const cat of SHIJIAN_CATEGORIES) {
-      groups.set(cat.code, { name: cat.name, subs: [] })
-    }
-    for (const label of labels) {
-      // Try subcategory name match first, then mid-level category match
-      let code = SUBCATEGORY_TO_CATEGORY[label] as ShijianCategoryCode | undefined
-      if (!code || !groups.has(code)) {
-        code = MID_TO_BIG[label] as ShijianCategoryCode | undefined
+    return SHIJIAN_CATEGORIES.map((cat) => {
+      const labelSet = new Set<string>()
+      for (const label of labels) {
+        // Try subcategory name match first, then mid-level category match
+        let code = SUBCATEGORY_TO_CATEGORY[label] as ShijianCategoryCode | undefined
+        if (!code || !cat.subcategories.some((s) => s.name === label)) {
+          code = MID_TO_BIG[label] as ShijianCategoryCode | undefined
+        }
+        if (code === cat.code) {
+          labelSet.add(label)
+        }
       }
-      if (code && groups.has(code)) {
-        groups.get(code)!.subs.push(label)
-      } else {
-        groups.get('other' as ShijianCategoryCode)!.subs.push(label)
-      }
-    }
-    // Remove groups with no subs, sort subs
-    return Array.from(groups.entries())
-      .filter(([, g]) => g.subs.length > 0)
-      .map(([code, g]) => ({ code, name: g.name, subs: [...new Set(g.subs)].sort() }))
+      const subs = labelSet.size > 0
+        ? [...labelSet].sort()
+        : cat.subcategories.map((s) => s.name)
+      return { code: cat.code, name: cat.name, subs }
+    })
   }, [restaurants])
 
   const visibleRestaurants = useMemo(
