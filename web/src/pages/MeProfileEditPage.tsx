@@ -111,6 +111,68 @@ function SettingsSelect({
   )
 }
 
+function ZodiacPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const current = ZODIAC_OPTIONS.find((o) => o.value === value)
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`flex items-center gap-1 text-sm transition-colors ${
+          value ? 'text-neutral-900' : 'text-neutral-400'
+        }`}
+      >
+        <span>{current?.label ?? '未选择'}</span>
+        <ChevronDown size={14} className="text-neutral-400" />
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label="关闭"
+            className="fixed inset-0 z-40 cursor-default bg-black/40"
+            onClick={() => setOpen(false)}
+          />
+          <div
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-3xl bg-white shadow-xl overflow-hidden"
+            style={{ animation: 'shijian-slide-up 0.22s ease-out' }}
+          >
+            <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+              <p className="text-[15px] font-semibold text-neutral-900">选择星座</p>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="shrink-0 rounded-full px-2 py-1 text-sm text-orange-700 active:bg-orange-50"
+              >
+                关闭
+              </button>
+            </div>
+            <div className="overflow-y-auto px-4 py-4">
+              <div className="grid grid-cols-3 gap-2">
+                {ZODIAC_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => { onChange(opt.value); setOpen(false) }}
+                    className={`rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                      value === opt.value
+                        ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
+                        : 'bg-neutral-100 text-neutral-700 active:bg-neutral-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  )
+}
+
 function pickEditProfile(row: Record<string, unknown>): EditProfilePick {
   const bd = row.birth_date
   let birth_date: string | null = null
@@ -390,12 +452,7 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
         </SettingsRow>
 
         <SettingsRow label="星座">
-          <SettingsSelect
-            ariaLabel="星座"
-            value={zodiacSign}
-            onChange={setZodiacSign}
-            options={ZODIAC_OPTIONS}
-          />
+          <ZodiacPicker value={zodiacSign} onChange={setZodiacSign} />
         </SettingsRow>
 
         <SettingsRow label="家乡">
