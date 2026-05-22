@@ -47,6 +47,9 @@ export function useRestaurant(restaurantId: string | null) {
           created_at,
           updated_at,
           display_category_label,
+          amap_type_code,
+          amap_mid_category,
+          amap_small_category,
           categories(name)
         `,
         )

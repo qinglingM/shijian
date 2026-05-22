@@ -5,6 +5,11 @@
   to   { transform: translateY(0);    opacity: 1; }
 }
 
+@keyframes shijian-slide-down {
+  from { transform: translateY(-10px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
 @theme {
   --color-brand: oklch(0.55 0.20 25);
 }

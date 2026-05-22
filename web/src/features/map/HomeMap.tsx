@@ -5,13 +5,14 @@ import 'leaflet/dist/leaflet.css'
 import Supercluster from 'supercluster'
 import { Search, UtensilsCrossed, X } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { DiscoveryTopBar } from '@/components/layout/DiscoveryTopBar'
 import { lookupExistingRestaurantByPoi, usePoiSearch } from '@/features/poi-search/usePoiSearch'
 import { useCityStore } from '@/features/city-picker/cityStore'
 import { useDebounce } from '@/lib/useDebounce'
 import { useMapRestaurants, type MapRestaurant } from './useMapRestaurants'
 import { TIER_ORDER, TIER_LABEL, type Tier } from '@/lib/db'
 import type { PoiCandidate } from '@/lib/poi'
+import { useCities } from '@/features/city-picker/useCities'
+import { SHIJIAN_CATEGORIES, SUBCATEGORY_TO_CATEGORY, type ShijianCategoryCode } from '@/lib/poi/shijian-categories'
 
 const ChinaCenter: L.LatLngExpression = [35.86, 104.19]
 
@@ -169,46 +170,41 @@ function SearchBar({
   }
 
   return (
-    <div className="absolute top-3 left-3 right-3 z-[410]">
-      <DiscoveryTopBar
-        className="gap-2"
-        searchSlot={(
-          <div className="flex items-center gap-2 rounded-full bg-white/95 backdrop-blur px-4 py-2.5 shadow-md ring-1 ring-black/[0.06]">
-            <Search size={15} className="shrink-0 text-neutral-400" />
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value)
-                onInteract()
-              }}
-              onFocus={() => {
-                setFocused(true)
-                onInteract()
-              }}
-              onBlur={() => setTimeout(() => setFocused(false), 150)}
-              placeholder={`在${cityScopeLabel}搜店名、区域、地址`}
-              className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
-            />
-            {query && (
-              <button
-                className="shrink-0 text-neutral-400"
-                onClick={() => {
-                  setQuery('')
-                  inputRef.current?.focus()
-                }}
-                aria-label="清空搜索词"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
+    <div>
+      <div className="flex items-center gap-2 px-4 py-2.5">
+        <Search size={15} className="shrink-0 text-neutral-400" />
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            onInteract()
+          }}
+          onFocus={() => {
+            setFocused(true)
+            onInteract()
+          }}
+          onBlur={() => setTimeout(() => setFocused(false), 150)}
+          placeholder={`在${cityScopeLabel}搜店名、区域、地址`}
+          className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
+        />
+        {query && (
+          <button
+            className="shrink-0 text-neutral-400"
+            onClick={() => {
+              setQuery('')
+              inputRef.current?.focus()
+            }}
+            aria-label="清空搜索词"
+          >
+            <X size={14} />
+          </button>
         )}
-      />
+      </div>
 
       {showDropdown && (
         <div
-          className="mt-2 rounded-2xl bg-white shadow-xl ring-1 ring-black/[0.05] overflow-hidden"
+          className="rounded-b-2xl bg-white shadow-xl ring-1 ring-black/[0.05] overflow-hidden"
           style={{ maxHeight: '60dvh', overflowY: 'auto' }}
         >
           {isLoading || isFetching ? (
@@ -216,38 +212,32 @@ function SearchBar({
           ) : !hasResults ? (
             <p className="px-4 py-3 text-[13px] text-neutral-400 text-center">无匹配结果</p>
           ) : (
-            <>
-              {results.map((poi) => (
-                <button
-                  key={`${poi.poi_source}-${poi.poi_id}`}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-neutral-50 border-b border-neutral-50 last:border-0"
-                  disabled={openingPoiId === poi.poi_id}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => void handlePickPoi(poi)}
-                >
-                  <div className="shrink-0 flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-orange-100">
-                    {poi.cover_image_url ? (
-                      <img src={poi.cover_image_url} className="h-full w-full object-cover" alt="" />
-                    ) : (
-                      <UtensilsCrossed size={16} className="text-orange-300" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-medium text-neutral-800">
-                      {poi.poi_name}
-                    </p>
-                    <p className="text-[11px] text-neutral-400">
-                      {[poi.city_name, poi.district_name].filter(Boolean).join(' · ') || '区域未知'}
-                    </p>
-                    {poi.address_text ? (
-                      <p className="mt-0.5 truncate text-[11px] text-neutral-400">
-                        {poi.address_text}
-                      </p>
-                    ) : null}
-                  </div>
-                </button>
-              ))}
-            </>
+            results.map((poi) => (
+              <button
+                key={`${poi.poi_source}-${poi.poi_id}`}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-neutral-50 border-b border-neutral-50 last:border-0"
+                disabled={openingPoiId === poi.poi_id}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => void handlePickPoi(poi)}
+              >
+                <div className="shrink-0 flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-orange-100">
+                  {poi.cover_image_url ? (
+                    <img src={poi.cover_image_url} className="h-full w-full object-cover" alt="" />
+                  ) : (
+                    <UtensilsCrossed size={16} className="text-orange-300" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-medium text-neutral-800">{poi.poi_name}</p>
+                  <p className="text-[11px] text-neutral-400">
+                    {[poi.city_name, poi.district_name].filter(Boolean).join(' · ') || '区域未知'}
+                  </p>
+                  {poi.address_text ? (
+                    <p className="mt-0.5 truncate text-[11px] text-neutral-400">{poi.address_text}</p>
+                  ) : null}
+                </div>
+              </button>
+            ))
           )}
         </div>
       )}
@@ -303,9 +293,9 @@ function BottomSheet({
             <p className="font-semibold text-[15px] text-neutral-900 truncate leading-snug">
               {r.display_name}
             </p>
-            {r.category_label ? (
-              <p className="text-xs font-semibold text-neutral-700 mt-0.5 truncate">
-                {r.category_label}
+            {r.big_category_name ? (
+              <p className="text-xs font-semibold text-neutral-500 mt-0.5 truncate">
+                {r.big_category_name}
               </p>
             ) : null}
             {fullAddressLine ? (
@@ -376,7 +366,7 @@ function BottomSheet({
               </div>
               {/* Comment: spans columns 2-3 */}
               <div style={{ gridArea: 'comment' }} className="flex items-start">
-                <p className="flex-1 min-w-0 text-[15px] font-semibold text-neutral-700 leading-relaxed line-clamp-3">
+                <p className="flex-1 min-w-0 text-[15px] font-semibold text-neutral-700 leading-relaxed line-clamp-2">
                   {r.top_store_comment}
                 </p>
               </div>
@@ -400,16 +390,101 @@ function BottomSheet({
 export function HomeMap() {
   const { data: restaurants = [], isLoading, error } = useMapRestaurants()
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
-  const [selectedTier, setSelectedTier] = useState<Tier | null>(null)
   const [bounds, setBounds] = useState<L.LatLngBounds | null>(null)
   const [zoom, setZoom] = useState(4)
   const mapRef = useRef<L.Map | null>(null)
   const navigate = useNavigate()
   const superclusterRef = useRef<Supercluster | null>(null)
 
+  // Filter state
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filterTab, setFilterTab] = useState<'city' | 'tier' | 'category'>('city')
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
+
+  // Pending state (selected but not applied)
+  const [pendingCity, setPendingCity] = useState<string | null>(null)
+  const [pendingTier, setPendingTier] = useState<Tier | null>(null)
+  const [pendingCategory, setPendingCategory] = useState<string | null>(null)
+
+  // Applied state (confirmed)
+  const [appliedCity, setAppliedCity] = useState<string | null>(null)
+  const [appliedTier, setAppliedTier] = useState<Tier | null>(null)
+  const [appliedCategory, setAppliedCategory] = useState<string | null>(null)
+
+  // Cities data for province → city drill-down
+  const { data: allCities = [] } = useCities()
+  const provinces = useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const c of allCities) {
+      const p = c.province_name?.trim() || '其他'
+      if (!map.has(p)) map.set(p, [])
+      map.get(p)!.push(c.name)
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
+  }, [allCities])
+
+  // Categories data: group by big category, filter to those present in restaurant data
+  // Mid-level Amap category → big category code mapping (for data without display_category_label)
+  const MID_TO_BIG: Record<string, ShijianCategoryCode> = {
+    '中餐厅': 'chinese',
+    '外国餐厅': 'western',
+    '快餐厅': 'snack_fast',
+    '休闲餐饮场所': 'other',
+    '咖啡厅': 'coffee_tea',
+    '茶艺馆': 'coffee_tea',
+    '冷饮店': 'coffee_tea',
+    '糕饼店': 'dessert_bakery',
+    '甜品店': 'dessert_bakery',
+    '餐饮相关场所': 'other',
+  }
+
+  const categoryGroups = useMemo(() => {
+    const labels = new Set(restaurants.map(r => r.category_label).filter(Boolean) as string[])
+    const groups = new Map<ShijianCategoryCode, { name: string; subs: string[] }>()
+    for (const cat of SHIJIAN_CATEGORIES) {
+      groups.set(cat.code, { name: cat.name, subs: [] })
+    }
+    for (const label of labels) {
+      // Try subcategory name match first, then mid-level category match
+      let code = SUBCATEGORY_TO_CATEGORY[label] as ShijianCategoryCode | undefined
+      if (!code || !groups.has(code)) {
+        code = MID_TO_BIG[label] as ShijianCategoryCode | undefined
+      }
+      if (code && groups.has(code)) {
+        groups.get(code)!.subs.push(label)
+      } else {
+        groups.get('other' as ShijianCategoryCode)!.subs.push(label)
+      }
+    }
+    // Remove groups with no subs, sort subs
+    return Array.from(groups.entries())
+      .filter(([, g]) => g.subs.length > 0)
+      .map(([code, g]) => ({ code, name: g.name, subs: [...new Set(g.subs)].sort() }))
+  }, [restaurants])
+
   const visibleRestaurants = useMemo(
-    () => (selectedTier ? restaurants.filter((r) => r.tier === selectedTier) : restaurants),
-    [restaurants, selectedTier],
+    () => {
+      let filtered = restaurants
+      if (appliedCity) filtered = filtered.filter(r => r.city_name === appliedCity)
+      if (appliedTier) filtered = filtered.filter(r => r.tier === appliedTier)
+      if (appliedCategory) {
+        const code = SUBCATEGORY_TO_CATEGORY[appliedCategory] as ShijianCategoryCode | undefined
+        if (code) {
+          // If it's a big category name, match all subcategories
+          const cat = SHIJIAN_CATEGORIES.find(c => c.name === appliedCategory)
+          if (cat) {
+            const subNames = new Set(cat.subcategories.map(s => s.name))
+            filtered = filtered.filter(r => r.category_label && subNames.has(r.category_label))
+          } else {
+            filtered = filtered.filter(r => r.category_label === appliedCategory)
+          }
+        } else {
+          filtered = filtered.filter(r => r.category_label === appliedCategory)
+        }
+      }
+      return filtered
+    },
+    [restaurants, appliedCity, appliedTier, appliedCategory],
   )
 
   const clusters = useMemo(() => {
@@ -469,12 +544,216 @@ export function HomeMap() {
     [navigate],
   )
 
+  function handleApply() {
+    setAppliedCity(pendingCity)
+    setAppliedTier(pendingTier)
+    setAppliedCategory(pendingCategory)
+    setFilterOpen(false)
+  }
+
+  function handleDismiss() {
+    setFilterOpen(false)
+  }
+
   return (
     <div className="relative w-full" style={{ height: 'calc(100dvh - 56px)' }}>
-      <SearchBar
-        onOpenPoi={handleOpenPoi}
-        onInteract={dismiss}
-      />
+      {/* Toolbar: solid white, browser-toolbar style */}
+      <div className="absolute top-0 left-0 right-0 z-[999] bg-white shadow-sm">
+        <SearchBar
+          onOpenPoi={handleOpenPoi}
+          onInteract={dismiss}
+        />
+        <div className="h-px bg-neutral-100" />
+        {/* Filter buttons: browser-tab style, equal-width */}
+        <div className="flex">
+          <button
+            onClick={() => {
+              if (filterOpen && filterTab === 'city') { setFilterOpen(false); return }
+              setFilterTab('city'); setFilterOpen(true)
+            }}
+            className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+              filterTab === 'city' && filterOpen
+                ? 'text-blue-600'
+                : appliedCity
+                  ? 'text-blue-600'
+                  : 'text-neutral-600'
+            }`}
+          >
+            {appliedCity || '城市'}
+            {(filterTab === 'city' && filterOpen) || appliedCity ? (
+              <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
+            ) : null}
+          </button>
+          <div className="w-px bg-neutral-100" />
+          <button
+            onClick={() => {
+              if (filterOpen && filterTab === 'tier') { setFilterOpen(false); return }
+              setFilterTab('tier'); setFilterOpen(true)
+            }}
+            className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+              filterTab === 'tier' && filterOpen
+                ? 'text-blue-600'
+                : appliedTier
+                  ? 'text-blue-600'
+                  : 'text-neutral-600'
+            }`}
+          >
+            {appliedTier ? TIER_LABEL[appliedTier] : '等级'}
+            {(filterTab === 'tier' && filterOpen) || appliedTier ? (
+              <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
+            ) : null}
+          </button>
+          <div className="w-px bg-neutral-100" />
+          <button
+            onClick={() => {
+              if (filterOpen && filterTab === 'category') { setFilterOpen(false); return }
+              setFilterTab('category'); setFilterOpen(true)
+            }}
+            className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+              filterTab === 'category' && filterOpen
+                ? 'text-blue-600'
+                : appliedCategory
+                  ? 'text-blue-600'
+                  : 'text-neutral-600'
+            }`}
+          >
+            {appliedCategory || '分类'}
+            {(filterTab === 'category' && filterOpen) || appliedCategory ? (
+              <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
+            ) : null}
+          </button>
+        </div>
+      </div>
+
+      {/* Filter panel (no duplicate tabs - buttons above act as tabs) */}
+      {filterOpen && (
+        <>
+          <div className="fixed inset-0 z-[997]" onClick={handleDismiss} />
+          <div
+            className="absolute top-[77px] left-0 right-0 z-[998] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden"
+            style={{ animation: 'shijian-slide-down 0.2s ease-out' }}
+          >
+            <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
+              {filterTab === 'city' && (
+                <div className="flex" style={{ minHeight: '30dvh' }}>
+                  <div className="w-[120px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                    {provinces.map(([pname]) => (
+                      <button
+                        key={pname}
+                        onClick={() => setSelectedProvince(pname)}
+                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${
+                          selectedProvince === pname
+                            ? 'bg-white font-semibold text-blue-600'
+                            : 'text-neutral-700 hover:bg-white/80'
+                        }`}
+                      >
+                        {pname}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {(() => {
+                      const cities = selectedProvince
+                        ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? []
+                        : []
+                      return cities.length > 0 ? (
+                        cities.map((name) => (
+                          <button
+                            key={name}
+                            onClick={() => setPendingCity(name)}
+                            className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${
+                              pendingCity === name
+                                ? 'font-semibold text-blue-600'
+                                : 'text-neutral-700'
+                            }`}
+                          >
+                            {name}
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
+                      )
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {filterTab === 'tier' && (
+                <div className="grid grid-cols-3 gap-3 px-4 py-5">
+                  {TIER_ORDER.map((tier) => (
+                    <button
+                      key={tier}
+                      onClick={() => setPendingTier(tier)}
+                      className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${
+                        pendingTier === tier
+                          ? 'ring-2 ring-blue-500 ring-offset-2 scale-105'
+                          : 'shadow-sm ring-1 ring-black/[0.06]'
+                      }`}
+                      style={{ background: TIER_HEX[tier], color: TIER_TEXT_COLOR[tier] }}
+                    >
+                      {TIER_LABEL[tier]}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {filterTab === 'category' && (
+                <div className="flex" style={{ minHeight: '30dvh' }}>
+                  <div className="w-[120px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                    {categoryGroups.map((g) => (
+                      <button
+                        key={g.code}
+                        onClick={() => setPendingCategory(g.name)}
+                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${
+                          pendingCategory === g.name
+                            ? 'bg-white font-semibold text-blue-600'
+                            : 'text-neutral-700 hover:bg-white/80'
+                        }`}
+                      >
+                        {g.name}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="flex flex-wrap gap-2 p-3">
+                      {(() => {
+                        const active = categoryGroups.find(g => g.name === pendingCategory)
+                        return active ? (
+                          active.subs.map((sub) => (
+                            <button
+                              key={sub}
+                              onClick={() => setPendingCategory(sub)}
+                              className={`rounded-lg px-3 py-2 text-[12px] font-medium transition-colors ${
+                                pendingCategory === sub
+                                  ? 'bg-blue-500 text-white'
+                                  : 'bg-neutral-100 text-neutral-700 active:bg-neutral-200'
+                              }`}
+                            >
+                              {sub}
+                            </button>
+                          ))
+                        ) : (
+                          <p className="w-full py-6 text-center text-[12px] text-neutral-400">请先选择大类</p>
+                        )
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Confirm button */}
+            <div className="border-t border-neutral-100 px-4 py-3">
+              <button
+                onClick={handleApply}
+                className="w-full rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600"
+              >
+                确定
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {isLoading && (
         <div className="absolute inset-0 z-[500] flex items-center justify-center bg-white/70 backdrop-blur-sm pointer-events-none">
@@ -533,39 +812,6 @@ export function HomeMap() {
       </MapContainer>
 
       {selected && <BottomSheet restaurant={selected} onClose={dismiss} />}
-
-      {/* 等级筛选 chips，底部悬浮；底部卡片弹出时隐藏 */}
-      {!selected && (
-        <div
-          className="absolute bottom-3 left-0 right-0 z-[400] flex gap-2 overflow-x-auto px-3 pointer-events-none"
-          style={{ scrollbarWidth: 'none' }}
-        >
-          <button
-            className="pointer-events-auto shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-md ring-1 ring-black/[0.06]"
-            style={{
-              background: selectedTier === null ? '#171717' : 'rgba(255,255,255,0.95)',
-              color: selectedTier === null ? '#fff' : '#737373',
-            }}
-            onClick={() => setSelectedTier(null)}
-          >
-            全部
-          </button>
-          {TIER_ORDER.map((tier) => (
-            <button
-              key={tier}
-              className="pointer-events-auto shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold shadow-md"
-              style={{
-                background: TIER_HEX[tier],
-                color: TIER_TEXT_COLOR[tier],
-                opacity: selectedTier !== null && selectedTier !== tier ? 0.4 : 1,
-              }}
-              onClick={() => setSelectedTier((t) => (t === tier ? null : tier))}
-            >
-              {TIER_LABEL[tier]}
-            </button>
-          ))}
-        </div>
-      )}
 
       {restaurants.length === 0 && !isLoading && !error && (
         <div className="pointer-events-none absolute bottom-16 left-4 right-4 z-[400] rounded-2xl bg-white/95 px-4 py-3 text-center text-sm text-neutral-500 shadow-lg ring-1 ring-black/5">

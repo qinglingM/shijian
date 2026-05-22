@@ -12,6 +12,7 @@ export interface MapRestaurant {
   cover_image_url: string | null
   address_text: string | null
   category_label: string | null
+  big_category_name: string | null
   tier: Tier | null
   top_reviewer_nickname: string | null
   top_reviewer_avatar_url: string | null
@@ -90,7 +91,7 @@ export function useMapRestaurants() {
 
       if (e1) throw e1
       const rawRows = (raws ?? []) as (RestaurantRow & { categories: { name?: string } | { name?: string }[] | null })[]
-      const restaurants: (RestaurantRow & { category_label: string | null })[] = rawRows.map((r) => {
+      const restaurants: (RestaurantRow & { category_label: string | null; big_category_name: string | null })[] = rawRows.map((r) => {
         const nested = r.categories
         let category_name: string | null = null
         if (nested && typeof nested === 'object' && !Array.isArray(nested) && nested.name != null)
@@ -105,7 +106,7 @@ export function useMapRestaurants() {
           r.amap_small_category?.trim() ||
           r.amap_mid_category?.trim() ||
           null
-        return { ...core, category_label }
+        return { ...core, category_label, big_category_name: category_name || null }
       })
       if (!restaurants.length) return []
 
@@ -132,6 +133,7 @@ export function useMapRestaurants() {
           cover_image_url: r.cover_image_url,
           address_text: null,
           category_label: r.category_label,
+          big_category_name: r.big_category_name,
           tier: null,
           top_reviewer_nickname: null,
           top_reviewer_avatar_url: null,
@@ -218,6 +220,7 @@ export function useMapRestaurants() {
           cover_image_url: r.cover_image_url,
           address_text: r.address_text,
           category_label: r.category_label,
+          big_category_name: r.big_category_name,
           tier: tierCounts ? modeTier(tierCounts) : null,
           top_reviewer_nickname: top ? (profile ? profile.nickname : ANONYMOUS_REVIEWER) : null,
           top_reviewer_avatar_url: profile ? profile.avatar_url : null,

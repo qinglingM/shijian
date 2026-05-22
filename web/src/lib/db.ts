@@ -171,6 +171,9 @@ export interface RestaurantRow {
   created_at: string
   updated_at: string
   display_category_label?: string | null
+  amap_type_code?: string | null
+  amap_mid_category?: string | null
+  amap_small_category?: string | null
 }
 
 export interface PracticeRecordRow {

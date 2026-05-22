@@ -183,6 +183,14 @@ export function RestaurantDetailPage() {
     categoryText = restaurantQ.data.category_name?.trim()
       || restaurantQ.data.display_category_label?.trim()
       || null
+    // 优先展示 中类·小类（如 "中餐厅·火锅店"）
+    const mid = restaurantQ.data.amap_mid_category?.trim()
+    const sub = restaurantQ.data.amap_small_category?.trim()
+    if (mid && sub) {
+      categoryText = `${mid}·${sub}`
+    } else if (mid || sub) {
+      categoryText = mid || sub
+    }
   } else if (poi) {
     title = poi.poi_name
     coverUrl = poi.cover_image_url ?? null
@@ -349,6 +357,14 @@ export function RestaurantDetailPage() {
                       {categoryText ? (
                         <p className="mt-0.5 text-[12px] font-semibold text-neutral-700">{categoryText}</p>
                       ) : null}
+                      {isDemo && demoMeta && demoMeta.address_detail ? (
+                        <p className="pt-0.5 text-[12px] leading-snug text-neutral-500">{demoMeta.address_detail}</p>
+                      ) : null}
+                      {addressText || cityDistrictText ? (
+                        <p className="pt-0.5 text-[12px] leading-snug text-neutral-500">{[cityDistrictText, addressText].filter(Boolean).join(' · ')}</p>
+                      ) : isUuid && !isDemo ? (
+                        <p className="pt-0.5 text-[12px] text-neutral-400">暂未录入城市与地址</p>
+                      ) : null}
                     </div>
 
                     <HeaderTierCard
@@ -361,22 +377,6 @@ export function RestaurantDetailPage() {
                   </div>
                 </div>
               </div>
-
-              {isDemo && demoMeta && demoMeta.address_detail ? (
-                <p className="flex items-start gap-1.5 text-[12px] leading-snug text-neutral-700">
-                  <MapPin className="mt-0.5 size-3 shrink-0 text-neutral-400" aria-hidden />
-                  <span>{demoMeta.address_detail}</span>
-                </p>
-              ) : null}
-
-              {addressText || cityDistrictText ? (
-                <p className="flex items-start gap-1.5 text-[12px] leading-snug text-neutral-700">
-                  <MapPin className="mt-0.5 size-3 shrink-0 text-neutral-400" aria-hidden />
-                  <span>{[cityDistrictText, addressText].filter(Boolean).join(' · ')}</span>
-                </p>
-              ) : isUuid && !isDemo ? (
-                <p className="text-[12px] text-neutral-400">暂未录入城市与地址</p>
-              ) : null}
 
               {isDemo ? (
                 <p className="text-[11px] text-neutral-400">示例数据 · 仅供界面预览</p>
@@ -892,7 +892,7 @@ function StoreTab({
                 )}
                 <div className="min-w-0 flex-1 pt-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-neutral-950">
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-sky-700">
                       {r.nickname}
                     </span>
                     <span

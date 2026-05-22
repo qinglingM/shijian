@@ -149,6 +149,11 @@ function validatePayload(payload: SubmitPayload) {
   if (payload.dishes.some((d) => d.name.trim() === '')) {
     throw new Error('存在未填写菜名的菜品，请补全或删除后再提交')
   }
+  for (const d of payload.dishes) {
+    if (d.name.trim().length > 16) {
+      throw new Error(`菜品「${d.name.trim()}」名称过长，最多 16 个字`)
+    }
+  }
 }
 
 async function resolveCityIdByName(

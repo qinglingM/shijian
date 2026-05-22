@@ -231,6 +231,7 @@ function DishItem({ dish }: { dish: DraftDishReview }) {
             value={dish.name}
             onChange={(e) => updateDish(dish.client_id, { name: e.target.value })}
             placeholder="菜名（如 麻辣肥牛）"
+            maxLength={16}
             className="min-w-0 flex-1 rounded-lg bg-neutral-100 px-2.5 py-1.5 text-sm outline-none"
           />
         ) : (
