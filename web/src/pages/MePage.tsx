@@ -48,6 +48,10 @@ interface MeSummary {
   recentActivities: MeActivityItem[]
 }
 
+interface MarkRestaurantRow {
+  restaurant_id: string
+}
+
 export function MePage() {
   const userId = useAuthStore((s) => s.user?.id ?? null)
   const setSession = useAuthStore((s) => s.setSession)
@@ -83,7 +87,7 @@ export function MePage() {
           .eq('is_active', true),
         supabase
           .from('marks')
-          .select('id', { count: 'exact', head: true })
+          .select('restaurant_id')
           .eq('user_id', userId!),
         supabase
           .from('user_titles')
@@ -120,6 +124,25 @@ export function MePage() {
       if (voteResult.error) throw voteResult.error
       if (recentPracticeResult.error) throw recentPracticeResult.error
 
+      const markedRestaurantIds = [
+        ...new Set(((markResult.data ?? []) as MarkRestaurantRow[]).map((row) => row.restaurant_id)),
+      ]
+      let reviewedMarkedRestaurantIds = new Set<string>()
+      if (markedRestaurantIds.length) {
+        const { data: reviewedMarks, error: reviewedMarksError } = await supabase
+          .from('practice_records')
+          .select('restaurant_id')
+          .eq('user_id', userId!)
+          .eq('is_valid_practice', true)
+          .eq('is_active', true)
+          .in('restaurant_id', markedRestaurantIds)
+
+        if (reviewedMarksError) throw reviewedMarksError
+        reviewedMarkedRestaurantIds = new Set(
+          ((reviewedMarks ?? []) as MarkRestaurantRow[]).map((row) => row.restaurant_id),
+        )
+      }
+
       const recentActivities: MeActivityItem[] = (recentPracticeResult.data ?? []).map((row) => {
         const restaurantRaw = row.restaurants as { display_name?: string } | { display_name?: string }[] | null
         const restaurantName = Array.isArray(restaurantRaw)
@@ -138,7 +161,7 @@ export function MePage() {
       return {
         profile: profileResult.data as MeSummary['profile'],
         practiceCount: practiceResult.count ?? 0,
-        markCount: markResult.count ?? 0,
+        markCount: markedRestaurantIds.filter((restaurantId) => !reviewedMarkedRestaurantIds.has(restaurantId)).length,
         titleCount: titleResult.count ?? 0,
         followersCount: followersResult.count ?? 0,
         followingCount: followingResult.count ?? 0,

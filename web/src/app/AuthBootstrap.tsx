@@ -36,16 +36,35 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
 
     const supabase = getSupabase()
 
+    async function restoreDevSession() {
+      if (!AUTH_LAX_DEV) return false
+      const ok = await ensureLaxDevAuthenticated()
+      if (!ok) return false
+      const { data: again } = await supabase.auth.getSession()
+      if (again.session) {
+        setSession(again.session)
+        return true
+      }
+      return false
+    }
+
     async function init() {
       const { data } = await supabase.auth.getSession()
       if (data.session) {
-        setSession(data.session)
+        const { data: userData, error } = await supabase.auth.getUser()
+        if (!error && userData.user) {
+          setSession(data.session)
+        } else {
+          setSession(null)
+          await supabase.auth.signOut()
+          const restored = await restoreDevSession()
+          if (!restored && !import.meta.env.PROD) {
+            console.warn('[shijian] cached Supabase session is invalid:', error?.message)
+          }
+        }
       } else if (AUTH_LAX_DEV) {
-        const ok = await ensureLaxDevAuthenticated()
-        if (ok) {
-          const { data: again } = await supabase.auth.getSession()
-          if (again.session) setSession(again.session)
-        } else if (!import.meta.env.PROD) {
+        const restored = await restoreDevSession()
+        if (!restored && !import.meta.env.PROD) {
           console.warn('[shijian] dev: 所有 Supabase Auth 方式均失败，使用开发降级身份')
         }
       } else if (FIXTURE_AUTO_LOGIN && FIXTURE_EMAIL && FIXTURE_PASSWORD) {

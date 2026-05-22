@@ -1,12 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 
-interface RestMini {
-  id: string
-  display_name: string | null
-  cover_image_url: string | null
-}
-
 export interface MyMarksWantRow {
   mark_id: string
   restaurant_id: string
@@ -15,16 +9,8 @@ export interface MyMarksWantRow {
   marked_at: string
 }
 
-export interface MyMarksReviewedRow {
-  restaurant_id: string
-  display_name: string
-  cover_image_url: string | null
-  last_practice_at: string
-}
-
 interface MarksFeedPack {
   want: MyMarksWantRow[]
-  reviewed: MyMarksReviewedRow[]
 }
 
 export function useMyMarksFeed(userId: string | null) {
@@ -101,31 +87,7 @@ export function useMyMarksFeed(userId: string | null) {
         })
       }
 
-      const reviewedIds = [...new Set(Array.from(practicedAt.keys()))]
-      let restMap = new Map<string, RestMini>()
-
-      if (reviewedIds.length) {
-        const { data: rr, error: e3 } = await sb
-          .from('restaurants')
-          .select('id, display_name, cover_image_url')
-          .in('id', reviewedIds)
-        if (e3) throw e3
-        restMap = new Map(((rr ?? []) as RestMini[]).map((x) => [x.id, x]))
-      }
-
-      const reviewed: MyMarksReviewedRow[] = [...practicedAt.entries()]
-        .map(([rid, ts]) => {
-          const rr = restMap.get(rid)
-          return {
-            restaurant_id: rid,
-            display_name: rr?.display_name ?? '未知门店',
-            cover_image_url: rr?.cover_image_url ?? null,
-            last_practice_at: ts,
-          }
-        })
-        .sort((a, b) => b.last_practice_at.localeCompare(a.last_practice_at))
-
-      return { want, reviewed }
+      return { want }
     },
   })
 }

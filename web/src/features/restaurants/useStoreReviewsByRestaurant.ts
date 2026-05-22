@@ -6,7 +6,6 @@ import type { VoteType } from '@/lib/db'
 
 export interface StoreReviewItem {
   id: string
-  user_id?: string
   nickname: string
   avatar_url: string | null
   tier: Tier
@@ -109,7 +108,6 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
           youpin_count: yCount.get(r.id) ?? 0,
           yebang_count: bCount.get(r.id) ?? 0,
           my_vote: mineVote.get(r.id) ?? null,
-          user_id: r.user_id,
         }
       })
     },

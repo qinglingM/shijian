@@ -5,6 +5,7 @@ import {
 } from '@supabase/supabase-js'
 import type { Tier } from '@/lib/db'
 import { SUPABASE_URL } from '@/lib/env'
+import { AUTH_LAX_DEV, ensureLaxDevAuthenticated } from '@/lib/laxDevAuth'
 import { getSupabase } from '@/lib/supabase'
 import type { PoiCandidate } from '@/lib/poi'
 import type { DraftDishReview, ManualRestaurantInfo } from '@/stores/practiceDraft'
@@ -43,6 +44,41 @@ function edgeInvokeTroubleshootHint(): string {
   ].join('\n')
 }
 
+async function getSubmitAccessToken(): Promise<string> {
+  const supabase = getSupabase()
+  let { data, error } = await supabase.auth.getSession()
+
+  if ((!data.session || error) && AUTH_LAX_DEV) {
+    await ensureLaxDevAuthenticated()
+    ;({ data, error } = await supabase.auth.getSession())
+  }
+
+  if (error) {
+    throw new Error(`登录状态读取失败：${error.message}`)
+  }
+
+  let session = data.session
+  if (!session?.access_token) {
+    throw new Error('登录状态已失效，请重新登录后再提交食鉴')
+  }
+
+  const expiresAt = session.expires_at ?? 0
+  const expiresSoon = expiresAt > 0 && expiresAt - Math.floor(Date.now() / 1000) < 60
+  if (expiresSoon) {
+    const refreshed = await supabase.auth.refreshSession()
+    if (refreshed.error) {
+      throw new Error(`登录状态刷新失败：${refreshed.error.message}`)
+    }
+    session = refreshed.data.session
+  }
+
+  if (!session?.access_token) {
+    throw new Error('登录状态已失效，请重新登录后再提交食鉴')
+  }
+
+  return session.access_token
+}
+
 export async function submitPractice(
   draft: SubmitPracticeDraft,
 ): Promise<SubmitPracticeResult> {
@@ -73,9 +109,15 @@ export async function submitPractice(
     })),
   }
 
+  const accessToken = await getSubmitAccessToken()
   const { data, error } = await getSupabase().functions.invoke<SubmitPracticeResult>(
     'submit-practice',
-    { body: payload },
+    {
+      body: payload,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
   )
 
   if (error) {
@@ -107,7 +149,7 @@ export async function submitPractice(
         serverText = error.message
       }
       throw new Error(
-        `submit-practice 返回 HTTP ${error.context.status}${serverText ? `：${serverText}` : ''}\n若为 401，请先登录；若为 404，多为函数未部署；若为 500，请看 Dashboard → Edge Functions → 日志里的 service_role / 运行时错误。`,
+        `submit-practice 返回 HTTP ${error.context.status}${serverText ? `：${serverText}` : ''}\n若为 401，说明当前 Supabase session 的 JWT 未被服务端接受，请重新登录；若为 404，多为函数未部署；若为 500，请看 Dashboard → Edge Functions → 日志里的 service_role / 运行时错误。`,
       )
     }
     throw error

@@ -3,7 +3,7 @@ import { BackHeader } from '@/components/layout/AppLayout'
 import { useMyMarksFeed } from '@/features/marks/useMyMarksFeed'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { Bookmark, BadgeCheck, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Bookmark, ArrowRight } from 'lucide-react'
 
 const markedFmt = new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'medium',
@@ -69,8 +69,8 @@ export function MarksPage() {
     )
   }
 
-  const { want, reviewed } = marksQ.data ?? { want: [], reviewed: [] }
-  const empty = want.length === 0 && reviewed.length === 0
+  const { want } = marksQ.data ?? { want: [] }
+  const empty = want.length === 0
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-12">
@@ -83,13 +83,12 @@ export function MarksPage() {
           </div>
           <h3 className="text-[15px] font-bold text-neutral-800">空空如也</h3>
           <p className="mt-3 text-[13px] leading-relaxed text-neutral-500">
-            还没有标记或食鉴过任何店。<br/>在门店页点击分享旁边的书签图标，即可加入「想去」清单。
+            还没有标记任何店。<br/>在门店页点击分享旁边的书签图标，即可加入「想去」清单。
           </p>
         </div>
       ) : (
         <div className="px-4 py-6 space-y-10">
           
-          {/* 仍想去 - 核心视图 */}
           <section>
             <div className="mb-4 flex items-end justify-between px-1">
               <h2 className="text-[18px] font-black tracking-tight text-neutral-900">仍想去</h2>
@@ -139,55 +138,6 @@ export function MarksPage() {
               </div>
             )}
           </section>
-
-          {/* 已食鉴 - 弱化视图 */}
-          <section>
-            <div className="mb-4 flex items-center gap-2 px-1">
-              <h2 className="text-[14px] font-bold tracking-tight text-neutral-400">已完成食鉴</h2>
-              <div className="h-px flex-1 bg-neutral-200" />
-            </div>
-
-            {reviewed.length === 0 ? (
-              <p className="px-1 text-[12px] font-medium text-neutral-400">还未完成任何标记店的食鉴。</p>
-            ) : (
-              <div className="space-y-2">
-                {reviewed.map((m) => (
-                  <Link
-                    key={m.restaurant_id}
-                    to={`/restaurants/${m.restaurant_id}`}
-                    className="flex items-center gap-3 rounded-xl bg-neutral-100/80 p-3 opacity-80 transition-opacity active:opacity-100"
-                  >
-                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-neutral-200">
-                      {m.cover_image_url ? (
-                        <>
-                          <img src={m.cover_image_url} alt="" className="size-full object-cover grayscale-[30%]" />
-                          <div className="absolute inset-0 bg-white/20" />
-                        </>
-                      ) : (
-                        <div className="flex size-full items-center justify-center bg-neutral-200 text-xs font-bold text-neutral-400">
-                          {m.display_name.slice(0, 2)}
-                        </div>
-                      )}
-                      <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm ring-2 ring-neutral-100">
-                        <CheckCircle2 size={12} strokeWidth={3} />
-                      </div>
-                    </div>
-                    
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-[14px] font-bold text-neutral-700">
-                        {m.display_name}
-                      </h3>
-                      <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-emerald-600/80">
-                        <BadgeCheck size={12} strokeWidth={2.5} />
-                        已于 {markedFmt.format(new Date(m.last_practice_at))} 评价
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </section>
-
         </div>
       )}
     </div>
