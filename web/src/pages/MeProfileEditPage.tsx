@@ -121,36 +121,35 @@ function GenderPicker({ value, onChange }: { value: string; onChange: (v: string
             className="fixed inset-0 z-40 cursor-default bg-black/40"
             onClick={() => setOpen(false)}
           />
-          <div
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-3xl bg-white shadow-xl overflow-hidden"
-            style={{ animation: 'shijian-slide-up 0.22s ease-out' }}
-          >
-            <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
-              <p className="text-[15px] font-semibold text-neutral-900">选择性别</p>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="shrink-0 rounded-full px-2 py-1 text-sm text-orange-700 active:bg-orange-50"
-              >
-                关闭
-              </button>
-            </div>
-            <div className="overflow-y-auto px-4 py-4">
-              <div className="flex flex-wrap gap-2">
-                {GENDER_SELECT.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => { onChange(opt.value); setOpen(false) }}
-                    className={`rounded-xl px-4 py-2.5 text-[13px] font-medium transition-colors ${
-                      value === opt.value
-                        ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
-                        : 'bg-neutral-100 text-neutral-700 active:bg-neutral-200'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+            <div className="pointer-events-auto mx-4 w-full max-w-[18rem] rounded-2xl bg-white shadow-xl overflow-hidden">
+              <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+                <p className="text-[15px] font-semibold text-neutral-900">选择性别</p>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="shrink-0 rounded-full px-2 py-1 text-sm text-orange-700 active:bg-orange-50"
+                >
+                  关闭
+                </button>
+              </div>
+              <div className="px-4 py-4">
+                <div className="flex gap-2">
+                  {GENDER_SELECT.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => { onChange(opt.value); setOpen(false) }}
+                      className={`flex-1 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                        value === opt.value
+                          ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
+                          : 'bg-neutral-100 text-neutral-700 active:bg-neutral-200'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -183,36 +182,35 @@ function ZodiacPicker({ value, onChange }: { value: string; onChange: (v: string
             className="fixed inset-0 z-40 cursor-default bg-black/40"
             onClick={() => setOpen(false)}
           />
-          <div
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-3xl bg-white shadow-xl overflow-hidden"
-            style={{ animation: 'shijian-slide-up 0.22s ease-out' }}
-          >
-            <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
-              <p className="text-[15px] font-semibold text-neutral-900">选择星座</p>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="shrink-0 rounded-full px-2 py-1 text-sm text-orange-700 active:bg-orange-50"
-              >
-                关闭
-              </button>
-            </div>
-            <div className="overflow-y-auto px-4 py-4">
-              <div className="grid grid-cols-3 gap-2">
-                {ZODIAC_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => { onChange(opt.value); setOpen(false) }}
-                    className={`rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
-                      value === opt.value
-                        ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
-                        : 'bg-neutral-100 text-neutral-700 active:bg-neutral-200'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+            <div className="pointer-events-auto mx-4 w-full max-w-[20rem] rounded-2xl bg-white shadow-xl overflow-hidden">
+              <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+                <p className="text-[15px] font-semibold text-neutral-900">选择星座</p>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="shrink-0 rounded-full px-2 py-1 text-sm text-orange-700 active:bg-orange-50"
+                >
+                  关闭
+                </button>
+              </div>
+              <div className="overflow-y-auto px-4 py-4">
+                <div className="grid grid-cols-3 gap-2">
+                  {ZODIAC_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => { onChange(opt.value); setOpen(false) }}
+                      className={`rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                        value === opt.value
+                          ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
+                          : 'bg-neutral-100 text-neutral-700 active:bg-neutral-200'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
