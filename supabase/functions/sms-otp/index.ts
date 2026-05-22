@@ -306,7 +306,11 @@ Deno.serve(async (req) => {
       }
 
       const accountEmail = await phoneAccountEmail(e164Phone)
-      const { error } = await admin.auth.admin.updateUserById(existingUser.id, {
+      const session = await signInWithPassword([
+        { email: accountEmail },
+        ...phoneLoginCandidates(existingUser.phone, e164Phone, localPhone).map((phone) => ({ phone })),
+      ], password)
+      await admin.auth.admin.updateUserById(existingUser.id, {
         email: accountEmail,
         phone: e164Phone,
         email_confirm: true,
@@ -316,9 +320,6 @@ Deno.serve(async (req) => {
           phone_e164: e164Phone,
         },
       })
-      if (error) throw error
-
-      const session = await signInWithPassword([{ email: accountEmail }], password)
       return new Response(JSON.stringify({
         ok: true,
         access_token: session.access_token,
@@ -354,13 +355,11 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ ok: false, error: '该手机号尚未注册' }), { headers: CORS })
         }
 
-        const tempPassword = randomPassword()
         const accountEmail = await phoneAccountEmail(e164Phone)
         const { error } = await admin.auth.admin.updateUserById(existingUser.id, {
           email: accountEmail,
           phone: e164Phone,
           email_confirm: true,
-          password: tempPassword,
           phone_confirm: true,
           user_metadata: {
             ...(existingUser.user_metadata ?? {}),
@@ -368,10 +367,24 @@ Deno.serve(async (req) => {
           },
         })
         if (error) throw error
-        const session = await signInWithPassword([
-          { email: accountEmail },
-          ...phoneLoginCandidates(existingUser.phone, e164Phone, localPhone).map((phone) => ({ phone })),
-        ], tempPassword)
+        const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+          type: 'magiclink',
+          email: accountEmail,
+        })
+        if (linkError) throw linkError
+        const verifyRes = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+          method: 'POST',
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token_hash: linkData.properties.hashed_token, type: 'magiclink' }),
+        })
+        const session = await verifyRes.json().catch(() => ({}))
+        if (!verifyRes.ok || !session?.access_token) {
+          throw new Error(session?.error_description ?? session?.msg ?? session?.message ?? '登录失败')
+        }
         return new Response(JSON.stringify({
           ok: true,
           login_phone: existingUser.phone ?? e164Phone,
