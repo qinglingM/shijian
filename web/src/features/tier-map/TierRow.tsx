@@ -50,18 +50,15 @@ export function TierRow({
             >
               {restaurant.cover_image_url ? (
                 <>
-                  <div className="min-h-0 flex-[3] overflow-hidden">
-                    <img
-                      src={restaurant.cover_image_url}
-                      alt=""
-                      className="size-full object-cover"
-                    />
-                  </div>
-                  <div className="flex flex-[1] items-center justify-center bg-white px-1">
-                    <p className="line-clamp-1 text-center text-[9px] font-medium text-neutral-800">
-                      {restaurant.display_name}
-                    </p>
-                  </div>
+                  <img
+                    src={restaurant.cover_image_url}
+                    alt=""
+                    className="size-full object-cover"
+                  />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[16%] bg-gradient-to-t from-black/65 to-transparent" />
+                  <p className="absolute inset-x-0 bottom-0 truncate text-center text-[9px] font-medium text-white px-1">
+                    {restaurant.display_name}
+                  </p>
                 </>
               ) : (
                 <div
