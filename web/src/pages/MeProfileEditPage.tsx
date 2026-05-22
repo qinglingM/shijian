@@ -12,16 +12,14 @@ import { useProfilePrivacyMutation } from '@/features/profile/useProfilePrivacyM
 
 /** 与用户资料 gender 校验一致（空串→存 null） */
 const GENDER_SELECT: { value: string; label: string }[] = [
-  { value: '', label: '未选择' },
   { value: 'male', label: '男' },
   { value: 'female', label: '女' },
   { value: 'other', label: '其他' },
-  { value: 'prefer_not_say', label: '不愿透露' },
+  { value: '', label: '不展示' },
 ]
 
 /** 与用户资料 zodiac_sign 校验一致 */
 const ZODIAC_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: '未选择' },
   { value: 'aries', label: '白羊座' },
   { value: 'taurus', label: '金牛座' },
   { value: 'gemini', label: '双子座' },
@@ -108,11 +106,11 @@ function GenderPicker({ value, onChange }: { value: string; onChange: (v: string
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`flex items-center gap-1 text-sm transition-colors ${
+        className={`ml-auto flex items-center gap-1 text-sm transition-colors ${
           value ? 'text-neutral-900' : 'text-neutral-400'
         }`}
       >
-        <span>{current?.label ?? '未选择'}</span>
+        <span>{current?.label ?? '不展示'}</span>
         <ChevronDown size={14} className="text-neutral-400" />
       </button>
       {open && (
@@ -170,11 +168,11 @@ function ZodiacPicker({ value, onChange }: { value: string; onChange: (v: string
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`flex items-center gap-1 text-sm transition-colors ${
+        className={`ml-auto flex items-center gap-1 text-sm transition-colors ${
           value ? 'text-neutral-900' : 'text-neutral-400'
         }`}
       >
-        <span>{current?.label ?? '未选择'}</span>
+        <span>{current?.label ?? '选择星座'}</span>
         <ChevronDown size={14} className="text-neutral-400" />
       </button>
       {open && (
