@@ -766,33 +766,6 @@ export function AuthPage() {
         </form>
       )}
 
-      {surface === 'phone' && phase === 'forgot' && forgotStep === 2 && (
-        <form className="space-y-4" onSubmit={(e) => {
-          e.preventDefault()
-          void verifyOtpAdvance('forgot')
-        }}
-        >
-          <PhoneRow editable={false} value={displayMobile} onChange={() => {}} />
-          <OtpField value={otp} onChange={setOtp} />
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
-          >
-            {submitting ? '验证中…' : '验证'}
-          </button>
-          <Resend
-            loading={submitting}
-            secs={resendSeconds}
-            onResend={() => void sendOtp('forgot')}
-          />
-          <button type="button" className="flex items-center gap-1 text-xs text-neutral-500" onClick={() => goPhoneLogin()}>
-            <span aria-hidden="true">←</span> 返回登录
-          </button>
-          {msg ? <Alert>{msg}</Alert> : null}
-        </form>
-      )}
-
     </div>
   )
 }

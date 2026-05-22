@@ -306,7 +306,8 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
     (zodiacSign || null) !== (initial.zodiac_sign ?? null) ||
     hometown.trim() !== (initial.hometown ?? '').trim() ||
     (birthDate.trim() || '') !== baselineBirth ||
-    profilePublic !== initial.is_profile_public
+    profilePublic !== initial.is_profile_public ||
+    avatarUrl !== initial.avatar_url
 
   const nicknameOk = nickname.trim().length > 0
   const canSubmit = isDirty && nicknameOk
