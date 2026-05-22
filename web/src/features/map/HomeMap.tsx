@@ -551,6 +551,13 @@ export function HomeMap() {
     setFilterOpen(false)
   }
 
+  function handleReset() {
+    setPendingCity(null)
+    setPendingTier(null)
+    setPendingCategory(null)
+    setSelectedProvince(null)
+  }
+
   function handleDismiss() {
     setFilterOpen(false)
   }
@@ -635,12 +642,12 @@ export function HomeMap() {
           >
             <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
               {filterTab === 'city' && (
-                <div className="flex" style={{ minHeight: '30dvh' }}>
+                <div className="flex" style={{ height: '30dvh' }}>
                   <div className="w-[120px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
                     {provinces.map(([pname]) => (
                       <button
                         key={pname}
-                        onClick={() => setSelectedProvince(pname)}
+                        onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
                         className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${
                           selectedProvince === pname
                             ? 'bg-white font-semibold text-blue-600'
@@ -660,7 +667,7 @@ export function HomeMap() {
                         cities.map((name) => (
                           <button
                             key={name}
-                            onClick={() => setPendingCity(name)}
+                            onClick={() => setPendingCity(pendingCity === name ? null : name)}
                             className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${
                               pendingCity === name
                                 ? 'font-semibold text-blue-600'
@@ -683,7 +690,7 @@ export function HomeMap() {
                   {TIER_ORDER.map((tier) => (
                     <button
                       key={tier}
-                      onClick={() => setPendingTier(tier)}
+                      onClick={() => setPendingTier(pendingTier === tier ? null : tier)}
                       className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${
                         pendingTier === tier
                           ? 'ring-2 ring-blue-500 ring-offset-2 scale-105'
@@ -698,12 +705,12 @@ export function HomeMap() {
               )}
 
               {filterTab === 'category' && (
-                <div className="flex" style={{ minHeight: '30dvh' }}>
+                <div className="flex" style={{ height: '30dvh' }}>
                   <div className="w-[120px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
                     {categoryGroups.map((g) => (
                       <button
                         key={g.code}
-                        onClick={() => setPendingCategory(g.name)}
+                        onClick={() => setPendingCategory(pendingCategory === g.name ? null : g.name)}
                         className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${
                           pendingCategory === g.name
                             ? 'bg-white font-semibold text-blue-600'
@@ -722,7 +729,7 @@ export function HomeMap() {
                           active.subs.map((sub) => (
                             <button
                               key={sub}
-                              onClick={() => setPendingCategory(sub)}
+                              onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
                               className={`rounded-lg px-3 py-2 text-[12px] font-medium transition-colors ${
                                 pendingCategory === sub
                                   ? 'bg-blue-500 text-white'
@@ -742,11 +749,17 @@ export function HomeMap() {
               )}
             </div>
 
-            {/* Confirm button */}
-            <div className="border-t border-neutral-100 px-4 py-3">
+            {/* Reset + Confirm buttons */}
+            <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
+              <button
+                onClick={handleReset}
+                className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50"
+              >
+                重置筛选
+              </button>
               <button
                 onClick={handleApply}
-                className="w-full rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600"
+                className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600"
               >
                 确定
               </button>
