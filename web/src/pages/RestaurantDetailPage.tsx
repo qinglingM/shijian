@@ -36,7 +36,6 @@ import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { usePracticeDraft } from '@/stores/practiceDraft'
 import type { PoiCandidate, PoiSource } from '@/lib/poi/types'
-import { getCategoryLabel } from '@/lib/poi/amap-category-rules'
 
 type TabKey = 'store' | 'dish'
 
@@ -189,14 +188,14 @@ export function RestaurantDetailPage() {
     if (mid && sub) {
       categoryText = `${mid}·${sub}`
     } else if (mid || sub) {
-      categoryText = mid || sub
+      categoryText = mid || sub || null
     }
   } else if (poi) {
     title = poi.poi_name
     coverUrl = poi.cover_image_url ?? null
     cityDistrictText = [poi.city_name, poi.district_name].filter(Boolean).join(' ') || null
     addressText = poi.address_text?.trim() || null
-    categoryText = poi.category?.trim() ? getCategoryLabel(poi.category.trim()) : null
+    categoryText = poi.display_label?.trim() || null
   }
 
   const storeList = isDemo

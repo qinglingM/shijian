@@ -1,6 +1,5 @@
 import { AMAP_KEY } from '@/lib/env'
 import type { PoiCandidate, PoiProvider, PoiSearchParams } from '@/lib/poi/types'
-import { matchCategory } from '@/lib/poi/amap-category-rules'
 import { mapAmapToShijian } from '@/lib/poi/category-mapper'
 
 type AmapPoiRaw = {
@@ -129,7 +128,7 @@ export class AmapPoiProvider implements PoiProvider {
           province_name: r.pname?.trim() || null,
           city_name: r.cityname?.trim() || null,
           district_name: r.adname?.trim() || null,
-          category: mapped?.categoryCode ?? matchCategory(typeStr, poiName),
+          category: mapped?.categoryCode ?? null,
           cover_image_url,
           amap_type_code: typeCode,
           amap_mid_category: parsed?.midText ?? null,

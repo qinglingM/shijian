@@ -5,7 +5,7 @@ import { TierLabelBlock } from '@/features/tier-map/TierLabelBlock'
 import { TIER_SLOT_VAR, type Tier } from '@/lib/db'
 import type { TierMapItem } from '@/features/tier-map/useTierMap'
 
-const CARD_SIZE_CLASS = 'w-[5.75rem]'
+const CARD_SIZE_CLASS = 'w-[5.25rem]'
 
 interface TierRowProps {
   tier: Tier
@@ -30,14 +30,14 @@ export function TierRow({
   }, [displayRestaurants.length])
 
   return (
-    <div className="grid grid-cols-[5.75rem_minmax(0,1fr)] items-start gap-x-0">
+    <div className="grid grid-cols-[5.75rem_minmax(0,1fr)] items-stretch gap-x-0">
       <TierLabelBlock tier={tier} count={count} href={`/tiers/${tier}`} />
 
       <div
         ref={trackRef}
-        className="min-w-0 overflow-x-auto overscroll-x-contain pr-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="min-w-0 overflow-x-auto overscroll-x-contain py-[3px] pr-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <div className="flex w-max gap-1.5">
+        <div className="flex w-max gap-[3px]">
           {displayRestaurants.map((restaurant) => (
             <Link
               key={restaurant.id}
