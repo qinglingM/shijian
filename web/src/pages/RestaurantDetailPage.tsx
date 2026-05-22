@@ -15,6 +15,7 @@ import {
   isRestaurantUuid,
   type RestaurantDetail,
 } from '@/features/restaurants/useRestaurant'
+import { SharePosterSheet, type SharePosterProps } from '@/features/restaurants/SharePosterSheet'
 import {
   applyStoreReviewVoteClick,
   intentAfterVoteTap,
@@ -119,6 +120,63 @@ export function RestaurantDetailPage() {
   const detailKnown = Boolean(isDemo || (isUuid && restaurantQ.data))
   const emptyReviews = !isDemo && isPoiRoute
 
+  const storeList = isDemo
+    ? storeReviewsDemo
+    : (storeRQ.data ?? []).filter(Boolean)
+
+  const bestReview = useMemo(() => {
+    if (!storeList.length) return null
+    if (viewerId) {
+      const myReview = storeList.find((r) => r.user_id === viewerId)
+      if (myReview) return myReview
+    }
+    const sorted = [...storeList].sort((a, b) => {
+      const netA = a.youpin_count - a.yebang_count
+      const netB = b.youpin_count - b.yebang_count
+      if (netA !== netB) return netB - netA
+      return b.created_at.localeCompare(a.created_at)
+    })
+    return sorted[0]
+  }, [storeList, viewerId])
+
+  const shareCoverUrl = useMemo(() => {
+    const rawCoverUrl = isDemo && demoMeta
+      ? demoMeta.cover_image_url
+      : isUuid && restaurantQ.data
+      ? restaurantQ.data.cover_image_url
+      : poi
+      ? poi.cover_image_url ?? null
+      : null;
+      
+    const dishFeedRaw = isDemo ? [] : (dishRQ.data ?? []);
+
+    let bestUrl = rawCoverUrl;
+
+    if (!bestUrl) {
+      const withImages = dishFeedRaw.filter((d) => d.image_url)
+      if (withImages.length > 0) {
+        const sorted = [...withImages].sort((a, b) => {
+          const netA = a.youpin_count - a.yebang_count
+          const netB = b.youpin_count - b.yebang_count
+          if (netA !== netB) return netB - netA
+          return b.created_at.localeCompare(a.created_at)
+        })
+        bestUrl = sorted[0].image_url!;
+      }
+    }
+
+    if (!bestUrl) {
+      return '/default_cover.png';
+    }
+
+    // Proxy AMap images so html2canvas can load them without CORS taint
+    if (bestUrl.includes('autonavi.com') || bestUrl.includes('amap.com')) {
+      return `https://images.weserv.nl/?url=${encodeURIComponent(bestUrl)}`
+    }
+    
+    return bestUrl;
+  }, [isDemo, demoMeta, isUuid, restaurantQ.data, poi, dishRQ.data])
+
   if (!id) return <Navigate to="/" replace />
 
   if (!isDemo && !isUuid && !isPoiRoute) {
@@ -198,9 +256,7 @@ export function RestaurantDetailPage() {
     categoryText = poi.display_label?.trim() || null
   }
 
-  const storeList = isDemo
-    ? storeReviewsDemo
-    : (storeRQ.data ?? []).filter(Boolean)
+
   const dishFeed: RestaurantDishReviewItem[] = isDemo ? [] : (dishRQ.data ?? [])
 
   const fallbackPoi =
@@ -327,10 +383,17 @@ export function RestaurantDetailPage() {
     <>
       <RestaurantDetailHeader
         title={title}
-        shareData={{
-          url: window.location.href,
-          title,
+        restaurant={{
+          name: title,
+          category: categoryText,
+          address: addressText || cityDistrictText,
+          tier: headerTierFallback,
+          coverUrl: shareCoverUrl,
         }}
+        review={bestReview ? {
+          nickname: bestReview.nickname || '匿名用户',
+          content: bestReview.store_comment || ''
+        } : null}
       />
       <div className="min-h-[calc(100vh-3rem)] bg-white pb-8">
         {detailKnown ? (
@@ -968,33 +1031,24 @@ function StoreTab({
 
 function RestaurantDetailHeader({
   title,
-  shareData,
+  restaurant,
+  review,
 }: {
   title: string
-  shareData: { url: string; title: string }
+  restaurant: SharePosterProps['restaurant']
+  review: SharePosterProps['review']
 }) {
   const [moreOpen, setMoreOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
 
-  async function handleShare() {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: shareData.title, url: shareData.url })
-      } catch {
-        // user cancelled
-      }
-    } else {
-      await navigator.clipboard.writeText(shareData.url)
-      alert('链接已复制到剪贴板')
-    }
-  }
-
   return (
-    <BackHeader title={title} backTo="/tier-map" rightSlot={
+    <>
+      <BackHeader title={title} backTo="/tier-map" rightSlot={
       <>
         <button
           type="button"
-          onClick={handleShare}
+          onClick={() => setShareOpen(true)}
           className="flex size-9 items-center justify-center rounded-full text-neutral-500 active:bg-neutral-100"
           aria-label="分享"
         >
@@ -1037,6 +1091,14 @@ function RestaurantDetailHeader({
         </div>
       </>
     } />
+    <SharePosterSheet
+      open={shareOpen}
+      onClose={() => setShareOpen(false)}
+      restaurant={restaurant}
+      review={review}
+      url={window.location.href}
+    />
+    </>
   )
 }
 

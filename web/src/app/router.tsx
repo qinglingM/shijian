@@ -22,7 +22,7 @@ import { PostDetailPage } from '@/pages/square/PostDetailPage'
 import { AuthPage } from '@/pages/AuthPage'
 import { MeProfileEditPage } from '@/pages/MeProfileEditPage'
 import { LegalDocPage } from '@/pages/LegalDocPage'
-
+import { SharePlaygroundPage } from '@/pages/SharePlaygroundPage'
 export function AppRouter() {
   return (
     <Routes>
@@ -31,6 +31,7 @@ export function AppRouter() {
       <Route element={<AppLayout />}>
         <Route path="/" element={<Navigate to="/map" replace />} />
         <Route path="/tier-map" element={<HomePage />} />
+        <Route path="/playground/share" element={<SharePlaygroundPage />} />
         <Route path="/search" element={<SearchRestaurantsPage />} />
         <Route path="/map" element={<HomeMap />} />
         <Route path="/square" element={<SquarePage />} />

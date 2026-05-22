@@ -13,5 +13,12 @@ export default defineConfig({
   server: {
     port: process.env.PORT ? Number(process.env.PORT) : 5173,
     host: true,
+    proxy: {
+      '/proxy/amap': {
+        target: 'https://store.is.autonavi.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/proxy\/amap/, ''),
+      },
+    },
   },
 })
