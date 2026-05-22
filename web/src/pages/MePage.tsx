@@ -9,7 +9,6 @@ import {
   UsersRound,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { maskPhoneDisplay } from '@/lib/maskPhone'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { ProfileRow } from '@/lib/db'
 import { useAuthStore } from '@/stores/authStore'
@@ -249,16 +248,6 @@ export function MePage() {
             {profile?.phone_binding_exempt ? (
               <p className="mt-2 text-[11px] font-medium text-amber-800">
                 研发预留帐号 · 暂不强制绑定手机号
-              </p>
-            ) : null}
-            {profile?.phone ? (
-              <p className="mt-2 text-[11px] text-neutral-600">
-                手机 {maskPhoneDisplay(profile.phone)}
-                {profile.phone_verified_at ? (
-                  <span className="text-neutral-400">（已验证）</span>
-                ) : (
-                  <span className="text-amber-700">（待短信验证）</span>
-                )}
               </p>
             ) : null}
           </div>

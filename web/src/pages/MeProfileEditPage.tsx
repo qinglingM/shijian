@@ -1,14 +1,14 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Camera, ChevronDown } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { ImageCropDialog } from '@/components/image/ImageCropDialog'
 import type { ProfileRow } from '@/lib/db'
-import { maskPhoneDisplay } from '@/lib/maskPhone'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useProfilePrivacyMutation } from '@/features/profile/useProfilePrivacyMutation'
+import { useCities } from '@/features/city-picker/useCities'
 
 /** 与用户资料 gender 校验一致（空串→存 null） */
 const GENDER_SELECT: { value: string; label: string }[] = [
@@ -96,6 +96,87 @@ function pickEditProfile(row: Record<string, unknown>): EditProfilePick {
     avatar_url: typeof row.avatar_url === 'string' ? row.avatar_url : null,
     is_profile_public: row.is_profile_public !== false,
   }
+}
+
+function HometownPicker({ value, onChange, provinces }: { value: string; onChange: (v: string) => void; provinces: [string, string[]][] }) {
+  const [open, setOpen] = useState(false)
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
+  const citiesInProvince = selectedProvince
+    ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? []
+    : []
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => { setSelectedProvince(null); setOpen(true) }}
+        className={`ml-auto flex items-center gap-1 text-sm transition-colors ${
+          value ? 'text-neutral-900' : 'text-neutral-400'
+        }`}
+      >
+        <span>{value || '省市'}</span>
+        <ChevronDown size={14} className="text-neutral-400" />
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-label="关闭"
+            className="fixed inset-0 z-40 cursor-default bg-black/40"
+            onClick={() => setOpen(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+            <div className="pointer-events-auto mx-4 w-full max-w-[18rem] rounded-2xl bg-white shadow-xl overflow-hidden">
+              <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+                <p className="text-[15px] font-semibold text-neutral-900">
+                  {selectedProvince || '选择省份'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="shrink-0 rounded-full px-2 py-1 text-sm text-orange-700 active:bg-orange-50"
+                >
+                  关闭
+                </button>
+              </div>
+              <div className="overflow-y-auto px-4 py-4" style={{ maxHeight: '50dvh' }}>
+                {!selectedProvince ? (
+                  <div className="flex flex-wrap gap-2">
+                    {provinces.map(([pname]) => (
+                      <button
+                        key={pname}
+                        type="button"
+                        onClick={() => setSelectedProvince(pname)}
+                        className="rounded-xl bg-neutral-100 px-4 py-2.5 text-[13px] font-medium text-neutral-700 active:bg-neutral-200"
+                      >
+                        {pname}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {citiesInProvince.map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => { onChange(name); setOpen(false) }}
+                        className={`rounded-xl px-4 py-2.5 text-[13px] font-medium transition-colors ${
+                          value === name
+                            ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
+                            : 'bg-neutral-100 text-neutral-700 active:bg-neutral-200'
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  )
 }
 
 function GenderPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -336,6 +417,17 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
   const privacyMut = useProfilePrivacyMutation(userId)
   const [errorText, setErrorText] = useState<string | null>(null)
 
+  const { data: allCities = [] } = useCities()
+  const provinces = useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const c of allCities) {
+      const p = c.province_name?.trim() || '其他'
+      if (!map.has(p)) map.set(p, [])
+      map.get(p)!.push(c.name)
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
+  }, [allCities])
+
   const mutation = useMutation({
     mutationFn: async (payload: {
       nickname: string
@@ -465,7 +557,8 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
             onChange={(e) => setBirthDate(e.target.value)}
             max={new Date().toISOString().slice(0, 10)}
             min="1920-01-01"
-            className={`${settingsControlRight} ml-auto w-auto [-webkit-appearance:none] [&::-webkit-calendar-picker-indicator]:ml-0 [&::-webkit-calendar-picker-indicator]:opacity-60`}
+            lang="zh-CN"
+            className={`${settingsControlRight} ml-auto w-auto [-webkit-appearance:none] [&::-webkit-calendar-picker-indicator]:hidden`}
           />
         </SettingsRow>
 
@@ -473,14 +566,8 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
           <ZodiacPicker value={zodiacSign} onChange={setZodiacSign} />
         </SettingsRow>
 
-        <SettingsRow label="家乡">
-          <input
-            maxLength={128}
-            value={hometown}
-            onChange={(e) => setHometown(e.target.value)}
-            placeholder="省市或籍贯"
-            className={settingsControlRight}
-          />
+        <SettingsRow label="城市">
+          <HometownPicker value={hometown} onChange={setHometown} provinces={provinces} />
         </SettingsRow>
 
         <SettingsRow label="主页公开">
@@ -496,25 +583,6 @@ function MeProfileEditForm({ initial, userId }: { initial: EditProfilePick; user
               />
             </button>
           </div>
-        </SettingsRow>
-
-        <SettingsRow label="绑定手机号">
-          <span
-            className="block truncate text-right text-sm text-neutral-800"
-            title={
-              initial.phone
-                ? `${maskPhoneDisplay(initial.phone)}${initial.phone_verified_at ? '（已验证）' : ''}`
-                : initial.phone_binding_exempt
-                  ? '研发预留帐号，暂不强制绑定'
-                  : '尚未绑定'
-            }
-          >
-            {initial.phone
-              ? `${maskPhoneDisplay(initial.phone)}${initial.phone_verified_at ? '' : '（待验证）'}`
-              : initial.phone_binding_exempt
-                ? '无需绑定'
-                : '尚未绑定'}
-          </span>
         </SettingsRow>
       </div>
 

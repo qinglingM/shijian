@@ -14,6 +14,7 @@ export interface StoreReviewItem {
   youpin_count: number
   yebang_count: number
   my_vote: VoteType | null
+  user_id: string
 }
 
 interface PracticeSel {
@@ -106,6 +107,7 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
           youpin_count: yCount.get(r.id) ?? 0,
           yebang_count: bCount.get(r.id) ?? 0,
           my_vote: mineVote.get(r.id) ?? null,
+          user_id: r.user_id,
         }
       })
     },

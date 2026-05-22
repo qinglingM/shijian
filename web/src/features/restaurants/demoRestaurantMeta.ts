@@ -112,6 +112,7 @@ export function getDemoStoreReviews(restaurantId: string, tier: Tier): StoreRevi
       youpin_count: 18,
       yebang_count: 3,
       my_vote: null,
+      user_id: '',
     },
     {
       id: 'demo-pr-02',
@@ -126,6 +127,7 @@ export function getDemoStoreReviews(restaurantId: string, tier: Tier): StoreRevi
       youpin_count: 4,
       yebang_count: 9,
       my_vote: null,
+      user_id: '',
     },
   ]
 }
