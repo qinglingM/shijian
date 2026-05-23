@@ -4,6 +4,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { normalizeChinaMobileToE164 } from '@/lib/phoneE164'
 import {
+  PASSWORD_RULE_HINT,
   passwordEndsWithPhoneTail,
   validatePasswordForAccount,
 } from '@/lib/passwordPolicy'
