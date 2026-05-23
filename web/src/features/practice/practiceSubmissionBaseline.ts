@@ -28,7 +28,6 @@ export type PracticeDraftDirtyInput = {
   is_public: boolean
   dishes: DraftDishReview[]
   submission_baseline: PracticeSubmissionBaseline | null
-  submission_baseline_practice_public_snapshot: boolean | null
 }
 
 function normImageUrl(v: string | null | undefined): string {
@@ -111,7 +110,5 @@ export function snapshotFromDraftLike(state: PracticeDraftDirtyInput): PracticeS
 /** 第三步：相对基线是否有任意可见修改（整单是否公开也算） */
 export function isPracticeSubmissionDirty(state: PracticeDraftDirtyInput): boolean {
   if (!state.submission_baseline || !state.tier) return false
-  const snapHold = state.submission_baseline_practice_public_snapshot
-  if (snapHold !== null && snapHold !== state.is_public) return true
   return submissionBaselineUnequal(state.submission_baseline, snapshotFromDraftLike(state))
 }

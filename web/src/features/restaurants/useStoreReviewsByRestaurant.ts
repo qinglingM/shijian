@@ -23,7 +23,6 @@ interface PracticeSel {
   store_comment: string | null
   created_at: string
   user_id: string
-  is_anonymous: boolean
 }
 
 interface VoteSel {
@@ -52,7 +51,7 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
 
       const { data: prow, error: e1 } = await sb
         .from('practice_records')
-        .select('id, tier, store_comment, created_at, user_id, is_anonymous')
+        .select('id, tier, store_comment, created_at, user_id')
         .eq('restaurant_id', rid)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
@@ -62,14 +61,14 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
       const prs = (prow ?? []) as PracticeSel[]
       if (!prs.length) return []
 
-      // 查非匿名用户的 profile
-      const nonAnonUserIds = [...new Set(prs.filter((p) => !p.is_anonymous).map((p) => p.user_id))]
+      // 查评价用户的 profile
+      const allUserIds = [...new Set(prs.map((p) => p.user_id))]
       const profileMap = new Map<string, ProfileSel>()
-      if (nonAnonUserIds.length) {
+      if (allUserIds.length) {
         const { data: profilesRaw } = await sb
           .from('profiles')
           .select('id, nickname, avatar_url')
-          .in('id', nonAnonUserIds)
+          .in('id', allUserIds)
         for (const p of (profilesRaw ?? []) as ProfileSel[]) {
           profileMap.set(p.id, p)
         }
@@ -96,7 +95,7 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
       }
 
       return prs.map((r) => {
-        const profile = r.is_anonymous ? null : profileMap.get(r.user_id) ?? null
+        const profile = profileMap.get(r.user_id) ?? null
         return {
           id: r.id,
           user_id: r.user_id,

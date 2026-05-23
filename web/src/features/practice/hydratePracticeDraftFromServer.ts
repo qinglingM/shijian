@@ -20,10 +20,8 @@ export type HydratePracticeDraftResult = {
   tier: Tier
   store_comment: string
   is_public: boolean
-  is_anonymous: boolean
   dishes_payload: HydratedDishInput[]
   submission_baseline: PracticeSubmissionBaseline
-  submission_baseline_practice_public_snapshot: boolean
 }
 
 type DishReviewRow = {
@@ -104,7 +102,6 @@ export async function fetchExistingPracticeHydration(
 
   const store_comment = (pr.store_comment as string | null | undefined)?.trim() ?? ''
   const is_public = !!(pr.is_public as boolean)
-  const is_anonymous = !!(pr.is_anonymous as boolean)
 
   const submission_baseline = buildSubmissionBaseline(tier, store_comment, comparable)
 
@@ -112,9 +109,7 @@ export async function fetchExistingPracticeHydration(
     tier,
     store_comment,
     is_public,
-    is_anonymous,
     dishes_payload,
     submission_baseline,
-    submission_baseline_practice_public_snapshot: is_anonymous,
   }
 }

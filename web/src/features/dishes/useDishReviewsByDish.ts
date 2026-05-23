@@ -31,7 +31,6 @@ interface PrMini {
   id: string
   tier: string
   user_id: string
-  is_anonymous: boolean
 }
 
 interface ProfileSel {
@@ -65,7 +64,7 @@ export function useDishReviewsByDish(dishId: string | null) {
 
       const { data: prv, error: e2 } = await sb
         .from('practice_records')
-        .select('id, tier, user_id, is_anonymous, is_active')
+        .select('id, tier, user_id, is_active')
         .in('id', prIds)
         .eq('is_active', true)
 
@@ -74,15 +73,15 @@ export function useDishReviewsByDish(dishId: string | null) {
       const practices = new Map(((prv ?? []) as PrMini[]).map((p) => [p.id, p]))
 
       // 查非匿名用户的 profile
-      const nonAnonUserIds = [...new Set(
-        ((prv ?? []) as PrMini[]).filter((p) => !p.is_anonymous).map((p) => p.user_id)
+      const allUserIds = [...new Set(
+        ((prv ?? []) as PrMini[]).map((p) => p.user_id)
       )]
       const profileMap = new Map<string, ProfileSel>()
-      if (nonAnonUserIds.length) {
+      if (allUserIds.length) {
         const { data: profilesRaw } = await sb
           .from('profiles')
           .select('id, nickname, avatar_url')
-          .in('id', nonAnonUserIds)
+          .in('id', allUserIds)
         for (const p of (profilesRaw ?? []) as ProfileSel[]) {
           profileMap.set(p.id, p)
         }
@@ -113,7 +112,7 @@ export function useDishReviewsByDish(dishId: string | null) {
         if (!pr) continue
         const votes = voteSummary.get(r.id) ?? { youpin: 0, yebang: 0, mine: null }
 
-        const profile = pr.is_anonymous ? null : profileMap.get(pr.user_id) ?? null
+        const profile = profileMap.get(pr.user_id) ?? null
         items.push({
           id: r.id,
           reviewer_nickname: profile ? profile.nickname : ANONYMOUS_REVIEWER,

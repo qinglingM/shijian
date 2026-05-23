@@ -39,7 +39,7 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
 
       const { data: prsRaw, error: e1 } = await sb
         .from('practice_records')
-        .select('id, user_id, tier, is_anonymous')
+        .select('id, user_id, tier')
         .eq('restaurant_id', rid)
         .eq('is_active', true)
 
@@ -49,7 +49,6 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
         id: string
         user_id: string
         tier: string
-        is_anonymous: boolean
       }
       const prs = (prsRaw ?? []) as PrTier[]
       if (!prs.length) return []
@@ -57,14 +56,14 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
       const prMap = new Map(prs.map((p) => [p.id, p]))
       const prIds = prs.map((p) => p.id)
 
-      // 查非匿名用户的 profile
-      const nonAnonUserIds = [...new Set(prs.filter((p) => !p.is_anonymous).map((p) => p.user_id))]
+      // 查评价用户的 profile
+      const allUserIds = [...new Set(prs.map((p) => p.user_id))]
       const profileMap = new Map<string, ProfileSel>()
-      if (nonAnonUserIds.length) {
+      if (allUserIds.length) {
         const { data: profilesRaw } = await sb
           .from('profiles')
           .select('id, nickname, avatar_url')
-          .in('id', nonAnonUserIds)
+          .in('id', allUserIds)
         for (const p of (profilesRaw ?? []) as ProfileSel[]) {
           profileMap.set(p.id, p)
         }
@@ -127,7 +126,7 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
         }
         const votes = voteSummary.get(r.id) ?? { youpin: 0, yebang: 0, mine: null }
 
-        const profile = pr.is_anonymous ? null : profileMap.get(pr.user_id) ?? null
+        const profile = profileMap.get(pr.user_id) ?? null
         out.push({
           id: r.id,
           dish_id: r.dish_id,

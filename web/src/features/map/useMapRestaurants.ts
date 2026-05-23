@@ -43,7 +43,6 @@ interface PracticeRow {
   user_id: string
   tier: string
   store_comment: string | null
-  is_anonymous: boolean
   created_at: string
 }
 
@@ -115,7 +114,7 @@ export function useMapRestaurants() {
       // 2. 这些餐厅的所有公开实践（含 tier + store_comment）
       const { data: praw, error: e2 } = await sb
         .from('practice_records')
-        .select('id, restaurant_id, user_id, tier, store_comment, is_anonymous, created_at')
+        .select('id, restaurant_id, user_id, tier, store_comment, created_at')
         .in('restaurant_id', ids)
         .eq('is_active', true)
 
@@ -194,7 +193,7 @@ export function useMapRestaurants() {
 
       // 查最热评价中非匿名用户的 profile
       const topPractices = [...topByRestaurant.values()]
-      const nonAnonUserIds = [...new Set(topPractices.filter((p) => !p.is_anonymous).map((p) => p.user_id))]
+      const nonAnonUserIds = [...new Set(topPractices.map((p) => p.user_id))]
       const profileMap = new Map<string, ProfileRow>()
       if (nonAnonUserIds.length) {
         const { data: profilesRaw } = await sb
@@ -209,7 +208,7 @@ export function useMapRestaurants() {
       return restaurants.map((r) => {
         const top = topByRestaurant.get(r.id) ?? null
         const tierCounts = tierCountsByRestaurant.get(r.id)
-        const profile = top && !top.is_anonymous ? profileMap.get(top.user_id) ?? null : null
+        const profile = top ? profileMap.get(top.user_id) ?? null : null
         return {
           id: r.id,
           display_name: r.display_name,

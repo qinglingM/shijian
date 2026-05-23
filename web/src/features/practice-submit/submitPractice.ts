@@ -17,7 +17,6 @@ export interface SubmitPracticeDraft {
   tier: Tier | null
   store_comment: string
   is_public: boolean
-  is_anonymous: boolean
   good_review_guidance: boolean
   dishes: DraftDishReview[]
 }
@@ -97,7 +96,6 @@ export async function submitPractice(
     tier: draft.tier,
     store_comment: draft.store_comment,
     is_public: draft.is_public,
-    is_anonymous: draft.is_anonymous,
     good_review_guidance: draft.good_review_guidance,
     dishes: draft.dishes.map((dish) => ({
       dish_id: dish.dish_id,

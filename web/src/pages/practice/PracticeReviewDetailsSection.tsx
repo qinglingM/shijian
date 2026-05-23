@@ -154,15 +154,6 @@ export function PracticeReviewDetailsSection({
       </section>
 
       <div className="mt-auto px-4 pt-6 pb-4">
-        <label className="mb-3 flex items-center gap-2 text-xs text-neutral-600">
-          <input
-            type="checkbox"
-            checked={draft.is_anonymous}
-            onChange={(e) => draft.setIsAnonymous(e.target.checked)}
-            className="size-3.5"
-          />
-          匿名评价
-        </label>
         <button
           type="button"
           disabled={!canSubmit || !baselineReady || submitting}
