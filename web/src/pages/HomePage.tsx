@@ -65,16 +65,27 @@ export function HomePage() {
   const [appliedCity, setAppliedCity] = useState<string | null>(null)
   const [appliedCategory, setAppliedCategory] = useState<string | null>(null)
 
-  // Cities data (only cities that have user's practice records)
+  // Correlated filter data: when city selected, only show categories in that city
+  // and vice versa
+  const filteredRestaurants = useMemo(() => {
+    return map.buckets.flatMap(b => b.restaurants.filter(r => {
+      if (appliedCity && r.city_name !== appliedCity) return false
+      if (appliedCategory) {
+        const match = r.amap_mid_category === appliedCategory ||
+          removeBracketContent(r.amap_small_category || '') === appliedCategory
+        if (!match) return false
+      }
+      return true
+    }))
+  }, [map, appliedCity, appliedCategory])
+
   const userCityIds = useMemo(() => {
     const ids = new Set<string>()
-    for (const b of map.buckets) {
-      for (const r of b.restaurants) {
-        if (r.city_name) ids.add(r.city_name)
-      }
+    for (const r of filteredRestaurants) {
+      if (r.city_name) ids.add(r.city_name)
     }
     return ids
-  }, [map])
+  }, [filteredRestaurants])
 
   const provinces = useMemo(() => {
     const mapProv = new Map<string, string[]>()
@@ -87,21 +98,18 @@ export function HomePage() {
     return Array.from(mapProv.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
   }, [allCities, userCityIds])
 
-  // Categories from user's practice data
   const categoryGroups = useMemo(() => {
     const mids = new Set<string>()
     const smallsMap = new Map<string, Set<string>>()
-    for (const b of map.buckets) {
-      for (const r of b.restaurants) {
-        if (r.amap_mid_category) {
-          mids.add(r.amap_mid_category)
-          if (r.amap_small_category) {
-            const cleaned = removeBracketContent(r.amap_small_category)
-            if (!smallsMap.has(r.amap_mid_category)) {
-              smallsMap.set(r.amap_mid_category, new Set())
-            }
-            smallsMap.get(r.amap_mid_category)!.add(cleaned)
+    for (const r of filteredRestaurants) {
+      if (r.amap_mid_category) {
+        mids.add(r.amap_mid_category)
+        if (r.amap_small_category) {
+          const cleaned = removeBracketContent(r.amap_small_category)
+          if (!smallsMap.has(r.amap_mid_category)) {
+            smallsMap.set(r.amap_mid_category, new Set())
           }
+          smallsMap.get(r.amap_mid_category)!.add(cleaned)
         }
       }
     }
@@ -111,7 +119,7 @@ export function HomePage() {
         name: g.name,
         subs: smallsMap.has(g.name) ? [...smallsMap.get(g.name)!].sort() : [],
       }))
-  }, [map])
+  }, [filteredRestaurants])
 
   const visibleMap = useMemo(() => {
     let buckets = map.buckets.map(b => {
@@ -154,7 +162,7 @@ export function HomePage() {
       <div className="relative">
         {/* Header with filters + search + view toggle */}
         <header className="flex items-center justify-between px-4 pt-4 pb-2">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => { setFilterTab('city'); setFilterOpen(true) }}
               className={`text-[13px] transition-colors ${

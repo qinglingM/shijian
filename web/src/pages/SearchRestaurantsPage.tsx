@@ -71,7 +71,7 @@ export function SearchRestaurantsPage() {
           </button>
         </form>
         <p className="mt-2 text-[11px] text-neutral-500">
-          输入关键词后显示高德 POI 结果，点击卡片可进入店铺详情。
+          仅支持搜索已入库的餐厅名称
         </p>
       </div>
 
