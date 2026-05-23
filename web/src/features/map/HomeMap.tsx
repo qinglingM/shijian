@@ -520,11 +520,11 @@ export function HomeMap() {
   )
 
   function handleReset() {
-    setAppliedCity(null)
-    setAppliedTier(null)
-    setAppliedCategory(null)
     setSelectedProvince(null)
     setSelectedBigCategory(null)
+    if (filterTab === 'city') setAppliedCity(null)
+    if (filterTab === 'tier') setAppliedTier(null)
+    if (filterTab === 'category') setAppliedCategory(null)
   }
 
   function handleDismiss() {
@@ -543,10 +543,7 @@ export function HomeMap() {
         {/* Filter buttons: browser-tab style, equal-width */}
         <div className="flex">
           <button
-            onClick={() => {
-              if (filterOpen && filterTab === 'city') { setFilterOpen(false); return }
-              setFilterTab('city'); setFilterOpen(true)
-            }}
+            onClick={() => { setFilterTab('city'); setFilterOpen(true) }}
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'city' && filterOpen
                 ? 'text-blue-600'
@@ -562,10 +559,7 @@ export function HomeMap() {
           </button>
           <div className="w-px bg-neutral-100" />
           <button
-            onClick={() => {
-              if (filterOpen && filterTab === 'tier') { setFilterOpen(false); return }
-              setFilterTab('tier'); setFilterOpen(true)
-            }}
+            onClick={() => { setFilterTab('tier'); setFilterOpen(true) }}
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'tier' && filterOpen
                 ? 'text-blue-600'
@@ -581,10 +575,7 @@ export function HomeMap() {
           </button>
           <div className="w-px bg-neutral-100" />
           <button
-            onClick={() => {
-              if (filterOpen && filterTab === 'category') { setFilterOpen(false); return }
-              setFilterTab('category'); setFilterOpen(true)
-            }}
+            onClick={() => { setFilterTab('category'); setFilterOpen(true) }}
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'category' && filterOpen
                 ? 'text-blue-600'
@@ -726,9 +717,7 @@ export function HomeMap() {
 
             {/* Reset + Confirm buttons */}
             <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
-              {(appliedCity || appliedTier || appliedCategory) ? (
-                <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
-              ) : null}
+              <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
               <button
                 onClick={() => setFilterOpen(false)}
                 disabled={filterTab === 'city' && !!selectedProvince && !appliedCity}

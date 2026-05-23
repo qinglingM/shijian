@@ -126,11 +126,11 @@ export function SquarePage() {
   const otherSortMode: SortMode = sortMode === 'latest' ? 'hot' : 'latest'
 
   function handleReset() {
-    setAppliedCity(null)
-    setAppliedTier(null)
-    setAppliedCategory(null)
     setSelectedProvince(null)
     setSelectedBigCategory(null)
+    if (filterTab === 'city') setAppliedCity(null)
+    if (filterTab === 'tier') setAppliedTier(null)
+    if (filterTab === 'category') setAppliedCategory(null)
   }
 
   return (
@@ -181,7 +181,7 @@ export function SquarePage() {
       {/* Filter bar */}
       <div className="flex items-center gap-1.5 px-4 pt-3">
         <button
-          onClick={() => { const t = 'city'; if (filterOpen && filterTab === t) { setFilterOpen(false); return } setFilterTab(t); setFilterOpen(true) }}
+          onClick={() => { const t = 'city'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
             filterTab === 'city' && filterOpen
               ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
@@ -193,7 +193,7 @@ export function SquarePage() {
           {appliedCity || '城市'}
         </button>
         <button
-          onClick={() => { const t = 'tier'; if (filterOpen && filterTab === t) { setFilterOpen(false); return } setFilterTab(t); setFilterOpen(true) }}
+          onClick={() => { const t = 'tier'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
             filterTab === 'tier' && filterOpen
               ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
@@ -205,7 +205,7 @@ export function SquarePage() {
           {appliedTier ? TIER_LABEL[appliedTier] : '等级'}
         </button>
         <button
-          onClick={() => { const t = 'category'; if (filterOpen && filterTab === t) { setFilterOpen(false); return } setFilterTab(t); setFilterOpen(true) }}
+          onClick={() => { const t = 'category'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
             filterTab === 'category' && filterOpen
               ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
@@ -297,9 +297,7 @@ export function SquarePage() {
               )}
             </div>
             <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
-              {(appliedCity || appliedTier || appliedCategory) ? (
-                <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
-              ) : null}
+              <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
               <button
                 onClick={() => setFilterOpen(false)}
                 disabled={filterTab === 'city' && !!selectedProvince && !appliedCity}
