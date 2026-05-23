@@ -750,7 +750,7 @@ export function HomeMap() {
                 onClick={handleReset}
                 className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50"
               >
-                重置筛选
+                重置
               </button>
               <button
                 onClick={handleApply}

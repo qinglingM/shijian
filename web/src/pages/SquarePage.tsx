@@ -1,54 +1,309 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
-import { Search, PenSquare } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Search, PenSquare, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { TIER_SOFT_VAR, type Tier, type VoteType } from '@/lib/db'
+import { TIER_ORDER, TIER_LABEL, TIER_COLOR_VAR, TIER_SOFT_VAR, type Tier, type VoteType } from '@/lib/db'
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
 import { useTodayPracticeCount } from '@/features/square/useTodayPracticeCount'
 import { applyStoreReviewVoteClick, intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useCities } from '@/features/city-picker/useCities'
+import { SHIJIAN_CATEGORIES, SUBCATEGORY_TO_CATEGORY, type ShijianCategoryCode } from '@/lib/poi/shijian-categories'
+
+type SortMode = 'latest' | 'hot'
+
+const TIER_TEXT_COLOR: Record<Tier, string> = {
+  boom: '#fff',
+  hang: '#fff',
+  top: '#fff',
+  upper: '#5a4a00',
+  npc: '#6b5a3a',
+  bad: '#999',
+}
+
+const MID_TO_BIG: Record<string, ShijianCategoryCode> = {
+  '中餐厅': 'chinese',
+  '外国餐厅': 'western',
+  '快餐厅': 'snack_fast',
+  '休闲餐饮场所': 'other',
+  '咖啡厅': 'coffee_tea',
+  '茶艺馆': 'coffee_tea',
+  '冷饮店': 'coffee_tea',
+  '糕饼店': 'dessert_bakery',
+  '甜品店': 'dessert_bakery',
+  '餐饮相关场所': 'other',
+}
 
 export function SquarePage() {
-  const navigate = useNavigate()
-  const [draft, setDraft] = useState('')
   const { data: feed = [], isLoading } = useSquareFeed()
   const { data: todayCount = 0 } = useTodayPracticeCount()
-  const columns = useMemo(() => splitIntoMasonryColumns(feed), [feed])
+  const { data: allCities = [] } = useCities()
 
-  function onSearch(e: FormEvent) {
-    e.preventDefault()
-    const q = draft.trim()
-    if (q) navigate('/search?q=' + encodeURIComponent(q))
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Sort state
+  const [sortMode, setSortMode] = useState<SortMode>('latest')
+  const [sortOpen, setSortOpen] = useState(false)
+
+  // Filter state
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filterTab, setFilterTab] = useState<'city' | 'tier' | 'category'>('city')
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
+
+  const [pendingCity, setPendingCity] = useState<string | null>(null)
+  const [pendingTier, setPendingTier] = useState<Tier | null>(null)
+  const [pendingCategory, setPendingCategory] = useState<string | null>(null)
+
+  const [appliedCity, setAppliedCity] = useState<string | null>(null)
+  const [appliedTier, setAppliedTier] = useState<Tier | null>(null)
+  const [appliedCategory, setAppliedCategory] = useState<string | null>(null)
+
+  // Cities data for province → city drill-down
+  const provinces = useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const c of allCities) {
+      const p = c.province_name?.trim() || '其他'
+      if (!map.has(p)) map.set(p, [])
+      map.get(p)!.push(c.name)
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
+  }, [allCities])
+
+  // Categories data
+  const categoryGroups = useMemo(() => {
+    const labels = new Set(feed.map(r => r.category_label).filter(Boolean) as string[])
+    return SHIJIAN_CATEGORIES.map((cat) => {
+      const labelSet = new Set<string>()
+      for (const label of labels) {
+        let code = SUBCATEGORY_TO_CATEGORY[label] as ShijianCategoryCode | undefined
+        if (!code || !cat.subcategories.some((s) => s.name === label)) {
+          code = MID_TO_BIG[label] as ShijianCategoryCode | undefined
+        }
+        if (code === cat.code) labelSet.add(label)
+      }
+      const subs = labelSet.size > 0 ? [...labelSet].sort() : cat.subcategories.map((s) => s.name)
+      return { code: cat.code, name: cat.name, subs }
+    })
+  }, [feed])
+
+  // Filter + search + sort logic
+  const filteredFeed = useMemo(() => {
+    let items = feed
+
+    // Search
+    const q = searchQuery.trim().toLowerCase()
+    if (q) {
+      items = items.filter(item =>
+        item.restaurant_name.toLowerCase().includes(q) ||
+        item.content.toLowerCase().includes(q) ||
+        (item.category_label && item.category_label.toLowerCase().includes(q))
+      )
+    }
+
+    // City
+    if (appliedCity) items = items.filter(item => item.city_name === appliedCity)
+    // Tier
+    if (appliedTier) items = items.filter(item => item.tier === appliedTier)
+    // Category
+    if (appliedCategory) items = items.filter(item => item.category_label === appliedCategory)
+
+    // Sort
+    if (sortMode === 'hot') {
+      items = [...items].sort((a, b) => b.youpin_count - a.youpin_count)
+    }
+
+    return items
+  }, [feed, searchQuery, appliedCity, appliedTier, appliedCategory, sortMode])
+
+  const columns = useMemo(() => splitIntoMasonryColumns(filteredFeed), [filteredFeed])
+
+  // Sort dropdown
+  const sortLabel = sortMode === 'latest' ? '最新' : '最热'
+  const otherSortLabel = sortMode === 'latest' ? '最热' : '最新'
+  const otherSortMode: SortMode = sortMode === 'latest' ? 'hot' : 'latest'
+
+  function handleApply() {
+    setAppliedCity(pendingCity)
+    setAppliedTier(pendingTier)
+    setAppliedCategory(pendingCategory)
+    setFilterOpen(false)
+  }
+
+  function handleReset() {
+    setPendingCity(null)
+    setPendingTier(null)
+    setPendingCategory(null)
+    setSelectedProvince(null)
   }
 
   return (
     <div className="flex min-h-[calc(100dvh-6rem)] flex-col bg-white">
+      {/* Search + Sort bar */}
       <section className="px-4 pt-4">
-        <form onSubmit={onSearch} className="relative">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400"
-            aria-hidden
-          />
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="搜索餐厅来看看别人的评价"
-            className="w-full rounded-full bg-neutral-100 py-2.5 pl-10 pr-4 text-sm outline-none placeholder:text-neutral-400"
-            enterKeyHint="search"
-          />
-        </form>
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" aria-hidden />
+            <input
+              ref={inputRef}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜索餐厅、评价、分类…"
+              className="w-full rounded-full bg-neutral-100 py-2.5 pl-10 pr-4 text-sm outline-none placeholder:text-neutral-400"
+              enterKeyHint="search"
+            />
+          </div>
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setSortOpen(!sortOpen)}
+              className="flex items-center gap-1 rounded-full bg-neutral-100 px-3 py-2.5 text-sm font-medium text-neutral-700"
+            >
+              {sortLabel}
+              <ChevronDown size={14} className={cn('transition-transform', sortOpen && 'rotate-180')} />
+            </button>
+            {sortOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-50 min-w-[5rem] rounded-lg bg-white shadow-lg ring-1 ring-black/[0.06] overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => { setSortMode(otherSortMode); setSortOpen(false) }}
+                    className="block w-full px-3 py-2 text-left text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                  >
+                    {otherSortLabel}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
         <p className="mt-1.5 text-center text-xs text-neutral-500">
           今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
         </p>
       </section>
 
-      <section className="flex-1 px-4 pt-5 pb-6">
-        <h2 className="mb-3 text-sm font-semibold text-neutral-900">最新动态</h2>
+      {/* Filter bar */}
+      <div className="flex items-center gap-1.5 px-4 pt-3 pb-2">
+        <button
+          onClick={() => { const t = 'city'; if (filterOpen && filterTab === t) { setFilterOpen(false); return } setFilterTab(t); setFilterOpen(true) }}
+          className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
+            filterTab === 'city' && filterOpen
+              ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
+              : pendingCity || appliedCity
+                ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
+                : 'bg-neutral-100 text-neutral-500'
+          }`}
+        >
+          {pendingCity || appliedCity || '城市'}
+        </button>
+        <button
+          onClick={() => { const t = 'tier'; if (filterOpen && filterTab === t) { setFilterOpen(false); return } setFilterTab(t); setFilterOpen(true) }}
+          className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
+            filterTab === 'tier' && filterOpen
+              ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
+              : pendingTier || appliedTier
+                ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
+                : 'bg-neutral-100 text-neutral-500'
+          }`}
+        >
+          {pendingTier ? TIER_LABEL[pendingTier] : appliedTier ? TIER_LABEL[appliedTier] : '等级'}
+        </button>
+        <button
+          onClick={() => { const t = 'category'; if (filterOpen && filterTab === t) { setFilterOpen(false); return } setFilterTab(t); setFilterOpen(true) }}
+          className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
+            filterTab === 'category' && filterOpen
+              ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
+              : pendingCategory || appliedCategory
+                ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
+                : 'bg-neutral-100 text-neutral-500'
+          }`}
+        >
+          {pendingCategory || appliedCategory || '分类'}
+        </button>
+      </div>
 
+      {/* Filter panel (same pattern as map page) */}
+      {filterOpen && (
+        <>
+          <div className="fixed inset-0 z-[997]" onClick={() => setFilterOpen(false)} />
+          <div className="relative z-[998] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden" style={{ animation: 'shijian-slide-down 0.2s ease-out' }}>
+            <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
+              {filterTab === 'city' && (
+                <div className="flex" style={{ height: '30dvh' }}>
+                  <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                    {provinces.map(([pname]) => (
+                      <button key={pname} onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
+                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedProvince === pname ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
+                        {pname}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {(() => {
+                      const cities = selectedProvince ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? [] : []
+                      return cities.length > 0 ? cities.map((name) => (
+                        <button key={name} onClick={() => setPendingCity(pendingCity === name ? null : name)}
+                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                          {name}
+                        </button>
+                      )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
+                    })()}
+                  </div>
+                </div>
+              )}
+              {filterTab === 'tier' && (
+                <div className="grid grid-cols-3 gap-3 px-4 py-5">
+                  {TIER_ORDER.map((tier) => (
+                    <button key={tier} onClick={() => setPendingTier(pendingTier === tier ? null : tier)}
+                      className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${pendingTier === tier ? 'ring-2 ring-blue-500 ring-offset-2 scale-105' : 'shadow-sm ring-1 ring-black/[0.06]'}`}
+                      style={{ background: TIER_COLOR_VAR[tier], color: TIER_TEXT_COLOR[tier] }}>
+                      {TIER_LABEL[tier]}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {filterTab === 'category' && (
+                <div className="flex" style={{ height: '30dvh' }}>
+                  <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                    {categoryGroups.map((g) => (
+                      <button key={g.code} onClick={() => setPendingCategory(pendingCategory === g.name ? null : g.name)}
+                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${pendingCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
+                        {g.name}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {(() => {
+                      const active = categoryGroups.find(g => g.name === pendingCategory)
+                      return active ? active.subs.map((sub) => (
+                        <button key={sub} onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
+                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                          {sub}
+                        </button>
+                      )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择大类</p>
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
+              <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
+              <button onClick={handleApply} className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600">确定</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Content */}
+      <section className="flex-1 px-4 pt-3 pb-6">
         {isLoading ? (
           <p className="py-14 text-center text-sm text-neutral-400">载入广场内容…</p>
+        ) : filteredFeed.length === 0 ? (
+          <p className="py-14 text-center text-sm text-neutral-400">暂无相关内容</p>
         ) : null}
 
         <div className="grid grid-cols-2 gap-3">
