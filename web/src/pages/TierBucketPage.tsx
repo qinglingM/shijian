@@ -74,14 +74,16 @@ export function TierBucketPage() {
                       <ChevronRight className="mt-0.5 size-4 shrink-0 text-neutral-300" aria-hidden />
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      {restaurant.category_name ? (
+                      {restaurant.amap_mid_category ? (
                         <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
-                          {restaurant.category_name}
+                          {restaurant.amap_small_category
+                            ? `${restaurant.amap_mid_category}·${restaurant.amap_small_category.replace(/（.*?）/g, '').replace(/\(.*?\)/g, '').trim()}`
+                            : restaurant.amap_mid_category}
                         </span>
                       ) : null}
                     </div>
                     <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-neutral-500">
-                      {restaurant.city_id || '城市未录入'}
+                      {restaurant.city_name || '城市未录入'}
                     </p>
                   </div>
                 </div>

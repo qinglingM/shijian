@@ -161,20 +161,20 @@ export function HomePage() {
     <div className="flex min-h-[calc(100vh-5rem)] flex-col">
       <div className="relative">
         {/* Header with filters + search + view toggle */}
-        <header className="flex items-center justify-between px-4 pt-4 pb-2">
-          <div className="flex items-center gap-2">
+        <header className="relative flex items-center justify-between px-4 pt-4 pb-2">
+          <div className="flex items-center gap-2 overflow-hidden min-w-0">
             <button
               onClick={() => { setFilterTab('city'); setFilterOpen(true) }}
-              className={`text-[13px] transition-colors ${
+              className={`truncate max-w-[5rem] text-[13px] transition-colors ${
                 appliedCity ? 'text-blue-600 font-medium' : 'text-neutral-500'
               }`}
             >
               {appliedCity || '城市'}
             </button>
-            <span className="text-neutral-300">|</span>
+            <span className="text-neutral-300 shrink-0">|</span>
             <button
               onClick={() => { setFilterTab('category'); setFilterOpen(true) }}
-              className={`text-[13px] transition-colors ${
+              className={`truncate max-w-[5rem] text-[13px] transition-colors ${
                 appliedCategory ? 'text-blue-600 font-medium' : 'text-neutral-500'
               }`}
             >
@@ -182,9 +182,9 @@ export function HomePage() {
             </button>
           </div>
 
-          <h1 className="text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
+          <h1 className="absolute left-1/2 -translate-x-1/2 text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={() => navigate('/search')}
