@@ -400,13 +400,9 @@ export function HomeMap() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [filterTab, setFilterTab] = useState<'city' | 'tier' | 'category'>('city')
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
+  const [selectedBigCategory, setSelectedBigCategory] = useState<string | null>(null)
 
-  // Pending state (selected but not applied)
-  const [pendingCity, setPendingCity] = useState<string | null>(null)
-  const [pendingTier, setPendingTier] = useState<Tier | null>(null)
-  const [pendingCategory, setPendingCategory] = useState<string | null>(null)
-
-  // Applied state (confirmed)
+  // Applied state (immediate - no pending)
   const [appliedCity, setAppliedCity] = useState<string | null>(null)
   const [appliedTier, setAppliedTier] = useState<Tier | null>(null)
   const [appliedCategory, setAppliedCategory] = useState<string | null>(null)
@@ -438,26 +434,14 @@ export function HomeMap() {
     '餐饮相关场所': 'other',
   }
 
-  const categoryGroups = useMemo(() => {
-    const labels = new Set(restaurants.map(r => r.category_label).filter(Boolean) as string[])
-    return SHIJIAN_CATEGORIES.map((cat) => {
-      const labelSet = new Set<string>()
-      for (const label of labels) {
-        // Try subcategory name match first, then mid-level category match
-        let code = SUBCATEGORY_TO_CATEGORY[label] as ShijianCategoryCode | undefined
-        if (!code || !cat.subcategories.some((s) => s.name === label)) {
-          code = MID_TO_BIG[label] as ShijianCategoryCode | undefined
-        }
-        if (code === cat.code) {
-          labelSet.add(label)
-        }
-      }
-      const subs = labelSet.size > 0
-        ? [...labelSet].sort()
-        : cat.subcategories.map((s) => s.name)
-      return { code: cat.code, name: cat.name, subs }
-    })
-  }, [restaurants])
+  const categoryGroups = useMemo(
+    () => SHIJIAN_CATEGORIES.map((cat) => ({
+      code: cat.code,
+      name: cat.name,
+      subs: cat.subcategories.map((s) => s.name),
+    })),
+    [],
+  )
 
   const visibleRestaurants = useMemo(
     () => {
@@ -465,16 +449,17 @@ export function HomeMap() {
       if (appliedCity) filtered = filtered.filter(r => r.city_name === appliedCity)
       if (appliedTier) filtered = filtered.filter(r => r.tier === appliedTier)
       if (appliedCategory) {
-        const code = SUBCATEGORY_TO_CATEGORY[appliedCategory] as ShijianCategoryCode | undefined
-        if (code) {
-          // If it's a big category name, match all subcategories
-          const cat = SHIJIAN_CATEGORIES.find(c => c.name === appliedCategory)
-          if (cat) {
-            const subNames = new Set(cat.subcategories.map(s => s.name))
-            filtered = filtered.filter(r => r.category_label && subNames.has(r.category_label))
-          } else {
-            filtered = filtered.filter(r => r.category_label === appliedCategory)
-          }
+        const cat = SHIJIAN_CATEGORIES.find(c => c.name === appliedCategory)
+        if (cat) {
+          // Big category: match labels via SUBCATEGORY_TO_CATEGORY and MID_TO_BIG
+          filtered = filtered.filter(r => {
+            if (!r.category_label) return false
+            const subCode = SUBCATEGORY_TO_CATEGORY[r.category_label]
+            if (subCode === cat.code) return true
+            const midCode = MID_TO_BIG[r.category_label]
+            if (midCode === cat.code) return true
+            return false
+          })
         } else {
           filtered = filtered.filter(r => r.category_label === appliedCategory)
         }
@@ -541,18 +526,12 @@ export function HomeMap() {
     [navigate],
   )
 
-  function handleApply() {
-    setAppliedCity(pendingCity)
-    setAppliedTier(pendingTier)
-    setAppliedCategory(pendingCategory)
-    setFilterOpen(false)
-  }
-
   function handleReset() {
-    setPendingCity(null)
-    setPendingTier(null)
-    setPendingCategory(null)
+    setAppliedCity(null)
+    setAppliedTier(null)
+    setAppliedCategory(null)
     setSelectedProvince(null)
+    setSelectedBigCategory(null)
   }
 
   function handleDismiss() {
@@ -578,13 +557,13 @@ export function HomeMap() {
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'city' && filterOpen
                 ? 'text-blue-600'
-                : pendingCity || appliedCity
+                : appliedCity
                   ? 'text-blue-600'
                   : 'text-neutral-600'
             }`}
           >
-            {pendingCity || appliedCity || '城市'}
-            {(filterTab === 'city' && filterOpen) || pendingCity || appliedCity ? (
+            {appliedCity || '城市'}
+            {(filterTab === 'city' && filterOpen) || appliedCity ? (
               <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
             ) : null}
           </button>
@@ -597,13 +576,13 @@ export function HomeMap() {
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'tier' && filterOpen
                 ? 'text-blue-600'
-                : pendingTier || appliedTier
+                : appliedTier
                   ? 'text-blue-600'
                   : 'text-neutral-600'
             }`}
           >
-            {pendingTier ? TIER_LABEL[pendingTier] : appliedTier ? TIER_LABEL[appliedTier] : '等级'}
-            {(filterTab === 'tier' && filterOpen) || pendingTier || appliedTier ? (
+            {appliedTier ? TIER_LABEL[appliedTier] : '等级'}
+            {(filterTab === 'tier' && filterOpen) || appliedTier ? (
               <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
             ) : null}
           </button>
@@ -616,13 +595,13 @@ export function HomeMap() {
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'category' && filterOpen
                 ? 'text-blue-600'
-                : pendingCategory || appliedCategory
+                : appliedCategory
                   ? 'text-blue-600'
                   : 'text-neutral-600'
             }`}
           >
-            {pendingCategory || appliedCategory || '分类'}
-            {(filterTab === 'category' && filterOpen) || pendingCategory || appliedCategory ? (
+            {appliedCategory || '分类'}
+            {(filterTab === 'category' && filterOpen) || appliedCategory ? (
               <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
             ) : null}
           </button>
@@ -664,9 +643,9 @@ export function HomeMap() {
                         cities.map((name) => (
                           <button
                             key={name}
-                            onClick={() => setPendingCity(pendingCity === name ? null : name)}
+                            onClick={() => setAppliedCity(appliedCity === name ? null : name)}
                             className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${
-                              pendingCity === name
+                              appliedCity === name
                                 ? 'font-semibold text-blue-600'
                                 : 'text-neutral-700'
                             }`}
@@ -687,9 +666,9 @@ export function HomeMap() {
                   {TIER_ORDER.map((tier) => (
                     <button
                       key={tier}
-                      onClick={() => setPendingTier(pendingTier === tier ? null : tier)}
+                      onClick={() => setAppliedTier(appliedTier === tier ? null : tier)}
                       className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${
-                        pendingTier === tier
+                        appliedTier === tier
                           ? 'ring-2 ring-blue-500 ring-offset-2 scale-105'
                           : 'shadow-sm ring-1 ring-black/[0.06]'
                       }`}
@@ -707,9 +686,17 @@ export function HomeMap() {
                     {categoryGroups.map((g) => (
                       <button
                         key={g.code}
-                        onClick={() => setPendingCategory(pendingCategory === g.name ? null : g.name)}
+                        onClick={() => {
+                          if (selectedBigCategory === g.name) {
+                            setSelectedBigCategory(null)
+                            setAppliedCategory(null)
+                          } else {
+                            setSelectedBigCategory(g.name)
+                            setAppliedCategory(g.name)
+                          }
+                        }}
                         className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${
-                          pendingCategory === g.name
+                          selectedBigCategory === g.name
                             ? 'bg-white font-semibold text-blue-600'
                             : 'text-neutral-700 hover:bg-white/80'
                         }`}
@@ -720,14 +707,14 @@ export function HomeMap() {
                   </div>
                   <div className="flex-1 overflow-y-auto">
                     {(() => {
-                      const active = categoryGroups.find(g => g.name === pendingCategory)
+                      const active = categoryGroups.find(g => g.name === selectedBigCategory)
                       return active ? (
                         active.subs.map((sub) => (
                           <button
                             key={sub}
-                            onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
+                            onClick={() => setAppliedCategory(appliedCategory === sub ? null : sub)}
                             className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${
-                              pendingCategory === sub
+                              appliedCategory === sub
                                 ? 'font-semibold text-blue-600'
                                 : 'text-neutral-700'
                             }`}
@@ -744,20 +731,11 @@ export function HomeMap() {
               )}
             </div>
 
-            {/* Reset + Confirm buttons */}
+            {/* Reset button only */}
             <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
-              <button
-                onClick={handleReset}
-                className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50"
-              >
-                重置
-              </button>
-              <button
-                onClick={handleApply}
-                className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600"
-              >
-                确定
-              </button>
+              {(appliedCity || appliedTier || appliedCategory) ? (
+                <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
+              ) : null}
             </div>
           </div>
         </>

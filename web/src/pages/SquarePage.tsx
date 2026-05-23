@@ -53,10 +53,7 @@ export function SquarePage() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [filterTab, setFilterTab] = useState<'city' | 'tier' | 'category'>('city')
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
-
-  const [pendingCity, setPendingCity] = useState<string | null>(null)
-  const [pendingTier, setPendingTier] = useState<Tier | null>(null)
-  const [pendingCategory, setPendingCategory] = useState<string | null>(null)
+  const [selectedBigCategory, setSelectedBigCategory] = useState<string | null>(null)
 
   const [appliedCity, setAppliedCity] = useState<string | null>(null)
   const [appliedTier, setAppliedTier] = useState<Tier | null>(null)
@@ -74,21 +71,14 @@ export function SquarePage() {
   }, [allCities])
 
   // Categories data
-  const categoryGroups = useMemo(() => {
-    const labels = new Set(feed.map(r => r.category_label).filter(Boolean) as string[])
-    return SHIJIAN_CATEGORIES.map((cat) => {
-      const labelSet = new Set<string>()
-      for (const label of labels) {
-        let code = SUBCATEGORY_TO_CATEGORY[label] as ShijianCategoryCode | undefined
-        if (!code || !cat.subcategories.some((s) => s.name === label)) {
-          code = MID_TO_BIG[label] as ShijianCategoryCode | undefined
-        }
-        if (code === cat.code) labelSet.add(label)
-      }
-      const subs = labelSet.size > 0 ? [...labelSet].sort() : cat.subcategories.map((s) => s.name)
-      return { code: cat.code, name: cat.name, subs }
-    })
-  }, [feed])
+  const categoryGroups = useMemo(
+    () => SHIJIAN_CATEGORIES.map((cat) => ({
+      code: cat.code,
+      name: cat.name,
+      subs: cat.subcategories.map((s) => s.name),
+    })),
+    [],
+  )
 
   // Filter + search + sort logic
   const filteredFeed = useMemo(() => {
@@ -109,7 +99,21 @@ export function SquarePage() {
     // Tier
     if (appliedTier) items = items.filter(item => item.tier === appliedTier)
     // Category
-    if (appliedCategory) items = items.filter(item => item.category_label === appliedCategory)
+    if (appliedCategory) {
+      const cat = SHIJIAN_CATEGORIES.find(c => c.name === appliedCategory)
+      if (cat) {
+        items = items.filter(r => {
+          if (!r.category_label) return false
+          const subCode = SUBCATEGORY_TO_CATEGORY[r.category_label]
+          if (subCode === cat.code) return true
+          const midCode = MID_TO_BIG[r.category_label]
+          if (midCode === cat.code) return true
+          return false
+        })
+      } else {
+        items = items.filter(r => r.category_label === appliedCategory)
+      }
+    }
 
     // Sort
     if (sortMode === 'hot') {
@@ -126,18 +130,12 @@ export function SquarePage() {
   const otherSortLabel = sortMode === 'latest' ? '最热' : '最新'
   const otherSortMode: SortMode = sortMode === 'latest' ? 'hot' : 'latest'
 
-  function handleApply() {
-    setAppliedCity(pendingCity)
-    setAppliedTier(pendingTier)
-    setAppliedCategory(pendingCategory)
-    setFilterOpen(false)
-  }
-
   function handleReset() {
-    setPendingCity(null)
-    setPendingTier(null)
-    setPendingCategory(null)
+    setAppliedCity(null)
+    setAppliedTier(null)
+    setAppliedCategory(null)
     setSelectedProvince(null)
+    setSelectedBigCategory(null)
   }
 
   return (
@@ -192,36 +190,36 @@ export function SquarePage() {
           className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
             filterTab === 'city' && filterOpen
               ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-              : pendingCity || appliedCity
+              : appliedCity
                 ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
                 : 'bg-neutral-100 text-neutral-500'
           }`}
         >
-          {pendingCity || appliedCity || '城市'}
+          {appliedCity || '城市'}
         </button>
         <button
           onClick={() => { const t = 'tier'; if (filterOpen && filterTab === t) { setFilterOpen(false); return } setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
             filterTab === 'tier' && filterOpen
               ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-              : pendingTier || appliedTier
+              : appliedTier
                 ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
                 : 'bg-neutral-100 text-neutral-500'
           }`}
         >
-          {pendingTier ? TIER_LABEL[pendingTier] : appliedTier ? TIER_LABEL[appliedTier] : '等级'}
+          {appliedTier ? TIER_LABEL[appliedTier] : '等级'}
         </button>
         <button
           onClick={() => { const t = 'category'; if (filterOpen && filterTab === t) { setFilterOpen(false); return } setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
             filterTab === 'category' && filterOpen
               ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-              : pendingCategory || appliedCategory
+              : appliedCategory
                 ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
                 : 'bg-neutral-100 text-neutral-500'
           }`}
         >
-          {pendingCategory || appliedCategory || '分类'}
+          {appliedCategory || '分类'}
         </button>
       </div>
 
@@ -234,14 +232,17 @@ export function SquarePage() {
       {filterOpen && (
         <>
           <div className="fixed inset-0 z-[997]" onClick={() => setFilterOpen(false)} />
-          <div className="absolute top-full left-0 right-0 z-[998] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden" style={{ animation: 'shijian-slide-down 0.2s ease-out' }}>
+          <div className="absolute top-full left-0 right-0 z-[999] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden" style={{ animation: 'shijian-slide-down 0.2s ease-out' }}>
             <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
               {filterTab === 'city' && (
                 <div className="flex" style={{ height: '30dvh' }}>
                   <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
                     {provinces.map(([pname]) => (
-                      <button key={pname} onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
-                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedProvince === pname ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
+                      <button
+                        key={pname}
+                        onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
+                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedProvince === pname ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}
+                      >
                         {pname}
                       </button>
                     ))}
@@ -250,8 +251,8 @@ export function SquarePage() {
                     {(() => {
                       const cities = selectedProvince ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? [] : []
                       return cities.length > 0 ? cities.map((name) => (
-                        <button key={name} onClick={() => setPendingCity(pendingCity === name ? null : name)}
-                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                        <button key={name} onClick={() => setAppliedCity(appliedCity === name ? null : name)}
+                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${appliedCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
                           {name}
                         </button>
                       )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
@@ -262,8 +263,8 @@ export function SquarePage() {
               {filterTab === 'tier' && (
                 <div className="grid grid-cols-3 gap-3 px-4 py-5">
                   {TIER_ORDER.map((tier) => (
-                    <button key={tier} onClick={() => setPendingTier(pendingTier === tier ? null : tier)}
-                      className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${pendingTier === tier ? 'ring-2 ring-blue-500 ring-offset-2 scale-105' : 'shadow-sm ring-1 ring-black/[0.06]'}`}
+                    <button key={tier} onClick={() => setAppliedTier(appliedTier === tier ? null : tier)}
+                      className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${appliedTier === tier ? 'ring-2 ring-blue-500 ring-offset-2 scale-105' : 'shadow-sm ring-1 ring-black/[0.06]'}`}
                       style={{ background: TIER_COLOR_VAR[tier], color: TIER_TEXT_COLOR[tier] }}>
                       {TIER_LABEL[tier]}
                     </button>
@@ -274,18 +275,24 @@ export function SquarePage() {
                 <div className="flex" style={{ height: '30dvh' }}>
                   <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
                     {categoryGroups.map((g) => (
-                      <button key={g.code} onClick={() => setPendingCategory(pendingCategory === g.name ? null : g.name)}
-                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${pendingCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
+                      <button key={g.code} onClick={() => {
+                        if (selectedBigCategory === g.name) {
+                          setSelectedBigCategory(null); setAppliedCategory(null)
+                        } else {
+                          setSelectedBigCategory(g.name); setAppliedCategory(g.name)
+                        }
+                      }}
+                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedBigCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
                         {g.name}
                       </button>
                     ))}
                   </div>
                   <div className="flex-1 overflow-y-auto">
                     {(() => {
-                      const active = categoryGroups.find(g => g.name === pendingCategory)
+                      const active = categoryGroups.find(g => g.name === selectedBigCategory)
                       return active ? active.subs.map((sub) => (
-                        <button key={sub} onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
-                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                        <button key={sub} onClick={() => setAppliedCategory(appliedCategory === sub ? null : sub)}
+                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${appliedCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
                           {sub}
                         </button>
                       )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择大类</p>
@@ -295,8 +302,9 @@ export function SquarePage() {
               )}
             </div>
             <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
-              <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
-              <button onClick={handleApply} className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600">确定</button>
+              {(appliedCity || appliedTier || appliedCategory) ? (
+                <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
+              ) : null}
             </div>
           </div>
         </>
