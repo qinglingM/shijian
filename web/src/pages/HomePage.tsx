@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, LayoutGrid, List, Search as SearchIcon } from 'lucide-react'
+import { LayoutGrid, List, Search as SearchIcon } from 'lucide-react'
 import { useCities } from '@/features/city-picker/useCities'
 import {
   useDisplayedTierMap,
@@ -51,7 +51,6 @@ function tierTextColor(tier: Tier): string { return TIER_TEXT_COLOR[tier] }
 export function HomePage() {
   const navigate = useNavigate()
   const manualShowDemo = useTierMapDemoStore((s: TierMapDemoStore) => s.manualShowDemo)
-  const setManualShowDemo = useTierMapDemoStore((s: TierMapDemoStore) => s.setManualShowDemo)
   const { map, showingDemo, isLoading, error } = useDisplayedTierMap()
   const { data: allCities = [] } = useCities()
 
@@ -161,10 +160,10 @@ export function HomePage() {
     <div className="flex min-h-[calc(100vh-5rem)] flex-col">
       <div className="relative">
         {/* Header with filters + search + view toggle */}
-        <header className="flex items-center justify-between px-4 pt-4 pb-2">
-          <div />  {/* spacer for centering */}
-          <h1 className="text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
-          <div className="flex items-center gap-1.5 shrink-0">
+        <header className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pt-4 pb-2">
+          <div />
+          <h1 className="text-center text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
+          <div className="flex items-center gap-1.5 justify-end">
             <button
               type="button"
               onClick={() => navigate('/search')}
@@ -304,27 +303,7 @@ export function HomePage() {
         </Link>
       </section>
 
-      <div className="px-5 pt-4 pb-2">
-        {manualShowDemo ? (
-          <p className="text-center text-[11px] text-amber-700">
-            当前为示例数据视图，仅用于查看 UI 状态
-          </p>
-        ) : null}
-        {import.meta.env.DEV ? (
-          <div className="mt-2 flex justify-center">
-            <button
-              type="button"
-              onClick={() => setManualShowDemo(!manualShowDemo)}
-              aria-label={manualShowDemo ? '关闭示例数据' : '查看示例数据'}
-              className="flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium text-neutral-400 ring-1 ring-neutral-200 active:bg-neutral-50"
-              title={manualShowDemo ? '关闭示例 UI' : '查看示例 UI'}
-            >
-              {manualShowDemo ? <EyeOff size={13} /> : <Eye size={13} />}
-              示例数据
-            </button>
-          </div>
-        ) : null}
-      </div>
+
     </div>
   )
 }

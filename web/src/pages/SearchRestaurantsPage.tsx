@@ -1,21 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronRight, MapPin, Search as SearchIcon } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { BackHeader } from '@/components/layout/AppLayout'
-import { useCityStore } from '@/features/city-picker/cityStore'
-import { usePoiSearch } from '@/features/poi-search/usePoiSearch'
-import type { PoiCandidate } from '@/lib/poi/types'
+import { useAuthStore } from '@/stores/authStore'
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 
 function normalize(s: string) {
   return s.trim().toLowerCase()
-}
-
-function regionLine(poi: PoiCandidate) {
-  return [poi.city_name, poi.district_name].filter(Boolean).join(' ').trim() || '区域未知'
-}
-
-function addressLine(poi: PoiCandidate) {
-  return poi.address_text?.trim() || '地址未录入'
 }
 
 export function SearchRestaurantsPage() {
@@ -24,13 +16,49 @@ export function SearchRestaurantsPage() {
   const qParam = params.get('q') ?? ''
   const [draft, setDraft] = useState(qParam)
 
-  const cityName = useCityStore((s) => s.cityName)
-  const tierMapShowsAllChina = useCityStore((s) => s.tierMapShowsAllChina)
-  const searchCity = tierMapShowsAllChina ? undefined : cityName
+  const viewerId = useAuthStore((s) => s.user?.id ?? null)
 
   const needle = normalize(qParam)
-  const { data: pois = [], isLoading, isFetching, error } = usePoiSearch(needle, searchCity)
-  const results = pois
+
+  const { data: results = [], isLoading, isFetching } = useQuery({
+    queryKey: ['my-practice-search', needle, viewerId],
+    enabled: isSupabaseConfigured && !!viewerId && needle.length > 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const sb = getSupabase()
+
+      const { data: myPractices } = await sb
+        .from('practice_records')
+        .select('restaurant_id')
+        .eq('user_id', viewerId!)
+        .eq('is_active', true)
+
+      const ids = myPractices?.map((p) => p.restaurant_id) ?? []
+      if (ids.length === 0) return []
+
+      const { data: restaurants } = await sb
+        .from('restaurants')
+        .select('id, display_name, cover_image_url, address_text, city_name')
+        .in('id', ids)
+        .ilike('display_name', `%${needle}%`)
+        .limit(20)
+
+      return (restaurants ?? []).map((r) => ({
+        poi_source: 'manual' as const,
+        poi_id: r.id,
+        poi_name: r.display_name,
+        address_text: r.address_text ?? '',
+        latitude: null as number | null,
+        longitude: null as number | null,
+        province_name: null as string | null,
+        city_name: r.city_name ?? null,
+        district_name: null as string | null,
+        category: null as string | null,
+        cover_image_url: r.cover_image_url ?? null,
+        display_label: null as string | null,
+      }))
+    },
+  })
 
   useEffect(() => {
     setDraft(qParam)
@@ -56,7 +84,7 @@ export function SearchRestaurantsPage() {
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="搜店名、区域、地址"
+              placeholder="搜你评价过的餐厅"
               className="w-full rounded-full bg-neutral-100 py-2.5 pr-10 pl-10 text-sm outline-none placeholder:text-neutral-400"
               autoComplete="off"
               enterKeyHint="search"
@@ -71,13 +99,13 @@ export function SearchRestaurantsPage() {
           </button>
         </form>
         <p className="mt-2 text-[11px] text-neutral-500">
-          仅支持搜索已入库的餐厅名称
+          {viewerId ? '仅支持搜索你评价过的餐厅' : '请先登录后再搜索你评价过的餐厅'}
         </p>
       </div>
 
-      {error ? (
-        <p className="px-4 pt-8 text-center text-sm text-rose-500">
-          {(error as Error).message}
+      {!viewerId ? (
+        <p className="px-4 pt-8 text-center text-sm text-neutral-500">
+          请先登录，即可搜索你评价过的餐厅
         </p>
       ) : null}
 
@@ -85,7 +113,7 @@ export function SearchRestaurantsPage() {
         <p className="py-14 text-center text-sm text-neutral-400">搜索中…</p>
       ) : null}
 
-      {needle && !error && !isLoading && !isFetching && (
+      {needle && viewerId && !isLoading && !isFetching && (
         <section className="px-4 pt-4">
           <p className="text-[12px] font-medium text-neutral-600">
             与「{qParam.trim()}」相关 ·{' '}
@@ -105,13 +133,12 @@ export function SearchRestaurantsPage() {
           ) : (
             <ul className="mt-3 space-y-3">
               {results.map((poi) => {
-                const region = regionLine(poi)
-                const address = addressLine(poi)
+                const region = [poi.city_name, poi.district_name].filter(Boolean).join(' ').trim() || '区域未知'
+                const address = poi.address_text?.trim() || '地址未录入'
                 return (
-                  <li key={`${poi.poi_source}-${poi.poi_id}`}>
+                  <li key={poi.poi_id}>
                     <Link
-                      to={`/restaurants/poi/${poi.poi_source}/${poi.poi_id}`}
-                      state={{ poi }}
+                      to={`/restaurants/${poi.poi_id}`}
                       className="block rounded-2xl border border-neutral-100 bg-white p-3 shadow-sm active:bg-neutral-50"
                     >
                       <div className="flex gap-3">

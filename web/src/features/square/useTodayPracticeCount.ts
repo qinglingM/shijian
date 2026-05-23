@@ -13,6 +13,7 @@ export function useTodayPracticeCount() {
       const { count, error } = await sb
         .from('practice_records')
         .select('*', { count: 'exact', head: true })
+        .eq('is_public', true)
         .eq('is_active', true)
         .not('store_comment', 'is', null)
         .neq('store_comment', '')

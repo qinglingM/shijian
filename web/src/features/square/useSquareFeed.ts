@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { TIER_LABEL, type Tier, type VoteType } from '@/lib/db'
@@ -29,14 +29,22 @@ interface ProfileMini {
   avatar_url: string | null
 }
 
+const PAGE_SIZE = 40
+
 export function useSquareFeed() {
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
-  return useQuery<SquareFeedItem[]>({
+  return useInfiniteQuery<SquareFeedItem[]>({
     queryKey: ['square-feed', viewerId],
     enabled: isSupabaseConfigured,
     staleTime: 30_000,
-    queryFn: async () => {
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      if (lastPage.length < PAGE_SIZE) return undefined
+      return (lastPageParam as number) + PAGE_SIZE
+    },
+    queryFn: async ({ pageParam }) => {
       const sb = getSupabase()
+      const offset = pageParam as number
 
       const { data: practiceRows, error: pe } = await sb
         .from('practice_records')
@@ -46,10 +54,12 @@ export function useSquareFeed() {
         .not('store_comment', 'is', null)
         .neq('store_comment', '')
         .order('created_at', { ascending: false })
-        .limit(40)
+        .range(offset, offset + PAGE_SIZE - 1)
       if (pe) throw pe
 
       const prs = (practiceRows ?? []) as Array<{ id: string; user_id: string; restaurant_id: string; tier: string; store_comment: string | null; created_at: string }>
+      if (prs.length === 0) return []
+
       const uids = [...new Set(prs.map((r) => r.user_id))]
       const rids = [...new Set(prs.map((r) => r.restaurant_id))]
 

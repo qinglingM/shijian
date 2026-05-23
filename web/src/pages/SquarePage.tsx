@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Search, PenSquare, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -48,13 +48,21 @@ const AMAP_MID_CATEGORIES: { name: string; subs: string[] }[] = [
 ]
 
 export function SquarePage() {
-  const { data: feed = [], isLoading } = useSquareFeed()
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useSquareFeed()
+  const feed = useMemo(() => infiniteData?.pages.flat() ?? [], [infiniteData])
   const { data: todayCount = 0 } = useTodayPracticeCount()
   const { data: allCities = [] } = useCities()
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Sort state
   const [sortMode, setSortMode] = useState<SortMode>('latest')
@@ -83,6 +91,21 @@ export function SquarePage() {
 
   // Categories data (static Amap mid categories)
   const categoryGroups = useMemo(() => AMAP_MID_CATEGORIES, [])
+
+  // Infinite scroll — 滚动到底时加载下一页
+  useEffect(() => {
+    if (!hasNextPage) return
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) fetchNextPage()
+      },
+      { rootMargin: '200px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasNextPage, fetchNextPage])
 
   // Filter + search + sort logic
   const filteredFeed = useMemo(() => {
@@ -219,7 +242,7 @@ export function SquarePage() {
       </div>
 
       {/* 今日新增 */}
-      <p className="px-4 pb-2 text-center text-xs text-neutral-500">
+      <p className="px-4 pb-2 pt-2 text-center text-xs text-neutral-500">
         今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
       </p>
 
@@ -333,6 +356,10 @@ export function SquarePage() {
             </div>
           ))}
         </div>
+        {hasNextPage && <div ref={sentinelRef} className="h-4" />}
+        {isFetchingNextPage && (
+          <p className="py-4 text-center text-sm text-neutral-400">载入更多…</p>
+        )}
       </section>
     </div>
   )
@@ -399,24 +426,30 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
     onMutate: async (next) => {
       const key = ['square-feed', viewerId]
       await queryClient.cancelQueries({ queryKey: key })
-      const previous = queryClient.getQueryData<SquareFeedItem[]>(key)
-      queryClient.setQueryData<SquareFeedItem[]>(key, (old) =>
-        old?.map((x) => {
-          if (x.id !== item.id) return x
-          const patched = applyStoreReviewVoteClick(
-            x.youpin_count,
-            x.yebang_count,
-            x.my_vote,
-            'youpin',
-          )
-          return {
-            ...x,
-            youpin_count: patched.youpin,
-            yebang_count: patched.yebang,
-            my_vote: next,
-          }
-        }),
-      )
+      const previous = queryClient.getQueryData(key)
+      queryClient.setQueryData<InfiniteData<SquareFeedItem[]>>(key, (old) => {
+        if (!old) return old
+        return {
+          ...old,
+          pages: old.pages.map((page) =>
+            page.map((x) => {
+              if (x.id !== item.id) return x
+              const patched = applyStoreReviewVoteClick(
+                x.youpin_count,
+                x.yebang_count,
+                x.my_vote,
+                'youpin',
+              )
+              return {
+                ...x,
+                youpin_count: patched.youpin,
+                yebang_count: patched.yebang,
+                my_vote: next,
+              }
+            }),
+          ),
+        }
+      })
       return { previous }
     },
     onError: (err, _next, ctx) => {

@@ -107,7 +107,11 @@ export class AmapPoiProvider implements PoiProvider {
     }
 
     return json.pois
-      .filter((r) => r.id && r.name)
+      .filter((r) => {
+        if (!r.id || !r.name) return false
+        const t = typeof r.type === 'string' ? r.type.trim() : ''
+        return t.startsWith('餐饮服务') || t.startsWith('餐饮')
+      })
       .map((r) => {
         const { latitude, longitude } = splitLocation(r.location)
         const poiName = String(r.name ?? '').trim()
