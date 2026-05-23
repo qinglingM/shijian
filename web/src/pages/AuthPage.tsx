@@ -1,6 +1,6 @@
 import { startTransition, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, ChevronLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { normalizeChinaMobileToE164 } from '@/lib/phoneE164'
@@ -370,11 +370,29 @@ export function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-neutral-50 px-4 py-12 sm:justify-center lg:px-8">
-      <div className="w-full max-w-md rounded-3xl bg-white px-6 py-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] sm:px-10">
-        <header className="mb-8 text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">{headerTitle(phase)}</h1>
-          <p className="mt-2 text-sm text-neutral-500">{subtitle(surface, phase)}</p>
+    <div className="mx-auto flex min-h-screen max-w-md flex-col bg-white px-6 pb-12 pt-8 sm:pt-16">
+      <div className="relative w-full">
+        {phase === 'forgot' && (
+          <button
+            type="button"
+            onClick={() => {
+              if (forgotStep === 2) {
+                setForgotStep(1)
+              } else if (authMode === 'forgot') {
+                navigate(-1)
+              } else {
+                goPhoneLogin()
+              }
+            }}
+            className="absolute -left-3 -top-2 p-2 text-neutral-400 transition-colors hover:text-neutral-800"
+            aria-label="返回"
+          >
+            <ChevronLeft size={28} />
+          </button>
+        )}
+        <header className="mb-10 pt-10 text-center">
+          <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">{headerTitle(phase, authMode)}</h1>
+          <p className="mt-2 text-[15px] text-neutral-500">{subtitle(surface, phase, authMode)}</p>
         </header>
 
         {EMAIL_AUTH && (
@@ -552,15 +570,7 @@ export function AuthPage() {
                     <OtpField value={otp} onChange={setOtp} disabled={!otpToken} />
                   </div>
 
-                  <div className="flex items-center justify-end px-1">
-                    <button
-                      type="button"
-                      className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-800"
-                      onClick={() => goPhoneLogin()}
-                    >
-                      返回登录
-                    </button>
-                  </div>
+                  {/* Removed redundant bottom back button since we now have the top-left chevron */}
 
                   <div className="space-y-5 pt-2">
                     {msg ? <Alert>{msg}</Alert> : null}
@@ -630,14 +640,16 @@ export function AuthPage() {
   )
 }
 
-function headerTitle(phase: Phase) {
+function headerTitle(phase: Phase, authMode: string | null) {
   if (phase === 'login') return '登录'
+  if (authMode === 'forgot') return '设置密码'
   return '找回密码'
 }
 
-function subtitle(surface: 'phone' | 'email', phase: Phase) {
+function subtitle(surface: 'phone' | 'email', phase: Phase, authMode: string | null) {
   if (surface === 'email') return '研发环境可选用邮箱账号'
   if (phase === 'login') return '未注册的手机号将自动创建新账号'
+  if (authMode === 'forgot') return '通过短信验证身份后设置新密码'
   return '通过短信验证码验证身份后重置密码'
 }
 
