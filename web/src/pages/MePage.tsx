@@ -4,6 +4,7 @@ import {
   Award,
   Bookmark,
   ChevronRight,
+  KeyRound,
   Settings,
   UserRound,
   UsersRound,
@@ -343,6 +344,12 @@ export function MePage() {
           icon={<Settings size={18} />}
           title="偏好设置"
           desc="城市、隐私、通知"
+        />
+        <FeatureCard
+          to="/auth?mode=forgot&redirect=/me"
+          icon={<KeyRound size={18} />}
+          title="设置密码"
+          desc="用手机验证码重置或设置登录密码"
         />
       </section>
 

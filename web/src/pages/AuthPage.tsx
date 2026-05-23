@@ -4,7 +4,6 @@ import { Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { normalizeChinaMobileToE164 } from '@/lib/phoneE164'
 import {
-  PASSWORD_RULE_HINT,
   passwordEndsWithPhoneTail,
   validatePasswordForAccount,
 } from '@/lib/passwordPolicy'
@@ -18,7 +17,7 @@ type Phase = 'login' | 'signup' | 'forgot'
 type LoginMode = 'password' | 'otp'
 type LoginOtpStep = 1 | 2
 type OtpPurpose = 'login' | 'signup' | 'forgot'
-type SignupStep = 1 | 2 | 3
+type SignupStep = 1 | 2
 type ForgotStep = 1 | 2 | 3
 
 const EMAIL_AUTH = import.meta.env.VITE_ENABLE_EMAIL_AUTH === 'true'
@@ -53,12 +52,6 @@ export function AuthPage() {
   const [showLoginPw, setShowLoginPw] = useState(false)
   const [loginMode, setLoginMode] = useState<LoginMode>('password')
   const [loginOtpStep, setLoginOtpStep] = useState<LoginOtpStep>(1)
-
-  const [regPw1, setRegPw1] = useState('')
-  const [regPw2, setRegPw2] = useState('')
-  const [showRegPw, setShowRegPw] = useState(false)
-  const [agreedTerms, setAgreedTerms] = useState(false)
-  const [regNickname, setRegNickname] = useState('')
 
   const [forgotPw1, setForgotPw1] = useState('')
   const [forgotPw2, setForgotPw2] = useState('')
@@ -200,10 +193,22 @@ export function AuthPage() {
       code: token,
       token: otpToken,
     })
-    setSubmitting(false)
-    if (!result.ok) setMsg(trVerify(result.error ?? '验证码校验失败'))
-    else if (purposeExpected === 'signup') setSignupStep(3)
-    else setForgotStep(3)
+    if (!result.ok) {
+      setSubmitting(false)
+      setMsg(trVerify(result.error ?? '验证码校验失败'))
+    } else if (purposeExpected === 'signup') {
+      setMsg('验证码通过，正在注册…')
+      await applyPassword(randomPassword())
+    } else {
+      setSubmitting(false)
+      setForgotStep(3)
+    }
+  }
+
+  function randomPassword(): string {
+    const bytes = new Uint8Array(24)
+    crypto.getRandomValues(bytes)
+    return btoa(String.fromCharCode(...bytes)).slice(0, 20) + 'Aa1!'
   }
 
   async function submitLoginOtp(e: React.FormEvent) {
@@ -250,30 +255,6 @@ export function AuthPage() {
       setSubmitting(false)
       setMsg(err instanceof Error ? err.message : '验证码登录失败，请稍后再试')
     }
-  }
-
-  async function submitRegisterPassword(e: React.FormEvent) {
-    e.preventDefault()
-    setMsg(null)
-    const errPw = validatePasswordForAccount(regPw1)
-    if (errPw) {
-      setMsg(errPw)
-      return
-    }
-    if (regPw1 !== regPw2) {
-      setMsg('两次输入的密码不一致')
-      return
-    }
-    const national = mobileInput.replace(/\D/g, '')
-    if (passwordEndsWithPhoneTail(regPw1, national)) {
-      setMsg('密码请勿与手机号后 6 位相同')
-      return
-    }
-    if (!agreedTerms) {
-      setMsg('请先阅读并同意用户协议和隐私政策')
-      return
-    }
-    await applyPassword(regPw1, regNickname.trim() || undefined)
   }
 
   async function submitForgotPassword(e: React.FormEvent) {
@@ -624,51 +605,6 @@ export function AuthPage() {
             <span aria-hidden="true">←</span> 修改手机号
           </button>
           {msg ? <Alert>{msg}</Alert> : null}
-        </form>
-      )}
-
-      {surface === 'phone' && phase === 'signup' && signupStep === 3 && (
-        <form className="space-y-4" onSubmit={submitRegisterPassword}>
-          <div className="rounded-xl bg-amber-50 px-3 py-2">
-            <p className="text-xs text-amber-800">{PASSWORD_RULE_HINT}</p>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-neutral-600">昵称（可选）</label>
-            <input
-              maxLength={32}
-              value={regNickname}
-              onChange={(e) => setRegNickname(e.target.value)}
-              placeholder="输入昵称"
-              className="mt-1.5 block w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm outline-none ring-orange-400/40 focus:border-orange-400 focus:ring"
-            />
-          </div>
-          <PasswordField
-            id="rp1"
-            label="设置密码"
-            value={regPw1}
-            onChange={setRegPw1}
-            autocomplete="new-password"
-            reveal={showRegPw}
-            onReveal={() => setShowRegPw((v) => !v)}
-          />
-          <PasswordField
-            id="rp2"
-            label="确认密码"
-            value={regPw2}
-            onChange={setRegPw2}
-            autocomplete="new-password"
-            reveal={showRegPw}
-            onReveal={() => setShowRegPw((v) => !v)}
-          />
-          <TermsBox checked={agreedTerms} onChange={setAgreedTerms} />
-          {msg ? <Alert>{msg}</Alert> : null}
-          <button
-            type="submit"
-            disabled={submitting || !agreedTerms}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
-          >
-            {submitting ? '注册中…' : '注册'}
-          </button>
         </form>
       )}
 
