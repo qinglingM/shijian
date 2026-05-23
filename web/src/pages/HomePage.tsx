@@ -161,29 +161,9 @@ export function HomePage() {
     <div className="flex min-h-[calc(100vh-5rem)] flex-col">
       <div className="relative">
         {/* Header with filters + search + view toggle */}
-        <header className="relative flex items-center justify-between px-4 pt-4 pb-2">
-          <div className="flex items-center gap-2 overflow-hidden min-w-0">
-            <button
-              onClick={() => { setFilterTab('city'); setFilterOpen(true) }}
-              className={`truncate max-w-[5rem] text-[13px] transition-colors ${
-                appliedCity ? 'text-blue-600 font-medium' : 'text-neutral-500'
-              }`}
-            >
-              {appliedCity || '城市'}
-            </button>
-            <span className="text-neutral-300 shrink-0">|</span>
-            <button
-              onClick={() => { setFilterTab('category'); setFilterOpen(true) }}
-              className={`truncate max-w-[5rem] text-[13px] transition-colors ${
-                appliedCategory ? 'text-blue-600 font-medium' : 'text-neutral-500'
-              }`}
-            >
-              {appliedCategory || '种类'}
-            </button>
-          </div>
-
-          <h1 className="absolute left-1/2 -translate-x-1/2 text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
-
+        <header className="flex items-center justify-between px-4 pt-4 pb-2">
+          <div />  {/* spacer for centering */}
+          <h1 className="text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
@@ -204,6 +184,27 @@ export function HomePage() {
             </button>
           </div>
         </header>
+
+        {/* Filter buttons row */}
+        <div className="flex items-center gap-2 px-4 pb-2">
+          <button
+            onClick={() => { setFilterTab('city'); setFilterOpen(true) }}
+            className={`text-[13px] font-semibold transition-colors ${
+              appliedCity ? 'text-blue-600' : 'text-neutral-500'
+            }`}
+          >
+            {appliedCity || '城市'}
+          </button>
+          <span className="text-neutral-300 shrink-0">|</span>
+          <button
+            onClick={() => { setFilterTab('category'); setFilterOpen(true) }}
+            className={`text-[13px] font-semibold transition-colors ${
+              appliedCategory ? 'text-blue-600' : 'text-neutral-500'
+            }`}
+          >
+            {appliedCategory || '种类'}
+          </button>
+        </div>
 
         {/* Filter panel */}
         {filterOpen && (
@@ -297,7 +298,7 @@ export function HomePage() {
 
         <Link
           to="/practice/step1"
-          className="mt-4 mb-2 flex w-full items-center justify-center rounded-2xl bg-neutral-900 py-3.5 text-sm font-medium text-white active:bg-neutral-700"
+          className="mt-4 mb-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-sm active:opacity-90"
         >
           开始食鉴
         </Link>
