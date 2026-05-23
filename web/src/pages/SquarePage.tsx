@@ -142,9 +142,11 @@ export function SquarePage() {
 
   return (
     <div className="flex min-h-[calc(100dvh-6rem)] flex-col bg-white">
-      {/* Search + Sort bar */}
-      <section className="px-4 pt-4">
-        <div className="flex items-center gap-2">
+      {/* Toolbar wrapper (for absolute filter panel) */}
+      <div className="relative">
+        {/* Search + Sort bar */}
+        <section className="px-4 pt-4">
+          <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" aria-hidden />
             <input
@@ -181,13 +183,10 @@ export function SquarePage() {
             )}
           </div>
         </div>
-        <p className="mt-1.5 text-center text-xs text-neutral-500">
-          今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
-        </p>
       </section>
 
       {/* Filter bar */}
-      <div className="flex items-center gap-1.5 px-4 pt-3 pb-2">
+      <div className="flex items-center gap-1.5 px-4 pt-3">
         <button
           onClick={() => { const t = 'city'; if (filterOpen && filterTab === t) { setFilterOpen(false); return } setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
@@ -226,11 +225,16 @@ export function SquarePage() {
         </button>
       </div>
 
-      {/* Filter panel (same pattern as map page) */}
+      {/* 今日新增 */}
+      <p className="px-4 pb-2 text-center text-xs text-neutral-500">
+        今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
+      </p>
+
+      {/* Filter panel (absolute positioned) */}
       {filterOpen && (
         <>
           <div className="fixed inset-0 z-[997]" onClick={() => setFilterOpen(false)} />
-          <div className="relative z-[998] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden" style={{ animation: 'shijian-slide-down 0.2s ease-out' }}>
+          <div className="absolute top-full left-0 right-0 z-[998] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden" style={{ animation: 'shijian-slide-down 0.2s ease-out' }}>
             <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
               {filterTab === 'city' && (
                 <div className="flex" style={{ height: '30dvh' }}>
@@ -297,6 +301,8 @@ export function SquarePage() {
           </div>
         </>
       )}
+
+      </div>
 
       {/* Content */}
       <section className="flex-1 px-4 pt-3 pb-6">
