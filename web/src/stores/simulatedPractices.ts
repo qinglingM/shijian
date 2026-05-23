@@ -12,8 +12,11 @@ export interface SimulatedPracticeRecord {
     category_id?: string | null
     category_name?: string | null
     city_id?: string | null
+    city_name?: string | null
     latitude?: number | null
     longitude?: number | null
+    amap_mid_category?: string | null
+    amap_small_category?: string | null
   }
 }
 

@@ -18,8 +18,11 @@ export interface TierMapItem {
   category_id: string | null
   category_name: string | null
   city_id: string | null
+  city_name: string | null
   latitude: number | null
   longitude: number | null
+  amap_mid_category: string | null
+  amap_small_category: string | null
   /** practice_records.created_at；模拟/示例数据为 null */
   practiced_at: string | null
 }
@@ -112,8 +115,11 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       category_id: DC.huoguo,
       category_name: '火锅',
       city_id: null,
+      city_name: null,
       latitude: 39.9612,
       longitude: 116.3084,
+      amap_mid_category: null,
+      amap_small_category: null,
       practiced_at: null,
     },
     {
@@ -123,8 +129,11 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       category_id: DC.skewer,
       category_name: '烧烤',
       city_id: null,
+      city_name: null,
       latitude: 39.9371,
       longitude: 116.3262,
+      amap_mid_category: null,
+      amap_small_category: null,
       practiced_at: null,
     },
     {
@@ -134,8 +143,11 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       category_id: DC.fanguan,
       category_name: '饭馆',
       city_id: null,
+      city_name: null,
       latitude: 39.9042,
       longitude: 116.4074,
+      amap_mid_category: null,
+      amap_small_category: null,
       practiced_at: null,
     },
   ],
@@ -147,8 +159,11 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       category_id: DC.fanguan,
       category_name: '饭馆',
       city_id: null,
+      city_name: null,
       latitude: 39.9336,
       longitude: 116.4474,
+      amap_mid_category: null,
+      amap_small_category: null,
       practiced_at: null,
     },
     {
@@ -158,8 +173,11 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       category_id: DC.yintian,
       category_name: '饮甜',
       city_id: null,
+      city_name: null,
       latitude: 39.9192,
       longitude: 116.3982,
+      amap_mid_category: null,
+      amap_small_category: null,
       practiced_at: null,
     },
   ],
@@ -171,8 +189,11 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       category_id: DC.fenmian,
       category_name: '粉面',
       city_id: null,
+      city_name: null,
       latitude: 39.9891,
       longitude: 116.3185,
+      amap_mid_category: null,
+      amap_small_category: null,
       practiced_at: null,
     },
   ],
@@ -184,8 +205,11 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       category_id: DC.xiaochi,
       category_name: '小吃',
       city_id: null,
+      city_name: null,
       latitude: 39.9242,
       longitude: 116.4124,
+      amap_mid_category: null,
+      amap_small_category: null,
       practiced_at: null,
     },
     {
@@ -195,8 +219,11 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       category_id: DC.huoguo,
       category_name: '火锅',
       city_id: null,
+      city_name: null,
       latitude: 39.9394,
       longitude: 116.4032,
+      amap_mid_category: null,
+      amap_small_category: null,
       practiced_at: null,
     },
     {
@@ -206,8 +233,11 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       category_id: DC.jianchan,
       category_name: '简餐',
       city_id: null,
+      city_name: null,
       latitude: 39.9102,
       longitude: 116.4552,
+      amap_mid_category: null,
+      amap_small_category: null,
       practiced_at: null,
     },
     {
@@ -217,8 +247,11 @@ const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
       category_id: DC.fanguan,
       category_name: '饭馆',
       city_id: null,
+      city_name: null,
       latitude: 39.9055,
       longitude: 116.4432,
+      amap_mid_category: null,
+      amap_small_category: null,
       practiced_at: null,
     },
   ],
@@ -256,8 +289,11 @@ interface PracticeRestaurantRow {
   cover_image_url: string | null
   category_id: string | null
   city_id?: string | null
+  city_name?: string | null
   latitude?: number | string | null
   longitude?: number | string | null
+  amap_mid_category?: string | null
+  amap_small_category?: string | null
   /** Supabase 嵌套 categories 表；有时为单对象，少数配置下为数组 */
   categories?: { name: string } | { name: string }[] | null
 }
@@ -297,8 +333,11 @@ function tierMapItemFromPracticeRestaurant(row: PracticeRestaurantRow | null): T
     category_id: row.category_id ?? null,
     category_name,
     city_id: row.city_id ?? null,
+    city_name: row.city_name?.trim() ?? null,
     latitude: numOrNull(row.latitude),
     longitude: numOrNull(row.longitude),
+    amap_mid_category: row.amap_mid_category?.trim() ?? null,
+    amap_small_category: row.amap_small_category?.trim() ?? null,
     practiced_at: null,
   }
 }
@@ -316,7 +355,7 @@ export function useTierMap() {
       const { data, error } = await supabase
         .from('practice_records')
         .select(
-          'tier, created_at, restaurant:restaurants(id, display_name, cover_image_url, category_id, city_id, latitude, longitude, display_category_label, categories(name))',
+          'tier, created_at, restaurant:restaurants(id, display_name, cover_image_url, category_id, city_id, city_name, latitude, longitude, display_category_label, amap_mid_category, amap_small_category, categories(name))',
         )
         .eq('user_id', userId!)
         .eq('is_active', true)
@@ -414,8 +453,11 @@ function mergeSimulatedRecords(
       category_id: record.restaurant.category_id ?? null,
       category_name: record.restaurant.category_name ?? null,
       city_id: record.restaurant.city_id ?? null,
+      city_name: record.restaurant.city_name ?? null,
       latitude: record.restaurant.latitude ?? null,
       longitude: record.restaurant.longitude ?? null,
+      amap_mid_category: record.restaurant.amap_mid_category ?? null,
+      amap_small_category: record.restaurant.amap_small_category ?? null,
       practiced_at: new Date().toISOString(),
     })
   }
