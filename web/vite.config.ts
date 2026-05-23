@@ -9,6 +9,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    dedupe: ['react', 'react-dom', '@tanstack/react-query'],
   },
   server: {
     port: process.env.PORT ? Number(process.env.PORT) : 5173,
