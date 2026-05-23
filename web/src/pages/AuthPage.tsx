@@ -1,6 +1,7 @@
 import { startTransition, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { normalizeChinaMobileToE164 } from '@/lib/phoneE164'
 import {
@@ -10,16 +11,14 @@ import {
 } from '@/lib/passwordPolicy'
 import { EmailAuthPanel } from '@/features/auth/EmailAuthPanel'
 import { callAliyunSmsOtp } from '@/features/auth/aliyunSmsOtp'
-import { AUTH_LAX_DEV, tryLaxDevRedirect } from '@/lib/laxDevAuth'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 
-type Phase = 'login' | 'signup' | 'forgot'
+type Phase = 'login' | 'forgot'
 type LoginMode = 'password' | 'otp'
-type LoginOtpStep = 1 | 2
-type OtpPurpose = 'login' | 'signup' | 'forgot'
-type SignupStep = 1 | 2
-type ForgotStep = 1 | 2 | 3
+type OtpPurpose = 'login' | 'forgot'
+// step 1 = 手机号 + 验证码（单屏），step 2 = 设置新密码
+type ForgotStep = 1 | 2
 
 const EMAIL_AUTH = import.meta.env.VITE_ENABLE_EMAIL_AUTH === 'true'
 
@@ -40,7 +39,6 @@ export function AuthPage() {
     EMAIL_AUTH && params.get('channel') === 'email' ? 'email' : 'phone',
   )
   const [phase, setPhase] = useState<Phase>('login')
-  const [signupStep, setSignupStep] = useState<SignupStep>(1)
   const [forgotStep, setForgotStep] = useState<ForgotStep>(1)
 
   const [mobileInput, setMobileInput] = useState('')
@@ -52,13 +50,16 @@ export function AuthPage() {
   const [loginPw, setLoginPw] = useState('')
   const [showLoginPw, setShowLoginPw] = useState(false)
   const [loginMode, setLoginMode] = useState<LoginMode>('password')
-  const [loginOtpStep, setLoginOtpStep] = useState<LoginOtpStep>(1)
 
   const [forgotPw1, setForgotPw1] = useState('')
   const [forgotPw2, setForgotPw2] = useState('')
   const [showForgotPw, setShowForgotPw] = useState(false)
 
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+
   const [resendSeconds, setResendSeconds] = useState(0)
+  // sendingOtp: OTP 发送中（控制内联按钮）；submitting: 主表单提交中
+  const [sendingOtp, setSendingOtp] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
@@ -67,16 +68,6 @@ export function AuthPage() {
 
   useEffect(() => {
     const m = params.get('mode')
-    if (m === 'signup') {
-      startTransition(() => {
-        setSurface('phone')
-        setPhase('signup')
-        setSignupStep(1)
-        resetOtp()
-        setMsg(null)
-      })
-      return
-    }
     if (m === 'forgot') {
       startTransition(() => {
         setSurface('phone')
@@ -100,7 +91,7 @@ export function AuthPage() {
     if (!user) return
 
     const isAnonymousUser = (user as { is_anonymous?: boolean }).is_anonymous === true
-    if ((authMode === 'signup' || authMode === 'forgot') && isAnonymousUser) {
+    if (authMode === 'forgot' && isAnonymousUser) {
       void getSupabase().auth.signOut({ scope: 'local' })
       return
     }
@@ -125,21 +116,18 @@ export function AuthPage() {
     setResendSeconds(0)
   }
 
+  /** 手机号变化时，若已发过验证码则重置 OTP 状态 */
+  function handlePhoneChange(v: string) {
+    setMobileInput(v)
+    if (otpToken) resetOtp()
+  }
+
   function goPhoneLogin() {
     setPhase('login')
-    setLoginOtpStep(1)
-    setSignupStep(1)
     setForgotStep(1)
     resetOtp()
     setMsg(null)
     setLoginPw('')
-  }
-
-  function goPhoneSignup() {
-    setPhase('signup')
-    setSignupStep(1)
-    resetOtp()
-    setMsg(null)
   }
 
   function goPhoneForgot() {
@@ -158,26 +146,35 @@ export function AuthPage() {
       setMsg('请输入中国大陆 11 位手机号')
       return
     }
-    setSubmitting(true)
-    const result = await callAliyunSmsOtp({ action: 'send', phone: e164, purpose })
-    setSubmitting(false)
-    if (!result.ok || !result.token) {
-      setMsg(trOtpSend(result.error ?? '验证码发送失败', purpose))
-      return
+    setSendingOtp(true)
+    try {
+      // 15 秒客户端超时，避免 Edge Function / 阿里云 API 挂起时按钮永久卡住
+      const result = await Promise.race([
+        callAliyunSmsOtp({ action: 'send', phone: e164, purpose }),
+        new Promise<never>((_, reject) =>
+          window.setTimeout(() => reject(new Error('请求超时，请稍后再试')), 15_000),
+        ),
+      ])
+      if (!result.ok || !result.token) {
+        setMsg(trOtpSend(result.error ?? '验证码发送失败', purpose))
+        return
+      }
+      setE164Locked(e164)
+      setOtpToken(result.token)
+      setOtp('')
+      setOtpPurpose(purpose)
+      setResendSeconds(60)
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : '发送失败，请稍后再试')
+    } finally {
+      setSendingOtp(false)
     }
-    setE164Locked(e164)
-    setOtpToken(result.token)
-    setOtp('')
-    setOtpPurpose(purpose)
-    setResendSeconds(60)
-    if (purpose === 'login') setLoginOtpStep(2)
-    else if (purpose === 'signup') setSignupStep(2)
-    else setForgotStep(2)
   }
 
-  async function verifyOtpAdvance(purposeExpected: 'signup' | 'forgot') {
+  // 找回密码：验证 OTP 后进入设置新密码步骤
+  async function verifyOtpAdvance() {
     setMsg(null)
-    if (!e164Locked || !otpToken || otpPurpose !== purposeExpected) {
+    if (!e164Locked || !otpToken || otpPurpose !== 'forgot') {
       setMsg('请先获取短信验证码')
       return
     }
@@ -196,19 +193,10 @@ export function AuthPage() {
     if (!result.ok) {
       setSubmitting(false)
       setMsg(trVerify(result.error ?? '验证码校验失败'))
-    } else if (purposeExpected === 'signup') {
-      setMsg('验证码通过，正在注册…')
-      await applyPassword(randomPassword())
     } else {
       setSubmitting(false)
-      setForgotStep(3)
+      setForgotStep(2)
     }
-  }
-
-  function randomPassword(): string {
-    const bytes = new Uint8Array(24)
-    crypto.getRandomValues(bytes)
-    return btoa(String.fromCharCode(...bytes)).slice(0, 20) + 'Aa1!'
   }
 
   async function submitLoginOtp(e: React.FormEvent) {
@@ -277,8 +265,8 @@ export function AuthPage() {
     await applyPassword(forgotPw1)
   }
 
-  async function applyPassword(newPassword: string, nicknameOpt?: string) {
-    if (!e164Locked || !otpToken || !otpPurpose) {
+  async function applyPassword(newPassword: string) {
+    if (!e164Locked || !otpToken) {
       setMsg('请先完成短信验证码校验')
       return
     }
@@ -288,24 +276,13 @@ export function AuthPage() {
       return
     }
     setSubmitting(true)
-    const result = await callAliyunSmsOtp(
-      otpPurpose === 'signup'
-        ? {
-            action: 'complete-signup',
-            phone: e164Locked,
-            code,
-            token: otpToken,
-            password: newPassword,
-            nickname: nicknameOpt,
-          }
-        : {
-            action: 'complete-forgot',
-            phone: e164Locked,
-            code,
-            token: otpToken,
-            password: newPassword,
-          },
-    )
+    const result = await callAliyunSmsOtp({
+      action: 'complete-forgot',
+      phone: e164Locked,
+      code,
+      token: otpToken,
+      password: newPassword,
+    })
     if (!result.ok) {
       setSubmitting(false)
       setMsg(trVerify(result.error ?? '账号处理失败'))
@@ -323,7 +300,6 @@ export function AuthPage() {
   async function submitLoginPhone(e: React.FormEvent) {
     e.preventDefault()
     setMsg(null)
-    if (AUTH_LAX_DEV && (await tryLaxDevRedirect(navigate, safeRedirect))) return
     const e164 = normalizeChinaMobileToE164(mobileInput)
     if (!e164) {
       setMsg('请输入中国大陆 11 位手机号')
@@ -378,337 +354,294 @@ export function AuthPage() {
 
   if (!isSupabaseConfigured) {
     return (
-      <div className="mx-auto flex min-h-full max-w-md flex-col bg-white px-6 py-14">
-        <p className="text-sm leading-7 text-neutral-600">
-          当前未配置 Supabase，无法登录。请在{' '}
-          <code className="rounded bg-neutral-100 px-1 text-xs">web/.env.local</code>{' '}
-          填写 URL 与 Anon Key 后重启。
-        </p>
-        <Link to="/" className="mt-8 text-center text-sm font-medium text-orange-600">
-          返回首页
-        </Link>
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+        <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-xl">
+          <p className="text-sm leading-7 text-neutral-600">
+            当前未配置 Supabase，无法登录。请在{' '}
+            <code className="rounded bg-neutral-100 px-1 text-xs">web/.env.local</code>{' '}
+            填写 URL 与 Anon Key 后重启。
+          </p>
+          <Link to="/" className="mt-8 block text-center text-sm font-medium text-orange-600 hover:text-orange-500">
+            返回首页
+          </Link>
+        </div>
       </div>
     )
   }
 
-  const displayMobile =
-    e164Locked && e164Locked.startsWith('+86') && e164Locked.length === 14
-      ? e164Locked.slice(3)
-      : e164Locked ?? mobileInput
-
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col bg-gradient-to-b from-white via-orange-50/30 to-white px-6 pb-14 pt-8">
-      <header className="mb-7">
-        <button
-          type="button"
-          onClick={() => {
-            if (window.history.length > 1) {
-              navigate(-1)
-            } else {
-              navigate('/tier-map', { replace: true })
-            }
-          }}
-          className="flex items-center gap-1 text-sm text-neutral-500"
-        >
-          <span aria-hidden="true">←</span> 返回
-        </button>
-        <h1 className="mt-5 text-[26px] font-semibold text-neutral-950">{headerTitle(phase)}</h1>
-        <p className="mt-1.5 text-sm text-neutral-500">{subtitle(surface, phase)}</p>
-      </header>
+    <div className="flex min-h-screen flex-col items-center bg-neutral-50 px-4 py-12 sm:justify-center lg:px-8">
+      <div className="w-full max-w-md rounded-3xl bg-white px-6 py-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] sm:px-10">
+        <header className="mb-8 text-center">
+          <h1 className="text-2xl font-bold tracking-tight text-neutral-900">{headerTitle(phase)}</h1>
+          <p className="mt-2 text-sm text-neutral-500">{subtitle(surface, phase)}</p>
+        </header>
 
-      {EMAIL_AUTH && (
-        <div className="mb-6 flex gap-2 rounded-2xl bg-neutral-100 p-1 text-sm">
-          <button
-            type="button"
-            className={cn(
-              'flex-1 rounded-xl py-2 font-medium transition-colors',
-              surface === 'phone' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500',
-            )}
-            onClick={() => {
-              setSurface('phone')
-              goPhoneLogin()
-              setMsg(null)
-            }}
-          >
-            手机号账号
-          </button>
-          <button
-            type="button"
-            className={cn(
-              'flex-1 rounded-xl py-2 font-medium transition-colors',
-              surface === 'email' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500',
-            )}
-            onClick={() => {
-              setSurface('email')
-              setPhase('login')
-              resetOtp()
-              setMsg(null)
-            }}
-          >
-            研发邮箱
-          </button>
-        </div>
-      )}
+        {EMAIL_AUTH && (
+          <div className="mb-8 flex gap-1.5 rounded-2xl bg-neutral-100/80 p-1.5 text-sm">
+            <button
+              type="button"
+              className={cn(
+                'flex-1 rounded-xl py-2.5 font-medium transition-all duration-200',
+                surface === 'phone' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700',
+              )}
+              onClick={() => {
+                setSurface('phone')
+                goPhoneLogin()
+                setMsg(null)
+              }}
+            >
+              手机号账号
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'flex-1 rounded-xl py-2.5 font-medium transition-all duration-200',
+                surface === 'email' ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500 hover:text-neutral-700',
+              )}
+              onClick={() => {
+                setSurface('email')
+                setPhase('login')
+                resetOtp()
+                setMsg(null)
+              }}
+            >
+              研发邮箱
+            </button>
+          </div>
+        )}
 
-      {EMAIL_AUTH && surface === 'email' && <EmailAuthPanel safeRedirect={safeRedirect} />}
-
-      {surface === 'phone' && phase === 'login' && (
-        <div className="space-y-4">
-          {loginMode === 'password' ? (
-            <form className="space-y-4" onSubmit={submitLoginPhone}>
-              <PhoneRow editable value={mobileInput} onChange={setMobileInput} />
-              <PasswordField
-                id="lw"
-                label="密码"
-                value={loginPw}
-                onChange={setLoginPw}
-                autocomplete="current-password"
-                reveal={showLoginPw}
-                onReveal={() => setShowLoginPw((v) => !v)}
-              />
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => { setLoginMode('otp'); setLoginOtpStep(1); resetOtp(); setMsg(null) }}
-                  className="text-xs text-orange-700 underline underline-offset-2"
-                >
-                  用验证码登录
-                </button>
-                <button
-                  type="button"
-                  onClick={() => goPhoneForgot()}
-                  className="text-xs text-orange-700 underline underline-offset-2"
-                >
-                  忘记密码？
-                </button>
-              </div>
-              {msg ? <Alert>{msg}</Alert> : null}
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
-              >
-                {submitting ? '登录中…' : '登录'}
-              </button>
-            </form>
-          ) : loginOtpStep === 1 ? (
-            <div className="space-y-4">
-              <PhoneRow editable value={mobileInput} onChange={setMobileInput} />
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={() => void sendOtp('login')}
-                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
-              >
-                {submitting ? '发送中…' : '发送验证码'}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setLoginMode('password'); setMsg(null) }}
-                className="flex items-center gap-1 text-xs text-neutral-500"
-              >
-                <span aria-hidden="true">←</span> 使用密码登录
-              </button>
-              <SmsFootnote />
-              {msg ? <Alert>{msg}</Alert> : null}
-            </div>
-          ) : (
-            <form className="space-y-4" onSubmit={submitLoginOtp}>
-              <PhoneRow editable={false} value={displayMobile} onChange={() => {}} />
-              <OtpField value={otp} onChange={setOtp} />
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
-              >
-                {submitting ? '登录中…' : '登录'}
-              </button>
-              <Resend
-                loading={submitting}
-                secs={resendSeconds}
-                onResend={() => void sendOtp('login')}
-              />
-              <button
-                type="button"
-                className="flex items-center gap-1 text-xs text-neutral-500"
-                onClick={() => { setLoginOtpStep(1); resetOtp(); setMsg(null) }}
-              >
-                <span aria-hidden="true">←</span> 修改手机号
-              </button>
-              {msg ? <Alert>{msg}</Alert> : null}
-            </form>
+        <div className="relative">
+          {EMAIL_AUTH && surface === 'email' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <EmailAuthPanel safeRedirect={safeRedirect} />
+            </motion.div>
           )}
 
-          <div className="pt-2 text-center">
-            <p className="text-sm text-neutral-500">
-              还没有账号？
-              <button
-                type="button"
-                className="ml-1 font-semibold text-orange-700 underline-offset-4 hover:underline"
-                onClick={() => goPhoneSignup()}
+          <AnimatePresence mode="wait">
+            {/* ── 登录：密码模式 ── */}
+            {surface === 'phone' && phase === 'login' && loginMode === 'password' && (
+              <motion.div
+                key="login-password"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
               >
-                注册
-              </button>
-            </p>
-          </div>
+                <form className="space-y-6" onSubmit={submitLoginPhone}>
+                  <div className="space-y-5">
+                    <PhoneRow editable value={mobileInput} onChange={setMobileInput} />
+                    <PasswordField
+                      id="lw"
+                      label="密码"
+                      value={loginPw}
+                      onChange={setLoginPw}
+                      autocomplete="current-password"
+                      reveal={showLoginPw}
+                      onReveal={() => setShowLoginPw((v) => !v)}
+                    />
+                  </div>
+
+                  {/* UI & UX Consistency: Left: Switch Mode, Right: Forgot */}
+                  <div className="flex items-center justify-between px-1">
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMode('otp'); resetOtp(); setMsg(null) }}
+                      className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-800"
+                    >
+                      验证码登录
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => goPhoneForgot()}
+                      className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-800"
+                    >
+                      忘记密码？
+                    </button>
+                  </div>
+
+                  <div className="space-y-5 pt-2">
+                    {msg ? <Alert>{msg}</Alert> : null}
+                    <button
+                      type="submit"
+                      disabled={submitting || !agreedToTerms}
+                      className="w-full rounded-2xl bg-orange-500 py-3.5 text-sm font-semibold text-white shadow-sm shadow-orange-500/20 transition-all hover:bg-orange-600 active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {submitting ? '登录中…' : '登录'}
+                    </button>
+                    <TermsCheckbox agreed={agreedToTerms} onChange={setAgreedToTerms} />
+                  </div>
+                </form>
+              </motion.div>
+            )}
+
+            {/* ── 登录：验证码模式 ── */}
+            {surface === 'phone' && phase === 'login' && loginMode === 'otp' && (
+              <motion.div
+                key="login-otp"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <form className="space-y-6" onSubmit={submitLoginOtp}>
+                  <div className="space-y-5">
+                    <PhoneRowWithOtp
+                      value={mobileInput}
+                      onChange={handlePhoneChange}
+                      sendingOtp={sendingOtp}
+                      resendSeconds={resendSeconds}
+                      onSendOtp={() => void sendOtp('login')}
+                      mainSubmitting={submitting}
+                    />
+                    <OtpField value={otp} onChange={setOtp} disabled={!otpToken} />
+                  </div>
+
+                  {/* UI & UX Consistency: Left: Switch Mode, Right: Info/Other */}
+                  <div className="flex items-center justify-between px-1">
+                    <button
+                      type="button"
+                      onClick={() => { setLoginMode('password'); setMsg(null) }}
+                      className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-800"
+                    >
+                      密码登录
+                    </button>
+                  </div>
+
+                  <div className="space-y-5 pt-2">
+                    {msg ? <Alert>{msg}</Alert> : null}
+                    <button
+                      type="submit"
+                      disabled={submitting || sendingOtp || !agreedToTerms}
+                      className="w-full rounded-2xl bg-orange-500 py-3.5 text-sm font-semibold text-white shadow-sm shadow-orange-500/20 transition-all hover:bg-orange-600 active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {submitting ? '登录中…' : '登录'}
+                    </button>
+                    <TermsCheckbox agreed={agreedToTerms} onChange={setAgreedToTerms} />
+                  </div>
+                </form>
+              </motion.div>
+            )}
+
+            {/* ── 找回密码 step 1 ── */}
+            {surface === 'phone' && phase === 'forgot' && forgotStep === 1 && (
+              <motion.div
+                key="forgot-step-1"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <form
+                  className="space-y-6"
+                  onSubmit={(e) => { e.preventDefault(); void verifyOtpAdvance() }}
+                >
+                  <div className="space-y-5">
+                    <PhoneRowWithOtp
+                      value={mobileInput}
+                      onChange={handlePhoneChange}
+                      sendingOtp={sendingOtp}
+                      resendSeconds={resendSeconds}
+                      onSendOtp={() => void sendOtp('forgot')}
+                      mainSubmitting={submitting}
+                    />
+                    <OtpField value={otp} onChange={setOtp} disabled={!otpToken} />
+                  </div>
+
+                  <div className="flex items-center justify-end px-1">
+                    <button
+                      type="button"
+                      className="text-sm font-medium text-neutral-500 transition-colors hover:text-neutral-800"
+                      onClick={() => goPhoneLogin()}
+                    >
+                      返回登录
+                    </button>
+                  </div>
+
+                  <div className="space-y-5 pt-2">
+                    {msg ? <Alert>{msg}</Alert> : null}
+                    <button
+                      type="submit"
+                      disabled={submitting || sendingOtp}
+                      className="w-full rounded-2xl bg-orange-500 py-3.5 text-sm font-semibold text-white shadow-sm shadow-orange-500/20 transition-all hover:bg-orange-600 active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {submitting ? '验证中…' : '下一步'}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+
+            {/* ── 找回密码 step 2 ── */}
+            {surface === 'phone' && phase === 'forgot' && forgotStep === 2 && (
+              <motion.div
+                key="forgot-step-2"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <form className="space-y-6" onSubmit={submitForgotPassword}>
+                  <div className="rounded-2xl bg-orange-50/50 p-4">
+                    <p className="text-sm text-orange-800/80">{PASSWORD_RULE_HINT}</p>
+                  </div>
+                  <div className="space-y-5">
+                    <PasswordField
+                      id="fp1"
+                      label="新密码"
+                      value={forgotPw1}
+                      onChange={setForgotPw1}
+                      autocomplete="new-password"
+                      reveal={showForgotPw}
+                      onReveal={() => setShowForgotPw((v) => !v)}
+                    />
+                    <PasswordField
+                      id="fp2"
+                      label="确认新密码"
+                      value={forgotPw2}
+                      onChange={setForgotPw2}
+                      autocomplete="new-password"
+                      reveal={showForgotPw}
+                      onReveal={() => setShowForgotPw((v) => !v)}
+                    />
+                  </div>
+
+                  <div className="space-y-5 pt-2">
+                    {msg ? <Alert>{msg}</Alert> : null}
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full rounded-2xl bg-orange-500 py-3.5 text-sm font-semibold text-white shadow-sm shadow-orange-500/20 transition-all hover:bg-orange-600 active:scale-[0.98] disabled:opacity-50"
+                    >
+                      {submitting ? '重置中…' : '重置密码'}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      )}
-
-      {surface === 'phone' && phase === 'signup' && signupStep === 1 && (
-        <div className="space-y-4">
-          <PhoneRow editable value={mobileInput} onChange={setMobileInput} />
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => void sendOtp('signup')}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
-          >
-            {submitting ? '发送中…' : '发送验证码'}
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-1 text-xs text-neutral-500"
-            onClick={() => goPhoneLogin()}
-          >
-            <span aria-hidden="true">←</span> 已有账号？去登录
-          </button>
-          <SmsFootnote />
-          {msg ? <Alert>{msg}</Alert> : null}
-        </div>
-      )}
-
-      {surface === 'phone' && phase === 'signup' && signupStep === 2 && (
-        <form className="space-y-4" onSubmit={(e) => {
-          e.preventDefault()
-          void verifyOtpAdvance('signup')
-        }}
-        >
-          <PhoneRow editable={false} value={displayMobile} onChange={() => {}} />
-          <OtpField value={otp} onChange={setOtp} />
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
-          >
-            {submitting ? '验证中…' : '验证'}
-          </button>
-          <Resend
-            loading={submitting}
-            secs={resendSeconds}
-            onResend={() => void sendOtp('signup')}
-          />
-          <button
-            type="button"
-            className="flex items-center gap-1 text-xs text-neutral-500"
-            onClick={() => { setSignupStep(1); resetOtp(); setMsg(null) }}
-          >
-            <span aria-hidden="true">←</span> 修改手机号
-          </button>
-          {msg ? <Alert>{msg}</Alert> : null}
-        </form>
-      )}
-
-      {surface === 'phone' && phase === 'forgot' && forgotStep === 1 && (
-        <div className="space-y-4">
-          <PhoneRow editable value={mobileInput} onChange={setMobileInput} />
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={() => void sendOtp('forgot')}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
-          >
-            {submitting ? '发送中…' : '发送验证码'}
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-1 text-xs text-neutral-500"
-            onClick={() => goPhoneLogin()}
-          >
-            <span aria-hidden="true">←</span> 返回登录
-          </button>
-          <SmsFootnote />
-          {msg ? <Alert>{msg}</Alert> : null}
-        </div>
-      )}
-
-      {surface === 'phone' && phase === 'forgot' && forgotStep === 2 && (
-        <form className="space-y-4" onSubmit={(e) => {
-          e.preventDefault()
-          void verifyOtpAdvance('forgot')
-        }}
-        >
-          <PhoneRow editable={false} value={displayMobile} onChange={() => {}} />
-          <OtpField value={otp} onChange={setOtp} />
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
-          >
-            {submitting ? '验证中…' : '验证'}
-          </button>
-          <Resend
-            loading={submitting}
-            secs={resendSeconds}
-            onResend={() => void sendOtp('forgot')}
-          />
-          <button type="button" className="flex items-center gap-1 text-xs text-neutral-500" onClick={() => goPhoneLogin()}>
-            <span aria-hidden="true">←</span> 返回登录
-          </button>
-          {msg ? <Alert>{msg}</Alert> : null}
-        </form>
-      )}
-
-      {surface === 'phone' && phase === 'forgot' && forgotStep === 3 && (
-        <form className="space-y-4" onSubmit={submitForgotPassword}>
-          <div className="rounded-xl bg-amber-50 px-3 py-2">
-            <p className="text-xs text-amber-800">{PASSWORD_RULE_HINT}</p>
-          </div>
-          <PasswordField
-            id="fp1"
-            label="新密码"
-            value={forgotPw1}
-            onChange={setForgotPw1}
-            autocomplete="new-password"
-            reveal={showForgotPw}
-            onReveal={() => setShowForgotPw((v) => !v)}
-          />
-          <PasswordField
-            id="fp2"
-            label="确认新密码"
-            value={forgotPw2}
-            onChange={setForgotPw2}
-            autocomplete="new-password"
-            reveal={showForgotPw}
-            onReveal={() => setShowForgotPw((v) => !v)}
-          />
-          {msg ? <Alert>{msg}</Alert> : null}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
-          >
-            {submitting ? '重置中…' : '重置密码'}
-          </button>
-        </form>
-      )}
-
+      </div>
     </div>
   )
 }
 
 function headerTitle(phase: Phase) {
   if (phase === 'login') return '登录'
-  if (phase === 'signup') return '注册账号'
   return '找回密码'
 }
 
 function subtitle(surface: 'phone' | 'email', phase: Phase) {
   if (surface === 'email') return '研发环境可选用邮箱账号'
-  if (phase === 'login') return ''
-  if (phase === 'signup') return '验证手机号后设置密码，快速完成注册'
+  if (phase === 'login') return '未注册的手机号将自动创建新账号'
   return '通过短信验证码验证身份后重置密码'
 }
 
+// ── 手机号行（普通只读/可编辑，用于密码登录） ──────────────────────────────
 function PhoneRow({
   editable,
   value,
@@ -720,11 +653,12 @@ function PhoneRow({
 }) {
   return (
     <div>
-      <p className="text-xs font-medium text-neutral-600">手机号</p>
-      <div className="mt-1.5 flex gap-2">
-        <span className="flex w-14 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 text-sm text-neutral-600">
+      <p className="mb-1.5 text-sm font-medium text-neutral-700">手机号</p>
+      <div className="group flex items-center rounded-2xl border border-neutral-200 bg-neutral-50 transition-colors focus-within:border-orange-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-500/20">
+        <span className="flex items-center justify-center pl-4 pr-3 text-sm font-medium text-neutral-500">
           +86
         </span>
+        <div className="my-2 w-px self-stretch bg-neutral-200" />
         <input
           type="tel"
           inputMode="numeric"
@@ -732,9 +666,64 @@ function PhoneRow({
           disabled={!editable}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="11 位手机号"
-          className="min-w-0 flex-1 rounded-xl border border-neutral-200 px-3 py-2.5 text-sm outline-none ring-orange-400/40 placeholder:text-neutral-400 focus:border-orange-400 focus:ring disabled:bg-neutral-50"
+          placeholder="请输入 11 位手机号"
+          className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-sm outline-none placeholder:text-neutral-400 disabled:text-neutral-400"
         />
+      </div>
+    </div>
+  )
+}
+
+// ── 手机号行 + 内联「获取验证码」按钮（OTP 流程专用） ──────────────────────
+function PhoneRowWithOtp({
+  value,
+  onChange,
+  sendingOtp,
+  resendSeconds,
+  onSendOtp,
+  mainSubmitting,
+}: {
+  value: string
+  onChange: (v: string) => void
+  sendingOtp: boolean
+  resendSeconds: number
+  onSendOtp: () => void
+  mainSubmitting: boolean
+}) {
+  const canSend = !sendingOtp && !mainSubmitting && resendSeconds <= 0
+
+  return (
+    <div>
+      <p className="mb-1.5 text-sm font-medium text-neutral-700">手机号</p>
+      <div className="group flex items-center rounded-2xl border border-neutral-200 bg-neutral-50 transition-colors focus-within:border-orange-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-500/20">
+        <span className="flex items-center justify-center pl-4 pr-3 text-sm font-medium text-neutral-500">
+          +86
+        </span>
+        <div className="my-2 w-px self-stretch bg-neutral-200" />
+        <input
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel-national"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="请输入 11 位手机号"
+          className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-sm outline-none placeholder:text-neutral-400"
+        />
+        <div className="pr-2">
+          <button
+            type="button"
+            disabled={!canSend}
+            onClick={onSendOtp}
+            className={cn(
+              'rounded-xl px-3 py-1.5 text-xs font-medium transition-colors',
+              canSend
+                ? 'bg-white text-orange-600 shadow-sm ring-1 ring-neutral-200/50 hover:bg-orange-50'
+                : 'text-neutral-400'
+            )}
+          >
+            {sendingOtp ? '发送中…' : resendSeconds > 0 ? `${resendSeconds}s 后重发` : '获取验证码'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -758,105 +747,109 @@ function PasswordField({
   onReveal: () => void
 }) {
   return (
-    <label className="block text-xs font-medium text-neutral-600">
-      <span className="flex justify-between gap-2">
-        <span>{label}</span>
-        <button type="button" tabIndex={-1} className="text-neutral-400" onClick={onReveal}>
-          {reveal ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
+    <div>
+      <p className="mb-1.5 text-sm font-medium text-neutral-700">{label}</p>
+      <div className="group flex items-center rounded-2xl border border-neutral-200 bg-neutral-50 transition-colors focus-within:border-orange-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-500/20">
+        <input
+          id={id}
+          type={reveal ? 'text' : 'password'}
+          autoComplete={autocomplete}
+          required
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="请输入密码"
+          className="min-w-0 flex-1 bg-transparent px-4 py-3.5 text-sm outline-none placeholder:text-neutral-400"
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          className="flex items-center justify-center pr-4 text-neutral-400 hover:text-neutral-600"
+          onClick={onReveal}
+        >
+          {reveal ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
           <span className="sr-only">{reveal ? '隐藏密码' : '显示密码'}</span>
         </button>
-      </span>
-      <input
-        id={id}
-        type={reveal ? 'text' : 'password'}
-        autoComplete={autocomplete}
-        required
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 block w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm outline-none ring-orange-400/40 focus:border-orange-400 focus:ring"
-      />
-    </label>
-  )
-}
-
-function OtpField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <div>
-      <p className="text-xs font-medium text-neutral-600">验证码</p>
-      <input
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        maxLength={8}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="请输入 6 位验证码"
-        className="mt-1.5 block w-full rounded-xl border border-neutral-200 px-3 py-3 text-base tracking-[0.5em] outline-none ring-orange-400/40 placeholder:tracking-normal focus:border-orange-400 focus:ring"
-      />
+      </div>
     </div>
   )
 }
 
-function TermsBox({
-  checked,
+function OtpField({
+  value,
   onChange,
+  disabled,
 }: {
-  checked: boolean
-  onChange: (v: boolean) => void
+  value: string
+  onChange: (v: string) => void
+  disabled?: boolean
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-2 text-xs leading-5 text-neutral-700">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-1 size-3.5 rounded border-orange-300 text-orange-600 focus:ring-orange-400"
-      />
-      <span>
-        我已阅读并同意
-        <Link className="mx-1 text-orange-800 underline" to="/legal/terms">
-          《用户协议》
-        </Link>
-        与
-        <Link className="mx-1 text-orange-800 underline" to="/legal/privacy">
-          《隐私政策》
-        </Link>
-      </span>
-    </label>
+    <div>
+      <p className={cn('mb-1.5 text-sm font-medium', disabled ? 'text-neutral-400' : 'text-neutral-700')}>
+        验证码
+      </p>
+      <div className={cn(
+        'group flex items-center rounded-2xl border transition-colors',
+        disabled 
+          ? 'border-neutral-200 bg-neutral-50/50' 
+          : 'border-neutral-200 bg-neutral-50 focus-within:border-orange-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-orange-500/20'
+      )}>
+        <input
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={8}
+          disabled={disabled}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={disabled ? '请先获取验证码' : '请输入 6 位验证码'}
+          className={cn(
+            'min-w-0 flex-1 bg-transparent px-4 py-3.5 text-base outline-none transition-all placeholder:text-sm placeholder:tracking-normal',
+            disabled ? 'text-neutral-400 placeholder:text-neutral-300' : 'tracking-[0.5em] text-neutral-900'
+          )}
+        />
+      </div>
+    </div>
   )
 }
 
-function Resend({
-  loading,
-  secs,
-  onResend,
-}: {
-  loading: boolean
-  secs: number
-  onResend: () => void
-}) {
-  return (
-    <button
-      type="button"
-      disabled={loading || secs > 0}
-      onClick={() => onResend()}
-      className="w-full rounded-xl border border-neutral-200 py-2.5 text-sm text-neutral-600 disabled:opacity-40"
-    >
-      {secs > 0 ? `${secs} 秒后可重发验证码` : '重新发送验证码'}
-    </button>
-  )
-}
 
 function Alert({ children }: { children: ReactNode }) {
   return (
-    <p className="rounded-xl bg-orange-50 px-3 py-2 text-xs text-orange-900">{children}</p>
+    <p className="rounded-xl bg-orange-50 px-4 py-2.5 text-[13px] text-orange-900 shadow-sm shadow-orange-500/5">{children}</p>
   )
 }
 
-function SmsFootnote() {
+function TermsCheckbox({ agreed, onChange }: { agreed: boolean; onChange: (v: boolean) => void }) {
   return (
-    <p className="text-[11px] leading-5 text-neutral-500">
-      验证码由阿里云短信发送，5 分钟内有效
-    </p>
+    <div className="flex items-start justify-center gap-2 px-2 pt-2 text-center">
+      <div className="flex h-5 items-center">
+        <input
+          id="terms-checkbox"
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => onChange(e.target.checked)}
+          className="h-4 w-4 rounded border-neutral-300 text-orange-500 focus:ring-orange-500/30"
+        />
+      </div>
+      <label htmlFor="terms-checkbox" className="text-[13px] text-neutral-500 leading-tight select-none">
+        已阅读并同意我们的{' '}
+        <Link
+          to="/legal/privacy"
+          onClick={(e) => e.stopPropagation()}
+          className="text-neutral-900 font-medium transition-colors hover:text-orange-600"
+        >
+          隐私政策
+        </Link>
+        {' '}和{' '}
+        <Link
+          to="/legal/terms"
+          onClick={(e) => e.stopPropagation()}
+          className="text-neutral-900 font-medium transition-colors hover:text-orange-600"
+        >
+          用户协议
+        </Link>
+      </label>
+    </div>
   )
 }
 

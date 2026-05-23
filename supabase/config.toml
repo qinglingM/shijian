@@ -1,0 +1,4 @@
+project_id = "jpdnnfbxcgdjhpwcchqd"
+
+[functions.sms-otp]
+verify_jwt = false

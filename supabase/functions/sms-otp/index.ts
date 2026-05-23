@@ -20,6 +20,74 @@ const CORS = {
   'Content-Type': 'application/json',
 }
 
+type RateBucket = { count: number; resetAt: number }
+
+const rateBuckets = new Map<string, RateBucket>()
+
+function json(payload: unknown, status = 200, headers: Record<string, string> = {}): Response {
+  return new Response(JSON.stringify(payload), { status, headers: { ...CORS, ...headers } })
+}
+
+function clientIp(req: Request): string {
+  const forwarded = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+  return forwarded
+    || req.headers.get('cf-connecting-ip')
+    || req.headers.get('fly-client-ip')
+    || 'unknown'
+}
+
+function consumeRateLimit(key: string, limit: number, windowMs: number): number | null {
+  const now = Date.now()
+  const bucket = rateBuckets.get(key)
+  if (!bucket || bucket.resetAt <= now) {
+    rateBuckets.set(key, { count: 1, resetAt: now + windowMs })
+    pruneRateBuckets(now)
+    return null
+  }
+  if (bucket.count >= limit) return Math.ceil((bucket.resetAt - now) / 1000)
+  bucket.count += 1
+  return null
+}
+
+function pruneRateBuckets(now: number) {
+  if (rateBuckets.size < 1000) return
+  for (const [key, bucket] of rateBuckets) {
+    if (bucket.resetAt <= now) rateBuckets.delete(key)
+  }
+}
+
+function rateLimitResponse(retryAfter: number): Response {
+  return json(
+    { ok: false, error: '操作过于频繁，请稍后再试' },
+    429,
+    { 'Retry-After': String(retryAfter) },
+  )
+}
+
+function checkRateLimit(req: Request, action: string | undefined, purpose: string | undefined, phone: string): Response | null {
+  const ip = clientIp(req)
+  const phoneKey = phone.replace(/\D/g, '') || 'unknown-phone'
+  const checks: Array<[string, number, number]> = []
+
+  if (action === 'send') {
+    checks.push([`send:phone:${purpose ?? 'unknown'}:${phoneKey}`, 3, 60 * 1000])
+    checks.push([`send-hour:phone:${purpose ?? 'unknown'}:${phoneKey}`, 8, 60 * 60 * 1000])
+    checks.push([`send:ip:${ip}`, 30, 60 * 60 * 1000])
+  } else if (action === 'password-login') {
+    checks.push([`password:phone-ip:${phoneKey}:${ip}`, 8, 15 * 60 * 1000])
+    checks.push([`password:ip:${ip}`, 60, 15 * 60 * 1000])
+  } else if (action === 'verify' || action === 'complete-login' || action === 'complete-signup' || action === 'complete-forgot') {
+    checks.push([`otp-check:phone-ip:${phoneKey}:${ip}`, 12, 5 * 60 * 1000])
+    checks.push([`otp-check:ip:${ip}`, 80, 5 * 60 * 1000])
+  }
+
+  for (const [key, limit, windowMs] of checks) {
+    const retryAfter = consumeRateLimit(key, limit, windowMs)
+    if (retryAfter !== null) return rateLimitResponse(retryAfter)
+  }
+  return null
+}
+
 function toBase64(bytes: Uint8Array): string {
   let binary = ''
   for (const b of bytes) binary += String.fromCharCode(b)
@@ -73,11 +141,21 @@ async function sendSms(phone: string, code: string): Promise<{ ok: boolean; erro
   const stringToSign = `POST&${percentEncode('/')}&${percentEncode(canonical)}`
   params.Signature = toBase64(await hmacBytes(ACCESS_KEY_SECRET + '&', stringToSign, 'SHA-1'))
 
-  const res = await fetch('https://dypnsapi.aliyuncs.com/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
-    body: new URLSearchParams(params).toString(),
-  })
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 10_000)
+  let res: Response
+  try {
+    res = await fetch('https://dypnsapi.aliyuncs.com/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
+      body: new URLSearchParams(params).toString(),
+      signal: controller.signal,
+    })
+  } catch {
+    return { ok: false, error: '短信服务请求超时或网络不通，请稍后再试' }
+  } finally {
+    clearTimeout(timer)
+  }
   const json = await res.json() as { Code: string; Message: string }
   if (json.Code !== 'OK') return { ok: false, error: translateSmsError(json.Code, json.Message) }
   return { ok: true }
@@ -254,15 +332,15 @@ Deno.serve(async (req) => {
   // dypnsapi 需要国内格式（去掉 +86 前缀）
   const e164Phone = normalizeE164Phone(phone)
   const localPhone = e164Phone.startsWith('+86') ? e164Phone.slice(3) : e164Phone
+  const limited = checkRateLimit(req, action, purpose, e164Phone)
+  if (limited) return limited
 
   if (action === 'send') {
-    if (purpose === 'login' || purpose === 'signup' || purpose === 'forgot') {
+    // 找回密码：必须已有账号；登录：新旧号均可发（新号会在 complete-login 时自动注册）
+    if (purpose === 'forgot') {
       try {
         const existingUser = await findUserByPhoneOrEmail(e164Phone)
-        if (purpose === 'signup' && existingUser) {
-          return new Response(JSON.stringify({ ok: false, error: '手机号已注册，请直接登录' }), { headers: CORS })
-        }
-        if ((purpose === 'login' || purpose === 'forgot') && !existingUser) {
+        if (!existingUser) {
           return new Response(JSON.stringify({ ok: false, error: '该手机号尚未注册' }), { headers: CORS })
         }
       } catch (e) {
@@ -306,10 +384,6 @@ Deno.serve(async (req) => {
       }
 
       const accountEmail = await phoneAccountEmail(e164Phone)
-      const session = await signInWithPassword([
-        { email: accountEmail },
-        ...phoneLoginCandidates(existingUser.phone, e164Phone, localPhone).map((phone) => ({ phone })),
-      ], password)
       await admin.auth.admin.updateUserById(existingUser.id, {
         email: accountEmail,
         phone: e164Phone,
@@ -320,6 +394,10 @@ Deno.serve(async (req) => {
           phone_e164: e164Phone,
         },
       })
+      const session = await signInWithPassword([
+        { email: accountEmail },
+        ...phoneLoginCandidates(existingUser.phone, e164Phone, localPhone).map((phone) => ({ phone })),
+      ], password)
       return new Response(JSON.stringify({
         ok: true,
         access_token: session.access_token,
@@ -351,11 +429,32 @@ Deno.serve(async (req) => {
       const existingUser = await findUserByPhoneOrEmail(e164Phone)
 
       if (action === 'complete-login') {
+        const accountEmail = await phoneAccountEmail(e164Phone)
+
         if (!existingUser) {
-          return new Response(JSON.stringify({ ok: false, error: '该手机号尚未注册' }), { headers: CORS })
+          // 新用户：验证码通过后自动注册
+          const autoPassword = randomPassword()
+          const { error } = await admin.auth.admin.createUser({
+            email: accountEmail,
+            phone: e164Phone,
+            password: autoPassword,
+            email_confirm: true,
+            phone_confirm: true,
+            user_metadata: { phone_e164: e164Phone },
+          })
+          if (error) throw error
+          const session = await signInWithPassword([{ email: accountEmail }], autoPassword)
+          return new Response(JSON.stringify({
+            ok: true,
+            login_phone: e164Phone,
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            expires_in: session.expires_in,
+            token_type: session.token_type,
+          }), { headers: CORS })
         }
 
-        const accountEmail = await phoneAccountEmail(e164Phone)
+        // 已有账号：magic link 登录
         const { error } = await admin.auth.admin.updateUserById(existingUser.id, {
           email: accountEmail,
           phone: e164Phone,

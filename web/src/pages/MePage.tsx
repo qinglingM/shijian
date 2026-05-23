@@ -9,14 +9,13 @@ import {
   UserRound,
   UsersRound,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { ProfileRow } from '@/lib/db'
 import { useAuthStore } from '@/stores/authStore'
 
 /** 与 AuthBootstrap 一致，用于退出失败时的提示文案 */
 const FIXTURE_AUTO_LOGIN = import.meta.env.VITE_FIXTURE_AUTO_LOGIN === 'true'
-const EMAIL_AUTH_ENABLED = import.meta.env.VITE_ENABLE_EMAIL_AUTH === 'true'
 
 interface MeActivityItem {
   id: string
@@ -179,41 +178,7 @@ export function MePage() {
   const userCode = profile?.user_code || 'SJ000000'
 
   if (isSupabaseConfigured && !userId) {
-    return (
-      <div className="bg-white px-5 py-10">
-        <section className="relative overflow-hidden rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50/80 to-white p-6 shadow-sm">
-          <div className="flex size-14 items-center justify-center rounded-full bg-white text-orange-600 shadow ring-1 ring-orange-100">
-            <UserRound size={32} strokeWidth={1.7} />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold text-neutral-950">还未登录</h2>
-          <p className="mt-2 text-sm leading-6 text-neutral-600">
-            登录后可同步「想去」标记、撰写食鉴、查看伯乐与称号进度。
-          </p>
-          <div className="mt-6 flex flex-col gap-2">
-            <Link
-              to="/auth?redirect=/me"
-              className="block rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-3 text-center text-sm font-medium text-white shadow-sm"
-            >
-              登录
-            </Link>
-            <Link
-              to="/auth?redirect=/me&mode=signup"
-              className="block rounded-xl border border-orange-200 bg-white py-3 text-center text-sm font-medium text-orange-700 shadow-sm"
-            >
-              注册新账号
-            </Link>
-            {EMAIL_AUTH_ENABLED ? (
-              <Link
-                to="/auth?redirect=/me&mode=signup&channel=email"
-                className="block text-center text-xs text-neutral-500 underline underline-offset-2"
-              >
-                使用研发邮箱注册（可选）
-              </Link>
-            ) : null}
-          </div>
-        </section>
-      </div>
-    )
+    return <Navigate to="/auth?redirect=/me" replace />
   }
 
   async function handleSignOut() {

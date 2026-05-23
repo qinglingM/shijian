@@ -115,6 +115,14 @@ VITE_FIXTURE_PASSWORD=你的测试密码
 supabase functions deploy submit-practice
 ```
 
+## 手机号登录函数部署
+
+`sms-otp` 承担登录、短信验证码、找回密码流程，调用时用户通常还没有登录，因此不能依赖平台入口的 JWT 校验。仓库已在 `config.toml` 中将该函数配置为 `verify_jwt = false`；函数内部负责手机号/IP 限流、OTP 校验和账号规范化。
+
+```powershell
+supabase functions deploy sms-otp
+```
+
 部署后确认 Supabase 项目里存在这些 Edge Function 环境变量：
 
 - `SUPABASE_URL`
