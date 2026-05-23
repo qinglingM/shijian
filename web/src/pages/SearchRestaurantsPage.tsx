@@ -2,7 +2,6 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronRight, MapPin, Search as SearchIcon } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
-import { CityPicker } from '@/features/city-picker/CityPicker'
 import { useCityStore } from '@/features/city-picker/cityStore'
 import { usePoiSearch } from '@/features/poi-search/usePoiSearch'
 import type { PoiCandidate } from '@/lib/poi/types'
@@ -48,9 +47,6 @@ export function SearchRestaurantsPage() {
       <BackHeader title="搜索门店" backTo="/tier-map" />
 
       <div className="border-b border-neutral-100 px-4 pb-3 pt-2">
-        <div className="mb-2 flex items-center gap-2">
-          <CityPicker variant="field" />
-        </div>
         <form onSubmit={onSubmit} className="flex gap-2">
           <div className="relative min-w-0 flex-1">
             <SearchIcon

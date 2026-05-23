@@ -90,31 +90,42 @@ export function HomePage() {
   // Categories from user's practice data
   const categoryGroups = useMemo(() => {
     const mids = new Set<string>()
+    const smallsMap = new Map<string, Set<string>>()
     for (const b of map.buckets) {
       for (const r of b.restaurants) {
-        if (r.amap_mid_category) mids.add(r.amap_mid_category)
+        if (r.amap_mid_category) {
+          mids.add(r.amap_mid_category)
+          if (r.amap_small_category) {
+            const cleaned = removeBracketContent(r.amap_small_category)
+            if (!smallsMap.has(r.amap_mid_category)) {
+              smallsMap.set(r.amap_mid_category, new Set())
+            }
+            smallsMap.get(r.amap_mid_category)!.add(cleaned)
+          }
+        }
       }
     }
-    return AMAP_MID_CATEGORIES.filter(g => mids.has(g.name))
+    return AMAP_MID_CATEGORIES
+      .filter(g => mids.has(g.name))
+      .map(g => ({
+        name: g.name,
+        subs: smallsMap.has(g.name) ? [...smallsMap.get(g.name)!].sort() : [],
+      }))
   }, [map])
 
   const visibleMap = useMemo(() => {
-    let buckets = map.buckets.map(b => ({
-      ...b,
-      restaurants: appliedCity
-        ? b.restaurants.filter(r => r.city_name === appliedCity)
-        : b.restaurants,
-    }))
-    if (appliedCategory) {
-      buckets = buckets.map(b => ({
-        ...b,
-        restaurants: b.restaurants.filter(r =>
+    let buckets = map.buckets.map(b => {
+      let rest = b.restaurants
+      if (appliedCity) rest = rest.filter(r => r.city_name === appliedCity)
+      if (appliedCategory) {
+        rest = rest.filter(r =>
           r.amap_mid_category === appliedCategory ||
           removeBracketContent(r.amap_small_category || '') === appliedCategory
-        ),
-      }))
-    }
-    return { ...map, buckets }
+        )
+      }
+      return { tier: b.tier, count: rest.length, restaurants: rest }
+    })
+    return { total_count: buckets.reduce((s, b) => s + b.count, 0), buckets }
   }, [map, appliedCity, appliedCategory])
 
   const flatItems = useMemo<FlatItem[]>(() => {
@@ -140,124 +151,128 @@ export function HomePage() {
 
   return (
     <div className="flex min-h-[calc(100vh-5rem)] flex-col">
-      {/* Header with filters + search + view toggle */}
-      <header className="flex items-center justify-between px-4 pt-4 pb-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <button
-            onClick={() => { setFilterTab('city'); setFilterOpen(true) }}
-            className={`rounded-lg px-2 py-1 text-[12px] font-medium transition-colors ${
-              filterTab === 'city' && filterOpen
-                ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-                : appliedCity
-                  ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-                  : 'bg-neutral-100 text-neutral-500'
-            }`}
-          >
-            {appliedCity || '城市'}
-          </button>
-          <button
-            onClick={() => { setFilterTab('category'); setFilterOpen(true) }}
-            className={`rounded-lg px-2 py-1 text-[12px] font-medium transition-colors ${
-              filterTab === 'category' && filterOpen
-                ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-                : appliedCategory
-                  ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-                  : 'bg-neutral-100 text-neutral-500'
-            }`}
-          >
-            {appliedCategory || '中类'}
-          </button>
-        </div>
-
-        <h1 className="text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => navigate('/search')}
-            aria-label="搜索"
-            className="flex items-center justify-center rounded-full p-1.5 text-neutral-500 active:bg-neutral-100"
-          >
-            <SearchIcon size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode((m) => (m === 'grid' ? 'list' : 'grid'))}
-            aria-label={viewMode === 'grid' ? '切换为列表视图' : '切换为表格视图'}
-            className="flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium text-neutral-500 ring-1 ring-neutral-200 active:bg-neutral-50"
-          >
-            {viewMode === 'grid' ? <List size={14} /> : <LayoutGrid size={14} />}
-            <span className="tabular-nums">{totalCount}</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Filter panel */}
-      {filterOpen && (
-        <>
-          <div className="fixed inset-0 z-[997]" onClick={() => setFilterOpen(false)} />
-          <div className="relative z-[998] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden" style={{ animation: 'shijian-slide-down 0.2s ease-out' }}>
-            <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
-              {filterTab === 'city' && (
-                <div className="flex" style={{ height: '30dvh' }}>
-                  <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
-                    {provinces.map(([pname]) => (
-                      <button key={pname} onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
-                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedProvince === pname ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
-                        {pname}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex-1 overflow-y-auto">
-                    {(() => {
-                      const cities = selectedProvince ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? [] : []
-                      return cities.length > 0 ? cities.map((name) => (
-                        <button key={name} onClick={() => setAppliedCity(appliedCity === name ? null : name)}
-                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${appliedCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
-                          {name}
-                        </button>
-                      )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
-                    })()}
-                  </div>
-                </div>
-              )}
-              {filterTab === 'category' && (
-                <div className="flex" style={{ height: '30dvh' }}>
-                  <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
-                    {categoryGroups.map((g) => (
-                      <button key={g.name} onClick={() => {
-                        if (selectedBigCategory === g.name) {
-                          setSelectedBigCategory(null); setAppliedCategory(null)
-                        } else {
-                          setSelectedBigCategory(g.name); setAppliedCategory(g.name)
-                        }
-                      }}
-                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedBigCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
-                        {g.name}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex-1 overflow-y-auto">
-                    {(() => {
-                      const active = categoryGroups.find(g => g.name === selectedBigCategory)
-                      return active && active.subs.length > 0 ? active.subs.map((sub) => (
-                        <button key={sub} onClick={() => setAppliedCategory(appliedCategory === sub ? null : sub)}
-                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${appliedCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
-                          {sub}
-                        </button>
-                      )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择大类</p>
-                    })()}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
-              <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
-              <button onClick={() => setFilterOpen(false)} className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600">确定</button>
-            </div>
+      <div className="relative">
+        {/* Header with filters + search + view toggle */}
+        <header className="flex items-center justify-between px-4 pt-4 pb-2">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => { setFilterTab('city'); setFilterOpen(true) }}
+              className={`text-[13px] transition-colors ${
+                appliedCity ? 'text-blue-600 font-medium' : 'text-neutral-500'
+              }`}
+            >
+              {appliedCity || '城市'}
+            </button>
+            <span className="text-neutral-300">|</span>
+            <button
+              onClick={() => { setFilterTab('category'); setFilterOpen(true) }}
+              className={`text-[13px] transition-colors ${
+                appliedCategory ? 'text-blue-600 font-medium' : 'text-neutral-500'
+              }`}
+            >
+              {appliedCategory || '种类'}
+            </button>
           </div>
-        </>
-      )}
+
+          <h1 className="text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => navigate('/search')}
+              aria-label="搜索"
+              className="flex items-center justify-center rounded-full p-1.5 text-neutral-500 active:bg-neutral-100"
+            >
+              <SearchIcon size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode((m) => (m === 'grid' ? 'list' : 'grid'))}
+              aria-label={viewMode === 'grid' ? '切换为列表视图' : '切换为表格视图'}
+              className="flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium text-neutral-500 ring-1 ring-neutral-200 active:bg-neutral-50"
+            >
+              {viewMode === 'grid' ? <List size={14} /> : <LayoutGrid size={14} />}
+              <span className="tabular-nums">{totalCount}</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Filter panel */}
+        {filterOpen && (
+          <>
+            <div className="fixed inset-0 z-[997]" onClick={() => setFilterOpen(false)} />
+            <div
+              className="absolute top-full left-0 right-0 z-[998] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden"
+              style={{ animation: 'shijian-slide-down 0.2s ease-out' }}
+            >
+              <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
+                {filterTab === 'city' && (
+                  <div className="flex" style={{ height: '30dvh' }}>
+                    <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                      {provinces.map(([pname]) => (
+                        <button key={pname} onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
+                          className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedProvince === pname ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
+                          {pname}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                      {(() => {
+                        const cities = selectedProvince ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? [] : []
+                        return cities.length > 0 ? cities.map((name) => (
+                          <button key={name} onClick={() => setAppliedCity(appliedCity === name ? null : name)}
+                            className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${appliedCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                            {name}
+                          </button>
+                        )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
+                      })()}
+                    </div>
+                  </div>
+                )}
+                {filterTab === 'category' && (
+                  <div className="flex" style={{ height: '30dvh' }}>
+                    <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                      {categoryGroups.map((g) => (
+                        <button key={g.name} onClick={() => {
+                          if (g.subs.length === 0) {
+                            // No subs: toggle directly
+                            setAppliedCategory(appliedCategory === g.name ? null : g.name)
+                            setSelectedBigCategory(null)
+                          } else if (selectedBigCategory === g.name) {
+                            setSelectedBigCategory(null)
+                            setAppliedCategory(null)
+                          } else {
+                            setSelectedBigCategory(g.name)
+                            setAppliedCategory(g.name)
+                          }
+                        }}
+                          className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedBigCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
+                          {g.name}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                      {(() => {
+                        const active = categoryGroups.find(g => g.name === selectedBigCategory)
+                        return active && active.subs.length > 0 ? active.subs.map((sub) => (
+                          <button key={sub} onClick={() => setAppliedCategory(appliedCategory === sub ? null : sub)}
+                            className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${appliedCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                            {sub}
+                          </button>
+                        )) : null
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
+                <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
+                <button onClick={() => setFilterOpen(false)} className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600">确定</button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
       <section className="flex-1 px-4">
         {isLoading && !showingDemo ? (
