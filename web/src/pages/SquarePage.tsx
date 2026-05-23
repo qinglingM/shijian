@@ -305,6 +305,7 @@ export function SquarePage() {
               {(appliedCity || appliedTier || appliedCategory) ? (
                 <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
               ) : null}
+              <button onClick={() => setFilterOpen(false)} className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600">确定</button>
             </div>
           </div>
         </>
