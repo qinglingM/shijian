@@ -7,6 +7,7 @@ import { useDishesByRestaurant } from '@/features/dishes/useDishesByRestaurant'
 import { completePracticeSubmissionFlow } from '@/features/practice-submit/completePracticeSubmissionFlow'
 import { usePracticeRestaurantCardDisplay } from '@/features/practice/usePracticeRestaurantCardDisplay'
 import { readImageAsDataUrl } from '@/lib/imageFile'
+import { checkTexts } from '@/lib/moderation/engine'
 import { useAuthStore } from '@/stores/authStore'
 import {
   everyDishRowHasName,
@@ -33,6 +34,7 @@ export function PracticeReviewDetailsSection({
   const draftTier = usePracticeDraft((s) => s.tier)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [moderationWarning, setModerationWarning] = useState<string | null>(null)
 
   useLayoutEffect(() => {
     captureStep3SubmissionBaselineIfNeeded()
@@ -87,6 +89,20 @@ export function PracticeReviewDetailsSection({
 
   async function handleSubmit() {
     if (!canSubmit || !baselineReady || submitting) return
+
+    const textsToCheck = [
+      draft.store_comment,
+      ...draft.dishes.map((d) => d.name),
+      ...draft.dishes.map((d) => d.comment),
+    ].filter(Boolean)
+
+    const modResult = checkTexts(textsToCheck)
+    if (modResult.blocked) {
+      setSubmitError(modResult.message)
+      return
+    }
+    setModerationWarning(modResult.message)
+
     setSubmitting(true)
     setSubmitError(null)
     try {
@@ -181,6 +197,11 @@ export function PracticeReviewDetailsSection({
         {submitError && (
           <p className="mt-2 rounded-xl bg-rose-50 px-3 py-2 text-center text-xs leading-5 text-rose-600">
             {submitError}
+          </p>
+        )}
+        {!submitError && moderationWarning && (
+          <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-center text-xs leading-5 text-amber-700">
+            {moderationWarning}
           </p>
         )}
       </div>

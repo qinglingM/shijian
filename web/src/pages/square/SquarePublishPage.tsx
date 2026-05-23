@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Camera } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { readImageAsDataUrl } from '@/lib/imageFile'
+import { checkTexts } from '@/lib/moderation/engine'
 import { useCreatePostMutation } from '@/features/posts/useCreatePostMutation'
 import { usePracticeDraft } from '@/stores/practiceDraft'
 
@@ -84,6 +85,8 @@ function ArticlePublishForm({ onBack, navigate }: { onBack: () => void; navigate
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null)
+  const [publishError, setPublishError] = useState<string | null>(null)
+  const [publishWarning, setPublishWarning] = useState<string | null>(null)
   const createPost = useCreatePostMutation()
 
   async function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
@@ -97,6 +100,17 @@ function ArticlePublishForm({ onBack, navigate }: { onBack: () => void; navigate
     const t = title.trim()
     const c = content.trim()
     if (!t || !c) return
+
+    setPublishError(null)
+    setPublishWarning(null)
+
+    const modResult = checkTexts([t, c])
+    if (modResult.blocked) {
+      setPublishError(modResult.message)
+      return
+    }
+    setPublishWarning(modResult.message)
+
     const created = await createPost.mutateAsync({
       title: t,
       content: c,
@@ -137,6 +151,17 @@ function ArticlePublishForm({ onBack, navigate }: { onBack: () => void; navigate
           rows={7}
           className="mt-3 w-full rounded-2xl bg-neutral-100 px-4 py-3 text-sm outline-none"
         />
+
+        {publishError && (
+          <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-center text-xs leading-5 text-rose-600">
+            {publishError}
+          </p>
+        )}
+        {!publishError && publishWarning && (
+          <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-center text-xs leading-5 text-amber-700">
+            {publishWarning}
+          </p>
+        )}
 
         <button
           type="button"
