@@ -640,7 +640,7 @@ export function HomeMap() {
             <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
               {filterTab === 'city' && (
                 <div className="flex" style={{ height: '30dvh' }}>
-                  <div className="w-[120px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                  <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
                     {provinces.map(([pname]) => (
                       <button
                         key={pname}
@@ -703,7 +703,7 @@ export function HomeMap() {
 
               {filterTab === 'category' && (
                 <div className="flex" style={{ height: '30dvh' }}>
-                  <div className="w-[120px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                  <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
                     {categoryGroups.map((g) => (
                       <button
                         key={g.code}
@@ -719,28 +719,26 @@ export function HomeMap() {
                     ))}
                   </div>
                   <div className="flex-1 overflow-y-auto">
-                    <div className="flex flex-wrap gap-2 p-3">
-                      {(() => {
-                        const active = categoryGroups.find(g => g.name === pendingCategory)
-                        return active ? (
-                          active.subs.map((sub) => (
-                            <button
-                              key={sub}
-                              onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
-                              className={`rounded-lg px-3 py-2 text-[12px] font-medium transition-colors ${
-                                pendingCategory === sub
-                                  ? 'bg-blue-500 text-white'
-                                  : 'bg-neutral-100 text-neutral-700 active:bg-neutral-200'
-                              }`}
-                            >
-                              {sub}
-                            </button>
-                          ))
-                        ) : (
-                          <p className="w-full py-6 text-center text-[12px] text-neutral-400">请先选择大类</p>
-                        )
-                      })()}
-                    </div>
+                    {(() => {
+                      const active = categoryGroups.find(g => g.name === pendingCategory)
+                      return active ? (
+                        active.subs.map((sub) => (
+                          <button
+                            key={sub}
+                            onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
+                            className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${
+                              pendingCategory === sub
+                                ? 'font-semibold text-blue-600'
+                                : 'text-neutral-700'
+                            }`}
+                          >
+                            {sub}
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择大类</p>
+                      )
+                    })()}
                   </div>
                 </div>
               )}
