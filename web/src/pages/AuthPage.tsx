@@ -104,6 +104,9 @@ export function AuthPage() {
       return
     }
 
+    // 已登录用户可以进入忘记密码流程来设置/重置密码
+    if (authMode === 'forgot') return
+
     navigate(safeRedirect, { replace: true })
   }, [user, navigate, safeRedirect, authMode])
 
@@ -136,10 +139,6 @@ export function AuthPage() {
     setSignupStep(1)
     resetOtp()
     setMsg(null)
-    setRegPw1('')
-    setRegPw2('')
-    setAgreedTerms(false)
-    setRegNickname('')
   }
 
   function goPhoneForgot() {
