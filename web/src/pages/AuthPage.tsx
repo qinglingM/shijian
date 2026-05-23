@@ -433,16 +433,6 @@ export function AuthPage() {
         </button>
         <h1 className="mt-5 text-[26px] font-semibold text-neutral-950">{headerTitle(phase)}</h1>
         <p className="mt-1.5 text-sm text-neutral-500">{subtitle(surface, phase)}</p>
-        {AUTH_LAX_DEV && (
-          <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-950">
-            开发放行（本地 npm run dev 默认开启）：先尝试配置的{' '}
-            <code className="rounded bg-white/70 px-0.5">VITE_FIXTURE_*</code>，再用匿名登录；任意表单提交也会走同一逻辑。
-            若不想用：在{' '}
-            <code className="rounded bg-white/70 px-0.5">.env.local</code>{' '}
-            设 <code className="rounded bg-white/70 px-0.5">VITE_AUTH_LAX_DEV=false</code>。
-            <span className="font-semibold">线上构建不会启用。</span>
-          </p>
-        )}
       </header>
 
       {EMAIL_AUTH && (
