@@ -20,6 +20,27 @@ function removeBracketContent(name: string): string {
   return name.replace(/（.*?）/g, '').replace(/\(.*?\)/g, '').trim()
 }
 
+const AMAP_MID_CATEGORIES: { name: string; subs: string[] }[] = [
+  {
+    name: '中餐厅',
+    subs: ['综合酒楼','四川菜','广东菜','山东菜','江苏菜','浙江菜','上海菜','湖南菜','安徽菜','福建菜','北京菜','湖北菜','东北菜','云贵菜','西北菜','老字号','海鲜酒楼','中式素菜馆','清真菜馆','台湾菜','潮州菜','火锅店','特色/地方风味餐厅']
+      .map(s => removeBracketContent(s)),
+  },
+  {
+    name: '外国餐厅',
+    subs: ['西餐厅','日本料理','韩国料理','法式菜品餐厅','意式菜品餐厅','泰国/越南菜品餐厅','地中海风格菜品','美式风味','印度风味','英国式菜品餐厅','牛扒店(扒房)','俄国菜','葡国菜','德国菜','巴西菜','墨西哥菜','其它亚洲菜']
+      .map(s => removeBracketContent(s)),
+  },
+  { name: '快餐厅', subs: [] },
+  { name: '休闲餐饮场所', subs: [] },
+  { name: '咖啡厅', subs: [] },
+  { name: '茶艺馆', subs: [] },
+  { name: '冷饮店', subs: [] },
+  { name: '糕饼店', subs: [] },
+  { name: '甜品店', subs: [] },
+  { name: '餐饮相关场所', subs: [] },
+]
+
 const TIER_HEX: Record<Tier, string> = {
   boom: '#A11A00',
   hang: '#cf5329',
@@ -422,18 +443,7 @@ export function HomeMap() {
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
   }, [allCities])
 
-  const categoryGroups = useMemo(() => {
-    const midSet = new Set(restaurants.map(r => r.amap_mid_category).filter(Boolean))
-    return [...midSet].sort().map(mid => {
-      const smallSet = new Set(
-        restaurants
-          .filter(r => r.amap_mid_category === mid)
-          .map(r => r.amap_small_category)
-          .filter((s): s is string => s !== null)
-      )
-      return { name: mid, subs: [...smallSet].sort().map(s => removeBracketContent(s)) }
-    })
-  }, [restaurants])
+  const categoryGroups = useMemo(() => AMAP_MID_CATEGORIES, [])
 
   const visibleRestaurants = useMemo(
     () => {
@@ -719,7 +729,17 @@ export function HomeMap() {
               {(appliedCity || appliedTier || appliedCategory) ? (
                 <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
               ) : null}
-              <button onClick={() => setFilterOpen(false)} className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600">确定</button>
+              <button
+                onClick={() => setFilterOpen(false)}
+                disabled={filterTab === 'city' && !!selectedProvince && !appliedCity}
+                className={`flex-1 rounded-xl py-3 text-[14px] font-semibold text-white shadow-sm ${
+                  filterTab === 'city' && selectedProvince && !appliedCity
+                    ? 'bg-blue-300 cursor-not-allowed'
+                    : 'bg-blue-500 active:bg-blue-600'
+                }`}
+              >
+                确定
+              </button>
             </div>
           </div>
         </>
