@@ -12,11 +12,14 @@ import { useMapRestaurants, type MapRestaurant } from './useMapRestaurants'
 import { TIER_ORDER, TIER_LABEL, type Tier } from '@/lib/db'
 import type { PoiCandidate } from '@/lib/poi'
 import { useCities } from '@/features/city-picker/useCities'
-import { SHIJIAN_CATEGORIES, SUBCATEGORY_TO_CATEGORY, type ShijianCategoryCode } from '@/lib/poi/shijian-categories'
 
 const ChinaCenter: L.LatLngExpression = [35.86, 104.19]
 
 // Hex values for Leaflet divIcon (CSS vars don't resolve outside React tree)
+function removeBracketContent(name: string): string {
+  return name.replace(/（.*?）/g, '').replace(/\(.*?\)/g, '').trim()
+}
+
 const TIER_HEX: Record<Tier, string> = {
   boom: '#A11A00',
   hang: '#cf5329',
@@ -419,29 +422,18 @@ export function HomeMap() {
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
   }, [allCities])
 
-  // Categories data: group by big category, filter to those present in restaurant data
-  // Mid-level Amap category → big category code mapping (for data without display_category_label)
-  const MID_TO_BIG: Record<string, ShijianCategoryCode> = {
-    '中餐厅': 'chinese',
-    '外国餐厅': 'western',
-    '快餐厅': 'snack_fast',
-    '休闲餐饮场所': 'other',
-    '咖啡厅': 'coffee_tea',
-    '茶艺馆': 'coffee_tea',
-    '冷饮店': 'coffee_tea',
-    '糕饼店': 'dessert_bakery',
-    '甜品店': 'dessert_bakery',
-    '餐饮相关场所': 'other',
-  }
-
-  const categoryGroups = useMemo(
-    () => SHIJIAN_CATEGORIES.map((cat) => ({
-      code: cat.code,
-      name: cat.name,
-      subs: cat.subcategories.map((s) => s.name),
-    })),
-    [],
-  )
+  const categoryGroups = useMemo(() => {
+    const midSet = new Set(restaurants.map(r => r.amap_mid_category).filter(Boolean))
+    return [...midSet].sort().map(mid => {
+      const smallSet = new Set(
+        restaurants
+          .filter(r => r.amap_mid_category === mid)
+          .map(r => r.amap_small_category)
+          .filter((s): s is string => s !== null)
+      )
+      return { name: mid, subs: [...smallSet].sort().map(s => removeBracketContent(s)) }
+    })
+  }, [restaurants])
 
   const visibleRestaurants = useMemo(
     () => {
@@ -449,20 +441,11 @@ export function HomeMap() {
       if (appliedCity) filtered = filtered.filter(r => r.city_name === appliedCity)
       if (appliedTier) filtered = filtered.filter(r => r.tier === appliedTier)
       if (appliedCategory) {
-        const cat = SHIJIAN_CATEGORIES.find(c => c.name === appliedCategory)
-        if (cat) {
-          // Big category: match labels via SUBCATEGORY_TO_CATEGORY and MID_TO_BIG
-          filtered = filtered.filter(r => {
-            if (!r.category_label) return false
-            const subCode = SUBCATEGORY_TO_CATEGORY[r.category_label]
-            if (subCode === cat.code) return true
-            const midCode = MID_TO_BIG[r.category_label]
-            if (midCode === cat.code) return true
-            return false
-          })
-        } else {
-          filtered = filtered.filter(r => r.category_label === appliedCategory)
-        }
+        // Match against both mid_category and small_category
+        filtered = filtered.filter(r => 
+          r.amap_mid_category === appliedCategory || 
+          removeBracketContent(r.amap_small_category || '') === appliedCategory
+        )
       }
       return filtered
     },
@@ -685,7 +668,7 @@ export function HomeMap() {
                   <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
                     {categoryGroups.map((g) => (
                       <button
-                        key={g.code}
+                        key={g.name}
                         onClick={() => {
                           if (selectedBigCategory === g.name) {
                             setSelectedBigCategory(null)

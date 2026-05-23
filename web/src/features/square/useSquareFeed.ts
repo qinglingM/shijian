@@ -19,6 +19,8 @@ export interface SquareFeedItem {
   restaurant_name: string
   city_name: string | null
   category_label: string | null
+  amap_mid_category: string | null
+  amap_small_category: string | null
 }
 
 interface ProfileMini {
@@ -54,7 +56,7 @@ export function useSquareFeed() {
       const [{ data: profsRaw, error: profErr }, { data: restaurantsRaw, error: restErr }, { data: votesRaw, error: voteErr }] = await Promise.all([
         sb.from('profiles').select('id,nickname,avatar_url').in('id', uids),
         rids.length
-          ? sb.from('restaurants').select('id,display_name,city_name,display_category_label').in('id', rids)
+          ?           sb.from('restaurants').select('id,display_name,city_name,display_category_label,amap_mid_category,amap_small_category').in('id', rids)
           : Promise.resolve({ data: [], error: null } as const),
         sb.from('review_votes').select('target_id,vote_type,user_id').eq('target_type', 'store_review').in('target_id', prs.map((p) => p.id)),
       ])
@@ -64,8 +66,8 @@ export function useSquareFeed() {
 
       const profs = new Map<string, ProfileMini>()
       for (const p of (profsRaw ?? []) as ProfileMini[]) profs.set(p.id, p)
-      const rests = new Map<string, { display_name: string; city_name: string | null; display_category_label: string | null }>()
-      for (const r of (restaurantsRaw ?? []) as Array<{ id: string; display_name: string; city_name: string | null; display_category_label: string | null }>) rests.set(r.id, r)
+      const rests = new Map<string, { display_name: string; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>()
+      for (const r of (restaurantsRaw ?? []) as Array<{ id: string; display_name: string; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>) rests.set(r.id, r)
 
       const y = new Map<string, number>()
       const b = new Map<string, number>()
@@ -95,6 +97,8 @@ export function useSquareFeed() {
           restaurant_name: rest?.display_name || '未知门店',
           city_name: rest?.city_name ?? null,
           category_label: rest?.display_category_label ?? null,
+          amap_mid_category: rest?.amap_mid_category ?? null,
+          amap_small_category: rest?.amap_small_category ?? null,
         }
       })
     },

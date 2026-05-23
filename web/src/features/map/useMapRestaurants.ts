@@ -13,6 +13,8 @@ export interface MapRestaurant {
   address_text: string | null
   category_label: string | null
   big_category_name: string | null
+  amap_mid_category: string | null
+  amap_small_category: string | null
   tier: Tier | null
   top_reviewer_nickname: string | null
   top_reviewer_avatar_url: string | null
@@ -133,6 +135,8 @@ export function useMapRestaurants() {
           address_text: null,
           category_label: r.category_label,
           big_category_name: r.big_category_name,
+          amap_mid_category: r.amap_mid_category,
+          amap_small_category: r.amap_small_category,
           tier: null,
           top_reviewer_nickname: null,
           top_reviewer_avatar_url: null,
@@ -220,6 +224,8 @@ export function useMapRestaurants() {
           address_text: r.address_text,
           category_label: r.category_label,
           big_category_name: r.big_category_name,
+          amap_mid_category: r.amap_mid_category,
+          amap_small_category: r.amap_small_category,
           tier: tierCounts ? modeTier(tierCounts) : null,
           top_reviewer_nickname: top ? (profile ? profile.nickname : ANONYMOUS_REVIEWER) : null,
           top_reviewer_avatar_url: profile ? profile.avatar_url : null,

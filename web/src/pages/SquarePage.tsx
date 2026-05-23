@@ -10,7 +10,6 @@ import { applyStoreReviewVoteClick, intentAfterVoteTap } from '@/features/restau
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useCities } from '@/features/city-picker/useCities'
-import { SHIJIAN_CATEGORIES, SUBCATEGORY_TO_CATEGORY, type ShijianCategoryCode } from '@/lib/poi/shijian-categories'
 
 type SortMode = 'latest' | 'hot'
 
@@ -23,17 +22,8 @@ const TIER_TEXT_COLOR: Record<Tier, string> = {
   bad: '#999',
 }
 
-const MID_TO_BIG: Record<string, ShijianCategoryCode> = {
-  '中餐厅': 'chinese',
-  '外国餐厅': 'western',
-  '快餐厅': 'snack_fast',
-  '休闲餐饮场所': 'other',
-  '咖啡厅': 'coffee_tea',
-  '茶艺馆': 'coffee_tea',
-  '冷饮店': 'coffee_tea',
-  '糕饼店': 'dessert_bakery',
-  '甜品店': 'dessert_bakery',
-  '餐饮相关场所': 'other',
+function removeBracketContent(name: string): string {
+  return name.replace(/（.*?）/g, '').replace(/\(.*?\)/g, '').trim()
 }
 
 export function SquarePage() {
@@ -71,14 +61,18 @@ export function SquarePage() {
   }, [allCities])
 
   // Categories data
-  const categoryGroups = useMemo(
-    () => SHIJIAN_CATEGORIES.map((cat) => ({
-      code: cat.code,
-      name: cat.name,
-      subs: cat.subcategories.map((s) => s.name),
-    })),
-    [],
-  )
+  const categoryGroups = useMemo(() => {
+    const midSet = new Set(feed.map(r => r.amap_mid_category).filter(Boolean))
+    return [...midSet].sort().map(mid => {
+      const smallSet = new Set(
+        feed
+          .filter(r => r.amap_mid_category === mid)
+          .map(r => r.amap_small_category)
+          .filter((s): s is string => s !== null)
+      )
+      return { name: mid, subs: [...smallSet].sort().map(s => removeBracketContent(s)) }
+    })
+  }, [feed])
 
   // Filter + search + sort logic
   const filteredFeed = useMemo(() => {
@@ -100,19 +94,10 @@ export function SquarePage() {
     if (appliedTier) items = items.filter(item => item.tier === appliedTier)
     // Category
     if (appliedCategory) {
-      const cat = SHIJIAN_CATEGORIES.find(c => c.name === appliedCategory)
-      if (cat) {
-        items = items.filter(r => {
-          if (!r.category_label) return false
-          const subCode = SUBCATEGORY_TO_CATEGORY[r.category_label]
-          if (subCode === cat.code) return true
-          const midCode = MID_TO_BIG[r.category_label]
-          if (midCode === cat.code) return true
-          return false
-        })
-      } else {
-        items = items.filter(r => r.category_label === appliedCategory)
-      }
+      items = items.filter(r => 
+        r.amap_mid_category === appliedCategory || 
+        removeBracketContent(r.amap_small_category || '') === appliedCategory
+      )
     }
 
     // Sort
@@ -275,7 +260,7 @@ export function SquarePage() {
                 <div className="flex" style={{ height: '30dvh' }}>
                   <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
                     {categoryGroups.map((g) => (
-                      <button key={g.code} onClick={() => {
+                      <button key={g.name} onClick={() => {
                         if (selectedBigCategory === g.name) {
                           setSelectedBigCategory(null); setAppliedCategory(null)
                         } else {
