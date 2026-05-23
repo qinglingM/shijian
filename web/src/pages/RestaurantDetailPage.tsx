@@ -210,8 +210,9 @@ export function RestaurantDetailPage() {
     // 优先展示 中类·小类（如 "中餐厅·火锅店"）
     const mid = restaurantQ.data.amap_mid_category?.trim()
     const sub = restaurantQ.data.amap_small_category?.trim()
+    function rmBracket(s: string) { return s.replace(/（.*?）/g, '').replace(/\(.*?\)/g, '').trim() }
     if (mid && sub) {
-      categoryText = `${mid}·${sub}`
+      categoryText = `${mid}·${rmBracket(sub)}`
     } else if (mid || sub) {
       categoryText = mid || sub || null
     }

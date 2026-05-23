@@ -317,9 +317,11 @@ function BottomSheet({
             <p className="font-semibold text-[15px] text-neutral-900 truncate leading-snug">
               {r.display_name}
             </p>
-            {r.big_category_name ? (
+            {r.amap_mid_category ? (
               <p className="text-xs font-semibold text-neutral-500 mt-0.5 truncate">
-                {r.big_category_name}
+                {r.amap_small_category
+                  ? `${r.amap_mid_category}·${removeBracketContent(r.amap_small_category)}`
+                  : r.amap_mid_category}
               </p>
             ) : null}
             {fullAddressLine ? (
