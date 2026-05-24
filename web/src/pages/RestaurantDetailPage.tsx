@@ -1429,6 +1429,9 @@ function DishTabFeed({
                     <span className="min-w-0 truncate text-[13px] font-bold leading-tight text-orange-700">
                       {entry.dishName}
                     </span>
+                    <span className="ml-auto shrink-0 text-[10px] text-neutral-400">
+                      {dateFmt.format(new Date(r.created_at))}
+                    </span>
                   </span>
                   <div className="flex items-start gap-3">
                     <div className="shrink-0">
@@ -1442,14 +1445,9 @@ function DishTabFeed({
                       </Link>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-[11px] font-semibold text-sky-700">
-                          {r.reviewer_nickname}
-                        </span>
-                        <span className="shrink-0 text-[10px] text-neutral-400">
-                          {dateFmt.format(new Date(r.created_at))}
-                        </span>
-                      </div>
+                      <span className="text-[11px] font-semibold text-sky-700">
+                        {r.reviewer_nickname}
+                      </span>
                       <div className="mt-1 flex items-start gap-2">
                         <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['“'] [&::after]:content-['”']">
                           {r.comment?.trim() || '（未填写菜品锐评）'}
