@@ -1429,8 +1429,8 @@ function DishTabFeed({
                     <span className="min-w-0 truncate text-[15px] font-bold leading-tight text-orange-700">
                       {entry.dishName}
                     </span>
-                    <span className="ml-auto shrink-0 text-[11px] font-bold tabular-nums text-neutral-500">
-                      {entry.reviewCount} 条评价
+                    <span className="ml-auto shrink-0 text-[9px] font-medium text-neutral-400">
+                      平均
                     </span>
                   </span>
                   <div className="flex items-start gap-3">
@@ -1462,7 +1462,7 @@ function DishTabFeed({
                             {entry.avgScore !== null ? entry.avgScore.toFixed(1) : '—'}
                           </span>
                           <span className="ml-0.5 text-[11px] font-semibold text-sky-600">分</span>
-                          <p className="text-[9px] font-medium text-neutral-400">平均</p>
+                          <p className="text-[9px] font-medium text-neutral-400">{entry.reviewCount} 条评价</p>
                         </span>
                       </div>
                       <div className="mt-1 flex items-center justify-end gap-1.5">
