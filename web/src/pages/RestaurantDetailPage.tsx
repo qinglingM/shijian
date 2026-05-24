@@ -1342,9 +1342,10 @@ function DishTabFeed({
 
       const totalYoupin = reviews.reduce((s, r) => s + r.youpin_count, 0)
 
-      const topReview = [...reviews].sort(
-        (a, b) => (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count),
-      )[0]
+      const topReview = [...reviews].sort((a, b) => {
+        const net = (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count)
+        return net || b.created_at.localeCompare(a.created_at)
+      })[0]
 
       entries.push({ dishName, dishId, topReview, coverUrl, reviewCount: reviews.length, avgScore, totalYoupin })
     }
@@ -1352,7 +1353,7 @@ function DishTabFeed({
     if (sort === 'score') {
       entries.sort((a, b) => (b.avgScore ?? -1) - (a.avgScore ?? -1))
     } else {
-      entries.sort((a, b) => b.totalYoupin - a.totalYoupin)
+      entries.sort((a, b) => b.totalYoupin - a.totalYoupin || (b.avgScore ?? -1) - (a.avgScore ?? -1))
     }
 
     return entries
