@@ -460,8 +460,8 @@ export function RestaurantDetailPage() {
                   : headerTierFallback
                     ? {
                         borderColor: TIER_COLOR_VAR[headerTierFallback],
-                        borderWidth: headerTierFallback === 'boom' || headerTierFallback === 'hang' ? '2px' : '1.5px',
-                        borderBottomWidth: headerTierFallback === 'boom' || headerTierFallback === 'hang' ? '4px' : '3px',
+                        borderWidth: '3px',
+                        borderBottomWidth: '5px',
                       }
                     : undefined
               }
