@@ -1,11 +1,14 @@
-import { useEffect, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, ChevronRight } from 'lucide-react'
+import { Camera, Check, ChevronDown, ChevronRight } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { LocationPickerMap, type LocationPickResult } from '@/features/map/LocationPickerMap'
+import { CityPickerSheet } from '@/features/city-picker/CityPickerSheet'
+import type { CitiesSourceStatus } from '@/features/city-picker/citiesSourceStatus'
 import { useCities } from '@/features/city-picker/useCities'
 import { useCategories } from '@/features/categories/useCategories'
 import { useCityStore } from '@/features/city-picker/cityStore'
+import { isSupabaseConfigured } from '@/lib/supabase'
 import { AMAP_KEY } from '@/lib/env'
 import { readImageAsDataUrl } from '@/lib/imageFile'
 import { usePracticeDraft } from '@/stores/practiceDraft'
@@ -43,37 +46,135 @@ function ManualLabel({
   )
 }
 
-function ManualSelect({
+// ── 通用底部弹出选择器 ──────────────────────────────────────────────────────────
+
+function OptionSheet({
+  open,
+  onClose,
+  title,
+  options,
   value,
   onChange,
-  options,
-  placeholder,
-  disabled,
-  className = '',
+  emptyHint,
+  loading,
 }: {
+  open: boolean
+  onClose: () => void
+  title: string
+  options: { value: string; label: string }[]
   value: string
   onChange: (v: string) => void
-  options: { value: string; label: string }[]
-  placeholder: string
-  disabled?: boolean
-  className?: string
+  emptyHint?: string
+  loading?: boolean
 }) {
+  if (!open) return null
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
-      className={`${MANUAL_CONTROL} cursor-pointer appearance-none disabled:cursor-not-allowed disabled:bg-neutral-100/70 disabled:text-neutral-400 ${className}`}
-    >
-      <option value="">{placeholder}</option>
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
+    <>
+      <button
+        type="button"
+        aria-label="关闭"
+        className="fixed inset-0 z-40 cursor-default bg-black/40"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[70dvh] max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl"
+      >
+        {/* 标题栏 */}
+        <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 px-4 py-3.5">
+          <p className="text-[15px] font-semibold text-neutral-900">{title}</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-full px-2 py-1 text-sm text-orange-700 active:bg-orange-50"
+          >
+            完成
+          </button>
+        </div>
+        {/* 列表 */}
+        <div className="overflow-y-auto overscroll-contain px-3 py-2 pb-8">
+          {loading ? (
+            <p className="py-10 text-center text-sm text-neutral-400">加载中…</p>
+          ) : options.length === 0 ? (
+            <p className="py-10 text-center text-sm text-neutral-400">
+              {emptyHint ?? '暂无选项'}
+            </p>
+          ) : (
+            options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value)
+                  onClose()
+                }}
+                className={`flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left transition-colors active:bg-neutral-50 ${
+                  value === opt.value ? 'bg-orange-50' : ''
+                }`}
+              >
+                <span
+                  className={`text-[15px] ${
+                    value === opt.value
+                      ? 'font-semibold text-orange-700'
+                      : 'font-normal text-neutral-900'
+                  }`}
+                >
+                  {opt.label}
+                </span>
+                {value === opt.value && (
+                  <Check size={16} strokeWidth={2.5} className="shrink-0 text-orange-600" />
+                )}
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </>
   )
 }
+
+// ── 选择器触发按钮（样式与 MANUAL_CONTROL 统一） ─────────────────────────────────
+
+function SheetButton({
+  label,
+  placeholder,
+  open,
+  onClick,
+  disabled,
+}: {
+  label?: string | null
+  placeholder: string
+  open?: boolean
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="box-border flex h-11 w-full items-center justify-between gap-2 rounded-xl bg-neutral-100 px-3 ring-1 ring-neutral-100 transition-colors disabled:cursor-not-allowed disabled:opacity-50 active:bg-neutral-200/80 focus-visible:ring-2 focus-visible:ring-orange-400/55"
+    >
+      <span
+        className={`min-w-0 flex-1 truncate text-left text-[13px] ${
+          label ? 'text-neutral-900' : 'text-neutral-400'
+        }`}
+      >
+        {label || placeholder}
+      </span>
+      <ChevronDown
+        size={15}
+        strokeWidth={2.2}
+        className={`shrink-0 text-neutral-400 transition-transform duration-200 ${
+          open ? 'rotate-180' : ''
+        }`}
+      />
+    </button>
+  )
+}
+
+// ── 主表单 ─────────────────────────────────────────────────────────────────────
 
 function ManualForm() {
   const navigate = useNavigate()
@@ -96,11 +197,28 @@ function ManualForm() {
   const [cityId, setCityId] = useState<string | null>(currentCityId)
   /** 行政区名（如「朝阳区」）；DB 无区 id，直接存名字 */
   const [districtName, setDistrictName] = useState<string>('')
-  const { data: cities = [] } = useCities()
+
+  // ── 数据源 ──────────────────────────────────────────────────────────────────
+  const citiesQuery = useCities()
+  const cities = citiesQuery.data ?? []
+  const citiesSourceStatus = useMemo((): CitiesSourceStatus => {
+    if (!isSupabaseConfigured) return { kind: 'no_supabase' }
+    if (citiesQuery.isPending) return { kind: 'loading' }
+    if (citiesQuery.isError)
+      return { kind: 'error', message: (citiesQuery.error as Error)?.message ?? '' }
+    if (cities.length === 0) return { kind: 'empty_db' }
+    return { kind: 'ok' }
+  }, [citiesQuery.isPending, citiesQuery.isError, citiesQuery.error, cities.length])
+
   const { data: categories = [] } = useCategories()
 
   const cityName = cities.find((c) => c.id === cityId)?.name ?? currentCityName ?? ''
   const categoryName = categories.find((c) => c.id === categoryId)?.name ?? null
+
+  // ── Sheet 开关 ──────────────────────────────────────────────────────────────
+  const [citySheetOpen, setCitySheetOpen] = useState(false)
+  const [categorySheetOpen, setCategorySheetOpen] = useState(false)
+  const [districtSheetOpen, setDistrictSheetOpen] = useState(false)
 
   // ── 行政区：从高德 /v3/config/district 动态拉取 ──────────────────────────────
   const [amapDistricts, setAmapDistricts] = useState<{ name: string; adcode: string }[]>([])
@@ -148,7 +266,6 @@ function ManualForm() {
     const nameToMatch = result.cityName || result.provinceName
     const matchedCity = cities.find((c) => {
       if (!nameToMatch) return false
-      // 精确匹配或互相包含（「北京」↔「北京市」）
       return (
         c.name === nameToMatch ||
         (nameToMatch.length > 0 && nameToMatch.includes(c.name)) ||
@@ -184,7 +301,7 @@ function ManualForm() {
       brand_name: brandName.trim(),
       city_id: cityId,
       city_name: cityName,
-      district_id: null,          // DB districts 表暂无数据，id 传 null
+      district_id: null,
       district_name: districtName || null,
       location_hint: locationHint.trim() || null,
       address_text: addressText.trim() || null,
@@ -236,13 +353,14 @@ function ManualForm() {
             {/* 分类 */}
             <div>
               <ManualLabel required>分类</ManualLabel>
-              <ManualSelect
-                value={categoryId ?? ''}
-                onChange={(v) => setCategoryId(v || null)}
-                options={categories.map((c) => ({ value: c.id, label: c.name }))}
-                placeholder="选择分类"
-                className="mt-2 block w-full min-w-0"
-              />
+              <div className="mt-2">
+                <SheetButton
+                  label={categoryName}
+                  placeholder="选择分类"
+                  open={categorySheetOpen}
+                  onClick={() => setCategorySheetOpen(true)}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -265,31 +383,21 @@ function ManualForm() {
             城市 · 行政区
           </ManualLabel>
           <div className="mt-2 grid w-full grid-cols-2 gap-2">
-            <ManualSelect
-              value={cityId ?? ''}
-              onChange={(v) => {
-                setCityId(v || null)
-                setDistrictName('')
-              }}
-              options={cities.map((c) => ({ value: c.id, label: c.name }))}
+            <SheetButton
+              label={cityId ? cityName : null}
               placeholder="城市"
+              open={citySheetOpen}
+              onClick={() => setCitySheetOpen(true)}
             />
-            {/* 行政区：从高德 API 动态拉取，选中后直接存区名 */}
-            <select
-              value={districtName}
-              onChange={(e) => setDistrictName(e.target.value)}
+            <SheetButton
+              label={districtName || null}
+              placeholder={cityId ? '行政区' : '选城市'}
+              open={districtSheetOpen}
+              onClick={() => {
+                if (cityId && !districtsLoading) setDistrictSheetOpen(true)
+              }}
               disabled={!cityId || districtsLoading}
-              className={`${MANUAL_CONTROL} cursor-pointer appearance-none disabled:cursor-not-allowed disabled:bg-neutral-100/70 disabled:text-neutral-400`}
-            >
-              <option value="">
-                {districtsLoading ? '加载中…' : cityId ? '行政区' : '选城市'}
-              </option>
-              {amapDistricts.map((d) => (
-                <option key={d.adcode} value={d.name}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
+            />
           </div>
         </div>
 
@@ -329,6 +437,43 @@ function ManualForm() {
       <p className="text-center text-[11px] text-neutral-400">
         手动补充同样不立即入库 · 完成评价后才正式创建餐厅
       </p>
+
+      {/* ── Sheets ── */}
+      <CityPickerSheet
+        open={citySheetOpen}
+        onClose={() => setCitySheetOpen(false)}
+        cities={cities}
+        sourceStatus={citiesSourceStatus}
+        controlledCityId={cityId}
+        controlledCityName={cityName}
+        controlledShowsAllChina={false}
+        onControlledCityChange={(id, name) => {
+          setCityId(id)
+          setDistrictName('')
+          void name
+        }}
+      />
+
+      <OptionSheet
+        open={categorySheetOpen}
+        onClose={() => setCategorySheetOpen(false)}
+        title="选择分类"
+        options={categories.map((c) => ({ value: c.id, label: c.name }))}
+        value={categoryId ?? ''}
+        onChange={(v) => setCategoryId(v || null)}
+        emptyHint="暂无分类数据"
+      />
+
+      <OptionSheet
+        open={districtSheetOpen}
+        onClose={() => setDistrictSheetOpen(false)}
+        title="选择行政区"
+        options={amapDistricts.map((d) => ({ value: d.name, label: d.name }))}
+        value={districtName}
+        onChange={setDistrictName}
+        loading={districtsLoading}
+        emptyHint="未能获取行政区列表"
+      />
     </div>
   )
 }
