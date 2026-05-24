@@ -138,7 +138,7 @@ export function DishDetailPage() {
 
   return (
     <>
-      <BackHeader title="菜品详情" centerTitle backTo={`/restaurants/${dish.restaurant_id}`} />
+      <BackHeader title="菜品详情" centerTitle backTo={`/restaurants/${dish.restaurant_id}?tab=dish`} />
       <div className="min-h-[calc(100vh-3rem)] bg-white pb-10">
         <div className="relative h-[12rem] w-full bg-neutral-100">
           {bestCoverUrl ? (

@@ -107,6 +107,7 @@ Deno.serve(async (req) => {
       const dishId = await resolveDish(admin, userId, restaurantId, dish)
       const review = await upsertDishReview(admin, practiceRecord.id, dishId, dish)
       dishReviewIds.push(review.id)
+      await recomputeDishAggregates(admin, dishId)
     }
 
     if (validPractice) {
@@ -579,6 +580,30 @@ async function deactivateDishReviews(
     .update({ is_active: false })
     .eq('practice_record_id', practiceRecordId)
     .eq('is_active', true)
+  if (error) throw error
+}
+
+async function recomputeDishAggregates(
+  admin: ReturnType<typeof createClient>,
+  dishId: string,
+) {
+  const { data } = await admin
+    .from('dish_reviews')
+    .select('score')
+    .eq('dish_id', dishId)
+    .eq('is_active', true)
+
+  const rows = (data ?? []) as { score: number | null }[]
+  const scores = rows.map((r) => r.score).filter((s): s is number => s !== null)
+  const avg =
+    scores.length > 0
+      ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
+      : null
+
+  const { error } = await admin
+    .from('dishes')
+    .update({ avg_score: avg, review_count: rows.length })
+    .eq('id', dishId)
   if (error) throw error
 }
 

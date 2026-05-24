@@ -1,4 +1,4 @@
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X, Bookmark, BookmarkCheck } from 'lucide-react'
@@ -75,7 +75,9 @@ export function RestaurantDetailPage() {
   const routePoiSource = isPoiSource(poiSource) ? poiSource : null
   const isPoiRoute = Boolean(routePoiSource && poiId)
   const id = rawId ?? (isPoiRoute ? `poi:${routePoiSource}:${poiId}` : null)
-  const [tab, setTab] = useState<TabKey>('store')
+  const [searchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab') === 'dish' ? 'dish' : 'store'
+  const [tab, setTab] = useState<TabKey>(initialTab)
 
   const demoMeta = id ? lookupDemoRestaurant(id) : null
   const isDemo = !!demoMeta
@@ -444,7 +446,18 @@ export function RestaurantDetailPage() {
       <div className="min-h-[calc(100vh-3rem)] bg-white pb-8">
         {detailKnown ? (
           <section className="border-b border-neutral-100 px-4 pt-4 pb-4">
-            <div className="relative flex flex-col gap-3 rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-sm shadow-black/[0.04]">
+            <div
+              className={`relative flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm shadow-black/[0.04] ${
+                emptyReviews
+                  ? 'border border-orange-100'
+                  : headerTierFallback
+                    ? (headerTierFallback === 'boom' || headerTierFallback === 'hang' ? 'border-2' : 'border')
+                    : 'border border-neutral-200/80'
+              }`}
+              style={!emptyReviews && headerTierFallback ? {
+                borderColor: `var(${TIER_COLOR_VAR[headerTierFallback]})`,
+              } : undefined}
+            >
               <div className="flex gap-4">
                 <div className="relative mt-1 h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-xl bg-neutral-100">
                   {coverUrl ? (
@@ -549,7 +562,7 @@ export function RestaurantDetailPage() {
           if (!emptyReviews && !governanceRid) return null
 
           return (
-            <section className="border-b border-neutral-100 px-4 pb-3 pt-0.5">
+            <section className="border-b border-neutral-100 px-4 pb-1.5 pt-0.5">
               <p className="flex items-start gap-2 text-[11px] leading-relaxed text-neutral-600">
                 <span className="mt-0.5 shrink-0 rounded-full bg-orange-50 px-2 py-0.5 font-semibold text-orange-700 ring-1 ring-orange-100">
                   食鉴伯乐
@@ -1290,11 +1303,12 @@ function DishTabFeed({
       groups.set(r.dish_id, arr)
     }
 
-    const entries: {
+      const entries: {
       dishName: string
       dishId: string
       topReview: RestaurantDishReviewItem
       coverUrl: string | null
+      reviewCount: number
     }[] = []
 
     for (const [dishId, reviews] of groups) {
@@ -1316,7 +1330,7 @@ function DishTabFeed({
         )
       }
 
-      entries.push({ dishName, dishId, topReview: sortedReviews[0], coverUrl })
+      entries.push({ dishName, dishId, topReview: sortedReviews[0], coverUrl, reviewCount: reviews.length })
     }
 
     if (sort === 'latest') {
@@ -1355,7 +1369,7 @@ function DishTabFeed({
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-[12px] font-semibold tracking-tight text-neutral-600">
-              所有菜品评价
+              所有菜品评价 · {groupedDisplays.length} 道菜品
             </h2>
             <div className="flex items-center gap-1">
               {SORT_OPTIONS.map((opt) => (
@@ -1405,8 +1419,13 @@ function DishTabFeed({
                   onClick={() => navigate(`/dishes/${entry.dishId}`)}
                   className="cursor-pointer rounded-2xl border border-orange-100 bg-white px-3 py-3 shadow-sm shadow-orange-500/6 active:bg-orange-50/50"
                 >
-                  <span className="mb-[10px] block truncate text-[12px] font-bold leading-tight text-orange-700">
-                    {entry.dishName}
+                  <span className="mb-[10px] flex items-center gap-2">
+                    <span className="min-w-0 truncate text-[15px] font-bold leading-tight text-orange-700">
+                      {entry.dishName}
+                    </span>
+                    <span className="ml-auto shrink-0 text-[11px] font-bold tabular-nums text-neutral-500">
+                      {entry.reviewCount} 条评价
+                    </span>
                   </span>
                   <div className="flex items-start gap-3">
                     <div className="shrink-0">
