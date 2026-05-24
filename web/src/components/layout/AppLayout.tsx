@@ -92,13 +92,15 @@ export function AppLayout() {
   )
 }
 
-export function BackHeader({ title, backTo = '/', rightSlot, centerTitle }: { title: string; backTo?: string; rightSlot?: React.ReactNode; centerTitle?: boolean }) {
+export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack }: { title: string; backTo?: string; rightSlot?: React.ReactNode; centerTitle?: boolean; onBack?: () => void }) {
   const navigate = useNavigate()
   const btn = (
     <button
       type="button"
       onClick={() => {
-        if (window.history.length > 1) {
+        if (onBack) {
+          onBack()
+        } else if (window.history.length > 1) {
           navigate(-1)
         } else {
           navigate(backTo, { replace: true })

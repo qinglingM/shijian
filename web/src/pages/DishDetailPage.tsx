@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { useDishDetail } from '@/features/dishes/useDishDetail'
 import { useDishReviewsByDish } from '@/features/dishes/useDishReviewsByDish'
@@ -21,6 +21,7 @@ function isLikelyReviewImage(url: string | null) {
 
 export function DishDetailPage() {
   const { id: rawId } = useParams()
+  const navigate = useNavigate()
   const id = rawId ?? null
 
   const isUuid = Boolean(id && isRestaurantUuid(id))
@@ -138,7 +139,11 @@ export function DishDetailPage() {
 
   return (
     <>
-      <BackHeader title="菜品详情" centerTitle backTo={`/restaurants/${dish.restaurant_id}?tab=dish`} />
+      <BackHeader
+  title="菜品详情"
+  centerTitle
+  onBack={() => navigate(`/restaurants/${dish.restaurant_id}?tab=dish`)}
+/>
       <div className="min-h-[calc(100vh-3rem)] bg-white pb-10">
         <div className="relative h-[12rem] w-full bg-neutral-100">
           {bestCoverUrl ? (

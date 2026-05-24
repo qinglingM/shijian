@@ -455,7 +455,7 @@ export function RestaurantDetailPage() {
                     : 'border border-neutral-200/80'
               }`}
               style={!emptyReviews && headerTierFallback ? {
-                borderColor: `var(${TIER_COLOR_VAR[headerTierFallback]})`,
+                borderColor: TIER_COLOR_VAR[headerTierFallback],
               } : undefined}
             >
               <div className="flex gap-4">
@@ -1309,6 +1309,7 @@ function DishTabFeed({
       topReview: RestaurantDishReviewItem
       coverUrl: string | null
       reviewCount: number
+      avgScore: number | null
     }[] = []
 
     for (const [dishId, reviews] of groups) {
@@ -1318,6 +1319,11 @@ function DishTabFeed({
         (a, b) => (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count),
       )
       const coverUrl = sortedForCover.find((r) => r.image_url)?.image_url ?? null
+
+      const allScores = reviews.map((r) => r.score).filter((s): s is number => s !== null)
+      const avgScore = allScores.length > 0
+        ? Math.round((allScores.reduce((a, b) => a + b, 0) / allScores.length) * 10) / 10
+        : null
 
       let sortedReviews: RestaurantDishReviewItem[]
       if (sort === 'latest') {
@@ -1330,7 +1336,7 @@ function DishTabFeed({
         )
       }
 
-      entries.push({ dishName, dishId, topReview: sortedReviews[0], coverUrl, reviewCount: reviews.length })
+      entries.push({ dishName, dishId, topReview: sortedReviews[0], coverUrl, reviewCount: reviews.length, avgScore })
     }
 
     if (sort === 'latest') {
@@ -1451,11 +1457,12 @@ function DishTabFeed({
                         <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['“'] [&::after]:content-['”']">
                           {r.comment?.trim() || '（未填写菜品锐评）'}
                         </p>
-                        <span className="shrink-0 pt-0.5">
+                        <span className="shrink-0 pt-0.5 text-right">
                           <span className="text-[28px] font-black italic leading-none text-sky-600">
-                            {r.score !== null ? r.score : '—'}
+                            {entry.avgScore !== null ? entry.avgScore.toFixed(1) : '—'}
                           </span>
                           <span className="ml-0.5 text-[11px] font-semibold text-sky-600">分</span>
+                          <p className="text-[9px] font-medium text-neutral-400">平均</p>
                         </span>
                       </div>
                       <div className="mt-1 flex items-center justify-end gap-1.5">
