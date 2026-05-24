@@ -1342,10 +1342,9 @@ function DishTabFeed({
 
       const totalYoupin = reviews.reduce((s, r) => s + r.youpin_count, 0)
 
-      const topReview =
-        sort === 'score'
-          ? [...reviews].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))[0]
-          : [...reviews].sort((a, b) => (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count))[0]
+      const topReview = [...reviews].sort(
+        (a, b) => (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count),
+      )[0]
 
       entries.push({ dishName, dishId, topReview, coverUrl, reviewCount: reviews.length, avgScore, totalYoupin })
     }
