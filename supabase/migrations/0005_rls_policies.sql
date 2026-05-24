@@ -118,6 +118,12 @@ create policy "dish_reviews update own practice" on dish_reviews
       where pr.id = dish_reviews.practice_record_id
         and pr.user_id = auth.uid()
     )
+  ) with check (
+    exists (
+      select 1 from practice_records pr
+      where pr.id = dish_reviews.practice_record_id
+        and pr.user_id = auth.uid()
+    )
   );
 
 -- ----------------------------------------------------------------
@@ -208,4 +214,5 @@ create policy "image_assets insert own" on image_assets
   for insert with check (auth.uid() = owner_id);
 
 create policy "image_assets update own" on image_assets
-  for update using (auth.uid() = owner_id);
+  for update using (auth.uid() = owner_id)
+  with check (auth.uid() = owner_id);

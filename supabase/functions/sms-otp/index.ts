@@ -548,9 +548,10 @@ Deno.serve(async (req) => {
         token_type: session.token_type,
       }), { headers: CORS })
     } catch (e) {
+      console.error('[sms-otp]', e)
       return new Response(JSON.stringify({
         ok: false,
-        error: e instanceof Error ? e.message : '账号处理失败',
+        error: '账号处理失败，请稍后重试',
       }), { headers: CORS })
     }
   }

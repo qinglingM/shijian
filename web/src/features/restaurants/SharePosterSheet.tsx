@@ -35,18 +35,36 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
   const posterRef = useRef<HTMLDivElement>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden'
-      setErrorMsg(null)
-    } else {
-      document.body.style.overflow = ''
+    if (!open) return
+    document.body.style.overflow = 'hidden'
+    setErrorMsg(null)
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
     }
+    window.addEventListener('keydown', handleKey)
     return () => {
       document.body.style.overflow = ''
+      window.removeEventListener('keydown', handleKey)
     }
-  }, [open])
+  }, [open, onClose])
 
   if (!open) return null
 
@@ -90,6 +108,7 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
 
       {/* Centered Modal */}
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 pointer-events-none"

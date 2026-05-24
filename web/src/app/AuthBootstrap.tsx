@@ -49,35 +49,46 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
     }
 
     async function init() {
-      const { data } = await supabase.auth.getSession()
-      if (data.session) {
-        const { data: userData, error } = await supabase.auth.getUser()
-        if (!error && userData.user) {
-          setSession(data.session)
-        } else {
-          setSession(null)
-          await supabase.auth.signOut()
+      const timeout = new Promise<void>((resolve) => {
+        setTimeout(() => {
+          console.warn('[shijian] auth init timed out, forcing ready')
+          resolve()
+        }, 10_000)
+      })
+
+      const main = (async () => {
+        const { data } = await supabase.auth.getSession()
+        if (data.session) {
+          const { data: userData, error } = await supabase.auth.getUser()
+          if (!error && userData.user) {
+            setSession(data.session)
+          } else {
+            setSession(null)
+            await supabase.auth.signOut()
+            const restored = await restoreDevSession()
+            if (!restored && !import.meta.env.PROD) {
+              console.warn('[shijian] cached Supabase session is invalid:', error?.message)
+            }
+          }
+        } else if (AUTH_LAX_DEV) {
           const restored = await restoreDevSession()
           if (!restored && !import.meta.env.PROD) {
-            console.warn('[shijian] cached Supabase session is invalid:', error?.message)
+            console.warn('[shijian] dev: 所有 Supabase Auth 方式均失败，使用开发降级身份')
+          }
+        } else if (FIXTURE_AUTO_LOGIN && FIXTURE_EMAIL && FIXTURE_PASSWORD) {
+          const { data: signIn, error } = await supabase.auth.signInWithPassword({
+            email: FIXTURE_EMAIL,
+            password: FIXTURE_PASSWORD,
+          })
+          if (error) {
+            console.warn('[shijian] fixture sign-in failed:', error.message)
+          } else {
+            setSession(signIn.session)
           }
         }
-      } else if (AUTH_LAX_DEV) {
-        const restored = await restoreDevSession()
-        if (!restored && !import.meta.env.PROD) {
-          console.warn('[shijian] dev: 所有 Supabase Auth 方式均失败，使用开发降级身份')
-        }
-      } else if (FIXTURE_AUTO_LOGIN && FIXTURE_EMAIL && FIXTURE_PASSWORD) {
-        const { data: signIn, error } = await supabase.auth.signInWithPassword({
-          email: FIXTURE_EMAIL,
-          password: FIXTURE_PASSWORD,
-        })
-        if (error) {
-          console.warn('[shijian] fixture sign-in failed:', error.message)
-        } else {
-          setSession(signIn.session)
-        }
-      }
+      })()
+
+      await Promise.race([main, timeout])
       setReady(true)
     }
 

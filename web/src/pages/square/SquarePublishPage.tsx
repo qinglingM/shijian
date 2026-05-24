@@ -92,7 +92,11 @@ function ArticlePublishForm({ onBack, navigate }: { onBack: () => void; navigate
   async function handleImageChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setCoverImageUrl(await readImageAsDataUrl(file))
+    try {
+      setCoverImageUrl(await readImageAsDataUrl(file))
+    } catch {
+      setPublishError('图片读取失败，请选择正确的图片文件')
+    }
     e.target.value = ''
   }
 
@@ -111,14 +115,17 @@ function ArticlePublishForm({ onBack, navigate }: { onBack: () => void; navigate
     }
     setPublishWarning(modResult.message)
 
-    const created = await createPost.mutateAsync({
-      title: t,
-      content: c,
-      cover_image_url: coverImageUrl,
-      post_type: 'article',
-    })
-    navigate(`/square`, { replace: true })
-    void created
+    try {
+      await createPost.mutateAsync({
+        title: t,
+        content: c,
+        cover_image_url: coverImageUrl,
+        post_type: 'article',
+      })
+      navigate(`/square`, { replace: true })
+    } catch {
+      setPublishError('发布失败，请稍后重试')
+    }
   }
 
   return (

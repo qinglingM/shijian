@@ -414,13 +414,20 @@ function BottomSheet({
 }
 
 export function HomeMap() {
-  const { data: restaurants = [], isLoading, error } = useMapRestaurants()
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
   const [bounds, setBounds] = useState<L.LatLngBounds | null>(null)
   const [zoom, setZoom] = useState(4)
   const mapRef = useRef<L.Map | null>(null)
   const navigate = useNavigate()
   const superclusterRef = useRef<Supercluster | null>(null)
+
+  const viewBounds = useMemo(() => {
+    if (!bounds) return undefined
+    const ne = bounds.getNorthEast()
+    const sw = bounds.getSouthWest()
+    return { sw_lat: sw.lat, sw_lng: sw.lng, ne_lat: ne.lat, ne_lng: ne.lng }
+  }, [bounds])
+  const { data: restaurants = [], isLoading, error } = useMapRestaurants(viewBounds)
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false)

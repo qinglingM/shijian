@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { poiPracticeKey } from '@/features/poi-search/poiPracticeKey'
-import { lookupExistingRestaurantByPoi } from '@/features/poi-search/usePoiSearch'
 import { getSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import type { PoiCandidate } from '@/lib/poi'
@@ -22,31 +21,28 @@ export function useCandidatesPracticeStatus(candidates: PoiCandidate[]) {
     enabled: !!userId && candidates.length > 0,
     staleTime: 30_000,
     queryFn: async (): Promise<Set<string>> => {
-      if (!userId) return new Set()
+      if (!userId || candidates.length === 0) return new Set()
 
       const poiKeysPracticed = new Set<string>()
       const poiToRestaurant = new Map<string, string>()
 
-      const chunkSize = 10
-      for (let i = 0; i < candidates.length; i += chunkSize) {
-        const chunk = candidates.slice(i, i + chunkSize)
-        await Promise.all(
-          chunk.map(async (c) => {
-            try {
-              const rid = await lookupExistingRestaurantByPoi(c.poi_source, c.poi_id)
-              const k = poiPracticeKey(c)
-              if (rid) poiToRestaurant.set(k, rid)
-            } catch {
-              /* 单条忽略 */
-            }
-          }),
-        )
+      const source = candidates[0].poi_source
+      const ids = candidates.map((c) => c.poi_id)
+      const supabase = getSupabase()
+      const { data: existing } = await supabase
+        .from('restaurants')
+        .select('id, poi_id')
+        .eq('poi_source', source)
+        .eq('status', 'active')
+        .in('poi_id', ids)
+      for (const r of (existing ?? []) as Array<{ id: string; poi_id: string }>) {
+        const poi = candidates.find((c) => c.poi_id === r.poi_id)
+        if (poi) poiToRestaurant.set(poiPracticeKey(poi), r.id)
       }
 
       const rids = [...new Set([...poiToRestaurant.values()])]
       if (rids.length === 0) return poiKeysPracticed
 
-      const supabase = getSupabase()
       const { data: prRows, error } = await supabase
         .from('practice_records')
         .select('restaurant_id')

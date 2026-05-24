@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import type { CityRow } from '@/lib/db'
 import type { CitiesSourceStatus } from '@/features/city-picker/citiesSourceStatus'
 import {
@@ -130,6 +130,32 @@ export function CityPickerSheet({
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  const sheetRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'Tab' && sheetRef.current) {
+        const focusable = sheetRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [open, onClose])
+
   if (!open) return null
 
   return (
@@ -141,6 +167,7 @@ export function CityPickerSheet({
         onClick={onClose}
       />
       <div
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-label="选择城市"

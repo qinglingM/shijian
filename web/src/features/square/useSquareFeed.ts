@@ -63,12 +63,13 @@ export function useSquareFeed() {
       const uids = [...new Set(prs.map((r) => r.user_id))]
       const rids = [...new Set(prs.map((r) => r.restaurant_id))]
 
-      const [{ data: profsRaw, error: profErr }, { data: restaurantsRaw, error: restErr }, { data: votesRaw, error: voteErr }] = await Promise.all([
+      const [{ data: profsRaw, error: profErr }, { data: restaurantsRaw, error: restErr }, { data: votesRaw, error: voteErr }, { data: allTiersRaw }] = await Promise.all([
         sb.from('profiles').select('id,nickname,avatar_url').in('id', uids),
         rids.length
           ?           sb.from('restaurants').select('id,display_name,city_name,display_category_label,amap_mid_category,amap_small_category').in('id', rids)
           : Promise.resolve({ data: [], error: null } as const),
         sb.from('review_votes').select('target_id,vote_type,user_id').eq('target_type', 'store_review').in('target_id', prs.map((p) => p.id)),
+        sb.from('practice_records').select('restaurant_id, tier').in('restaurant_id', rids).eq('is_active', true),
       ])
       if (profErr) throw profErr
       if (restErr) throw restErr
@@ -79,12 +80,6 @@ export function useSquareFeed() {
       const rests = new Map<string, { display_name: string; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>()
       for (const r of (restaurantsRaw ?? []) as Array<{ id: string; display_name: string; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>) rests.set(r.id, r)
 
-      // 查这些店的全用户档位，算平均
-      const { data: allTiersRaw } = await sb
-        .from('practice_records')
-        .select('restaurant_id, tier')
-        .in('restaurant_id', rids)
-        .eq('is_active', true)
       const allTiers = (allTiersRaw ?? []) as Array<{ restaurant_id: string; tier: string }>
       const avgTierByRestaurant = new Map<string, Tier>()
       const tierAcc = new Map<string, Tier[]>()

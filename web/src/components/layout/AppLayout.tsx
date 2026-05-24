@@ -50,7 +50,7 @@ export function AppLayout() {
     pathname.startsWith('/practice')
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col bg-white">
+    <div className="mx-auto flex min-h-full max-w-md flex-col bg-white lg:max-w-3xl">
       <main
         className={cn(
           'flex-1',
@@ -65,7 +65,7 @@ export function AppLayout() {
       </main>
 
       {!hideTabs && (
-        <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur">
+        <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)] lg:max-w-3xl">
           <ul className="grid grid-cols-4">
             {TABS.map(({ to, label, icon: Icon, match }) => {
               const active = match(pathname)
@@ -74,7 +74,7 @@ export function AppLayout() {
                   <NavLink
                     to={to}
                     className={cn(
-                      'flex flex-col items-center gap-1 py-2.5 text-xs',
+                      'flex flex-col items-center gap-1 py-3 text-xs',
                       active ? 'text-neutral-900' : 'text-neutral-400',
                     )}
                     aria-label={label}

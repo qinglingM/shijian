@@ -2,11 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { getPoiProvider, type PoiCandidate } from '@/lib/poi'
 import { getSupabase } from '@/lib/supabase'
 
-export function usePoiSearch(keyword: string, city?: string) {
+export function usePoiSearch(keyword: string, city?: string, enabled = true) {
   const trimmed = keyword.trim()
   return useQuery<PoiCandidate[]>({
     queryKey: ['poi-search', trimmed, city ?? ''],
-    enabled: trimmed.length >= 1,
+    enabled: enabled && trimmed.length >= 1,
     staleTime: 60_000,
     queryFn: async ({ signal }) => {
       const provider = getPoiProvider()

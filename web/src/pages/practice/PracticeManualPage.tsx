@@ -154,7 +154,11 @@ function ManualForm() {
   async function handleCoverChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setCoverImageUrl(await readImageAsDataUrl(file))
+    try {
+      setCoverImageUrl(await readImageAsDataUrl(file))
+    } catch {
+      // 用户选择的文件不是图片，静默忽略
+    }
     e.target.value = ''
   }
 

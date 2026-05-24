@@ -30,9 +30,13 @@ export function AuthPage() {
 
   const redirectParam = params.get('redirect') || '/me'
   const safeRedirect = useMemo(() => {
-    if (redirectParam.startsWith('/') && !redirectParam.startsWith('//'))
+    try {
+      const url = new URL(redirectParam, window.location.origin)
+      if (url.origin !== window.location.origin) return '/me'
       return redirectParam
-    return '/me'
+    } catch {
+      return '/me'
+    }
   }, [redirectParam])
 
   const [surface, setSurface] = useState<'phone' | 'email'>(() =>
@@ -876,8 +880,6 @@ function trOtpSend(message: string, purpose: OtpPurpose) {
   if (/rate|limit|429|too many/i.test(m)) return '请求过于频繁，请稍后再试'
   if (/sms|phone|provider|not enabled|aliyun|未配置/i.test(m))
     return '短信服务不可用，请检查阿里云短信与 Edge Function 环境变量'
-  if (purpose === 'forgot' && (/exist|found|registered|unknown/i.test(m)))
-    return '无法发送验证码，请确认手机号是否正确或暂未注册（安全提示已与登录对齐）。'
   return message
 }
 

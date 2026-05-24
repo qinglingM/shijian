@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Search } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { CityPicker } from '@/features/city-picker/CityPicker'
+import { useDebounce } from '@/lib/useDebounce'
 import {
   lookupExistingRestaurantByPoi,
   usePoiSearch,
@@ -30,10 +31,11 @@ export function PracticeStep1Page() {
   }, [resetDraft])
 
   const [keyword, setKeyword] = useState('')
+  const debouncedKeyword = useDebounce(keyword, 300)
   const [picking, setPicking] = useState<string | null>(null)
   const userLoc = useUserLocation()
   const searchCityForApi = searchCity.name || undefined
-  const { data: rawCandidates = [], isLoading, isFetching } = usePoiSearch(keyword, searchCityForApi)
+  const { data: rawCandidates = [], isLoading, isFetching } = usePoiSearch(debouncedKeyword, searchCityForApi)
 
   const candidates = useMemo<PoiCandidate[]>(() => {
     if (!userLoc || rawCandidates.length === 0) return rawCandidates

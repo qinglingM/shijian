@@ -60,22 +60,33 @@ interface VoteRow {
 
 const ANONYMOUS_REVIEWER = '匿名食客'
 
-export function useMapRestaurants() {
+export function useMapRestaurants(bounds?: {
+  sw_lat: number; sw_lng: number; ne_lat: number; ne_lng: number
+}) {
   return useQuery<MapRestaurant[]>({
-    queryKey: ['map-restaurants'],
+    queryKey: ['map-restaurants', bounds?.sw_lat ?? '', bounds?.sw_lng ?? '', bounds?.ne_lat ?? '', bounds?.ne_lng ?? ''],
     enabled: isSupabaseConfigured,
-    staleTime: 60_000,
+    staleTime: 30_000,
     queryFn: async () => {
       const sb = getSupabase()
 
-      // 1. 所有有坐标的已入库餐厅（含分类中文名）
-      const { data: raws, error: e1 } = await sb
+      let query = sb
         .from('restaurants')
         .select('id, display_name, latitude, longitude, city_name, district_name, cover_image_url, address_text, display_category_label, amap_mid_category, amap_small_category, categories(name)')
         .eq('status', 'active')
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
         .limit(500)
+
+      if (bounds) {
+        query = query
+          .gte('latitude', bounds.sw_lat)
+          .lte('latitude', bounds.ne_lat)
+          .gte('longitude', bounds.sw_lng)
+          .lte('longitude', bounds.ne_lng)
+      }
+
+      const { data: raws, error: e1 } = await query
 
       if (e1) throw e1
       const rawRows = (raws ?? []) as (RestaurantRow & { categories: { name?: string } | { name?: string }[] | null })[]

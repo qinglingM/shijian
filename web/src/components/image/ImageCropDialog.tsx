@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Cropper, { type Area, type Point } from 'react-easy-crop'
 import { cropImageToBlob } from '@/lib/cropImage'
 
@@ -26,6 +26,31 @@ export function ImageCropDialog({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onCancel()
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [open, onCancel])
 
   if (!open || !imageUrl) return null
 
@@ -48,7 +73,7 @@ export function ImageCropDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/80">
+    <div ref={dialogRef} className="fixed inset-0 z-50 flex flex-col bg-black/80">
       <div className="flex h-12 shrink-0 items-center justify-between px-4 text-white">
         <button type="button" onClick={onCancel} className="text-sm text-white/75">
           取消
