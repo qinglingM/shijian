@@ -1445,22 +1445,26 @@ function DishTabFeed({
                       </Link>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <span className="text-[11px] font-semibold text-sky-700">
-                        {r.reviewer_nickname}
-                      </span>
-                      <div className="mt-1 flex items-start gap-2">
-                        <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['“'] [&::after]:content-['”']">
-                          {r.comment?.trim() || '（未填写菜品锐评）'}
-                        </p>
-                        <span className="shrink-0 pt-0.5 text-right">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-semibold text-sky-700">
+                          {r.reviewer_nickname}
+                        </span>
+                        <span className="shrink-0 text-right leading-none">
                           <span className="text-[28px] font-black italic leading-none text-sky-600">
                             {entry.avgScore !== null ? entry.avgScore.toFixed(1) : '—'}
                           </span>
                           <span className="ml-0.5 text-[11px] font-semibold text-sky-600">分</span>
-                          <p className="text-[9px] font-medium text-neutral-400">{entry.reviewCount} 条评价</p>
                         </span>
                       </div>
-                      <div className="mt-1 flex items-center justify-end gap-1.5">
+                      <div className="mt-1 flex items-start gap-2">
+                        <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['“'] [&::after]:content-['”']">
+                          {r.comment?.trim() || '（未填写菜品锐评）'}
+                        </p>
+                        <span className="shrink-0 pt-0.5 text-[9px] font-medium text-neutral-400">
+                          {entry.reviewCount} 条评价
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
                           disabled={votingThis || guestBlocked}
