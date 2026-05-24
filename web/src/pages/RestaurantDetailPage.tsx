@@ -1344,7 +1344,10 @@ function DishTabFeed({
 
       const topReview = [...reviews].sort((a, b) => {
         const net = (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count)
-        return net || b.created_at.localeCompare(a.created_at)
+        if (net !== 0) return net
+        const scoreDiff = (b.score ?? -1) - (a.score ?? -1)
+        if (scoreDiff !== 0) return scoreDiff
+        return b.created_at.localeCompare(a.created_at)
       })[0]
 
       entries.push({ dishName, dishId, topReview, coverUrl, reviewCount: reviews.length, avgScore, totalYoupin })
@@ -1353,7 +1356,7 @@ function DishTabFeed({
     if (sort === 'score') {
       entries.sort((a, b) => (b.avgScore ?? -1) - (a.avgScore ?? -1))
     } else {
-      entries.sort((a, b) => b.totalYoupin - a.totalYoupin || (b.avgScore ?? -1) - (a.avgScore ?? -1))
+      entries.sort((a, b) => b.reviewCount - a.reviewCount || b.totalYoupin - a.totalYoupin)
     }
 
     return entries
