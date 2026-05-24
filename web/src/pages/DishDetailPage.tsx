@@ -142,7 +142,7 @@ export function DishDetailPage() {
       <BackHeader
   title="菜品详情"
   centerTitle
-  onBack={() => navigate(`/restaurants/${dish.restaurant_id}?tab=dish`)}
+  onBack={() => navigate(`/restaurants/${dish.restaurant_id}?tab=dish`, { replace: true })}
 />
       <div className="min-h-[calc(100vh-3rem)] bg-white pb-10">
         <div className="relative h-[12rem] w-full bg-neutral-100">
