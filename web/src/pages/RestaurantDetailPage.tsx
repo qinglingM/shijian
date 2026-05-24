@@ -1426,11 +1426,8 @@ function DishTabFeed({
                   className="cursor-pointer rounded-2xl border border-orange-100 bg-white px-3 py-3 shadow-sm shadow-orange-500/6 active:bg-orange-50/50"
                 >
                   <span className="mb-[10px] flex items-center gap-2">
-                    <span className="min-w-0 truncate text-[15px] font-bold leading-tight text-orange-700">
+                    <span className="min-w-0 truncate text-[13px] font-bold leading-tight text-orange-700">
                       {entry.dishName}
-                    </span>
-                    <span className="ml-auto shrink-0 text-[9px] font-medium text-neutral-400">
-                      平均
                     </span>
                   </span>
                   <div className="flex items-start gap-3">
