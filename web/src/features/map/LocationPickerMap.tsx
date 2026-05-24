@@ -153,14 +153,18 @@ export function LocationPickerMap({ initialLat, initialLng, onPick }: Props) {
           <MoveEndHandler onMoveEnd={handleMoveEnd} />
         </MapContainer>
 
-        {/* 固定中心 pin */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="flex flex-col items-center drop-shadow-md">
+        {/* 固定中心 pin — z-[1000] 高于 Leaflet 所有图层（marker pane = 600） */}
+        <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
+          {/* pin 整体向上偏移半个自身高度，使针尖对准地图中心 */}
+          <div className="flex flex-col items-center" style={{ marginTop: '-28px' }}>
             <div
-              className="size-5 rounded-full border-[2.5px] border-white bg-orange-500"
-              style={{ boxShadow: '0 2px 8px rgba(234,88,12,0.55)' }}
+              className="size-6 rounded-full border-[3px] border-white bg-orange-500"
+              style={{ boxShadow: '0 2px 10px rgba(234,88,12,0.65)' }}
             />
-            <div className="h-2.5 w-px bg-orange-500/90" />
+            {/* 针杆 */}
+            <div className="h-4 w-[3px] rounded-b-full bg-orange-500" />
+            {/* 针尖阴影点 */}
+            <div className="h-1 w-2 rounded-full bg-black/20" style={{ marginTop: '-1px' }} />
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Camera, ChevronRight } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
@@ -95,8 +95,8 @@ function ManualForm() {
   // ── 城市 / 行政区（由地图选点自动填，也可手动调整） ─────────────────────────
   const [cityId, setCityId] = useState<string | null>(currentCityId)
   const [districtId, setDistrictId] = useState<string | null>(null)
-  // 逆地理返回的城市/区名，等 districts 加载后再匹配 id
-  const pendingDistrictName = useRef<string | null>(null)
+  // 逆地理返回的行政区名，等 districts 加载后再匹配 id（用 state 而非 ref，保证 effect 能感知变化）
+  const [pendingDistrictName, setPendingDistrictName] = useState<string | null>(null)
 
   const { data: cities = [] } = useCities()
   const { data: districts = [] } = useDistricts(cityId)
@@ -110,18 +110,17 @@ function ManualForm() {
   const initLat = latitude ?? undefined
   const initLng = longitude ?? undefined
 
-  // districts 加载完成后，匹配 pendingDistrictName
+  // districts 加载完成 或 pendingDistrictName 变化时，尝试匹配行政区 id
   useEffect(() => {
-    const pending = pendingDistrictName.current
-    if (!pending || districts.length === 0) return
+    if (!pendingDistrictName || districts.length === 0) return
     const matched = districts.find(
-      (d) => d.name === pending || pending.includes(d.name),
+      (d) => d.name === pendingDistrictName || pendingDistrictName.includes(d.name),
     )
     if (matched) {
       setDistrictId(matched.id)
-      pendingDistrictName.current = null
+      setPendingDistrictName(null)
     }
-  }, [districts])
+  }, [districts, pendingDistrictName])
 
   // ── 地图选点回调 ─────────────────────────────────────────────────────────────
   function handleLocationPick(result: LocationPickResult) {
@@ -129,7 +128,7 @@ function ManualForm() {
     setLongitude(result.longitude)
     setAddressText(result.formattedAddress)
 
-    // 匹配城市
+    // 匹配城市（兼容「北京市」↔「北京」等差异）
     const matchedCity = cities.find(
       (c) =>
         c.name === result.cityName ||
@@ -139,7 +138,8 @@ function ManualForm() {
     if (matchedCity) {
       setCityId(matchedCity.id)
       setDistrictId(null)
-      pendingDistrictName.current = result.districtName
+      // 触发行政区匹配：用 state 存，以便 useEffect 响应
+      setPendingDistrictName(result.districtName)
     }
   }
 
