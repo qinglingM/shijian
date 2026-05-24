@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
-import { TIER_ORDER, type Tier } from '@/lib/db'
+import { averageTierFloor, type Tier } from '@/lib/db'
 
 export interface MapRestaurant {
   id: string
@@ -59,19 +59,6 @@ interface VoteRow {
 }
 
 const ANONYMOUS_REVIEWER = '匿名食客'
-
-function modeTier(counts: Map<Tier, number>): Tier | null {
-  let best: Tier | null = null
-  let bestCount = -1
-  for (const t of TIER_ORDER) {
-    const n = counts.get(t) ?? 0
-    if (n > bestCount) {
-      best = t
-      bestCount = n
-    }
-  }
-  return best
-}
 
 export function useMapRestaurants() {
   return useQuery<MapRestaurant[]>({
@@ -148,15 +135,14 @@ export function useMapRestaurants() {
         }))
       }
 
-      // 众数等级：用所有实践计算
-      const tierCountsByRestaurant = new Map<string, Map<Tier, number>>()
+      // 全用户平均档（向下取整）
+      const tiersByRestaurant = new Map<string, Tier[]>()
       for (const p of practices) {
         const t = p.tier as Tier
-        if (!tierCountsByRestaurant.has(p.restaurant_id)) {
-          tierCountsByRestaurant.set(p.restaurant_id, new Map())
+        if (!tiersByRestaurant.has(p.restaurant_id)) {
+          tiersByRestaurant.set(p.restaurant_id, [])
         }
-        const counts = tierCountsByRestaurant.get(p.restaurant_id)!
-        counts.set(t, (counts.get(t) ?? 0) + 1)
+        tiersByRestaurant.get(p.restaurant_id)!.push(t)
       }
 
       // 餐厅食鉴总人次
@@ -211,7 +197,6 @@ export function useMapRestaurants() {
 
       return restaurants.map((r) => {
         const top = topByRestaurant.get(r.id) ?? null
-        const tierCounts = tierCountsByRestaurant.get(r.id)
         const profile = top ? profileMap.get(top.user_id) ?? null : null
         return {
           id: r.id,
@@ -226,7 +211,7 @@ export function useMapRestaurants() {
           big_category_name: r.big_category_name,
           amap_mid_category: r.amap_mid_category,
           amap_small_category: r.amap_small_category,
-          tier: tierCounts ? modeTier(tierCounts) : null,
+          tier: averageTierFloor(tiersByRestaurant.get(r.id) ?? []),
           top_reviewer_nickname: top ? (profile ? profile.nickname : ANONYMOUS_REVIEWER) : null,
           top_reviewer_avatar_url: profile ? profile.avatar_url : null,
           top_store_comment: top?.store_comment ?? null,

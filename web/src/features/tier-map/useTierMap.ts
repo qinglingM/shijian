@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useSimulatedPractices, type SimulatedPracticeRecord } from '@/stores/simulatedPractices'
-import { TIER_ORDER, type Tier } from '@/lib/db'
+import { TIER_ORDER, averageTierFloor, type Tier } from '@/lib/db'
 import { useCityStore } from '@/features/city-picker/cityStore'
 import {
   type TierMapDemoStore,
@@ -364,6 +364,28 @@ export function useTierMap() {
 
       const rows = (data ?? []) as unknown as PracticeRow[]
 
+      // 收集这家用户的餐厅 ID，再查全用户平均档
+      const ownedRids = [...new Set(rows.map((r) => r.restaurant?.id).filter(Boolean))] as string[]
+
+      const avgTierByRest = new Map<string, Tier>()
+      if (ownedRids.length > 0) {
+        const { data: allTiersRaw } = await supabase
+          .from('practice_records')
+          .select('restaurant_id, tier')
+          .in('restaurant_id', ownedRids)
+          .eq('is_active', true)
+        const allTiers = (allTiersRaw ?? []) as Array<{ restaurant_id: string; tier: string }>
+        const acc = new Map<string, Tier[]>()
+        for (const t of allTiers) {
+          if (!acc.has(t.restaurant_id)) acc.set(t.restaurant_id, [])
+          acc.get(t.restaurant_id)!.push(t.tier as Tier)
+        }
+        for (const [rid, tiers] of acc) {
+          const avg = averageTierFloor(tiers)
+          if (avg) avgTierByRest.set(rid, avg)
+        }
+      }
+
       const grouped: Record<Tier, TierMapItem[]> = {
         boom: [],
         hang: [],
@@ -374,7 +396,10 @@ export function useTierMap() {
       }
       for (const r of rows) {
         const item = tierMapItemFromPracticeRestaurant(r.restaurant)
-        if (item) grouped[r.tier].push({ ...item, practiced_at: r.created_at })
+        if (!item) continue
+        const rid = r.restaurant?.id
+        const tier = rid ? (avgTierByRest.get(rid) ?? r.tier as Tier) : r.tier as Tier
+        grouped[tier].push({ ...item, practiced_at: r.created_at })
       }
 
       const buckets = TIER_ORDER.map((tier) => {

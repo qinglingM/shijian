@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { TIER_LABEL, type Tier, type VoteType } from '@/lib/db'
+import { TIER_LABEL, averageTierFloor, type Tier, type VoteType } from '@/lib/db'
 
 export interface SquareFeedItem {
   id: string
@@ -79,6 +79,24 @@ export function useSquareFeed() {
       const rests = new Map<string, { display_name: string; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>()
       for (const r of (restaurantsRaw ?? []) as Array<{ id: string; display_name: string; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>) rests.set(r.id, r)
 
+      // 查这些店的全用户档位，算平均
+      const { data: allTiersRaw } = await sb
+        .from('practice_records')
+        .select('restaurant_id, tier')
+        .in('restaurant_id', rids)
+        .eq('is_active', true)
+      const allTiers = (allTiersRaw ?? []) as Array<{ restaurant_id: string; tier: string }>
+      const avgTierByRestaurant = new Map<string, Tier>()
+      const tierAcc = new Map<string, Tier[]>()
+      for (const t of allTiers) {
+        if (!tierAcc.has(t.restaurant_id)) tierAcc.set(t.restaurant_id, [])
+        tierAcc.get(t.restaurant_id)!.push(t.tier as Tier)
+      }
+      for (const [rid, tiers] of tierAcc) {
+        const avg = averageTierFloor(tiers)
+        if (avg) avgTierByRestaurant.set(rid, avg)
+      }
+
       const y = new Map<string, number>()
       const b = new Map<string, number>()
       const mine = new Map<string, VoteType>()
@@ -91,6 +109,7 @@ export function useSquareFeed() {
       return prs.map((r) => {
         const prof = profs.get(r.user_id)
         const rest = rests.get(r.restaurant_id)
+        const restaurantTier = avgTierByRestaurant.get(r.restaurant_id) ?? (r.tier as Tier)
         return {
           id: r.id,
           created_at: r.created_at,
@@ -98,8 +117,8 @@ export function useSquareFeed() {
           nickname: prof?.nickname?.trim() || '食鉴用户',
           avatar_url: prof?.avatar_url ?? null,
           content: r.store_comment ?? '',
-          tier: r.tier as Tier,
-          tier_label: TIER_LABEL[r.tier as Tier],
+          tier: restaurantTier,
+          tier_label: TIER_LABEL[restaurantTier],
           youpin_count: y.get(r.id) ?? 0,
           yebang_count: b.get(r.id) ?? 0,
           my_vote: mine.get(r.id) ?? null,

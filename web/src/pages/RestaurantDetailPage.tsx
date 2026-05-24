@@ -34,7 +34,7 @@ import { useRestaurantBole, type RestaurantBoleView } from '@/features/restauran
 import { useRestaurantGuidanceSummary } from '@/features/restaurants/useRestaurantGuidanceSummary'
 import { useRestaurantMarkStatus } from '@/features/marks/useRestaurantMarkStatus'
 import { useInsertMarkMutation, useDeleteMarkMutation, useMarkPoiMutation } from '@/features/marks/useRestaurantMarkMutations'
-import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, type Tier } from '@/lib/db'
+import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, averageTierFloor, type Tier } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { usePracticeDraft } from '@/stores/practiceDraft'
@@ -1257,18 +1257,7 @@ function RestaurantDetailHeader({
 function dominantTierFromReviewList(
   rows: Array<{ tier: Tier }>,
 ): Tier | null {
-  if (!rows.length) return null
-  const m = new Map<Tier, number>()
-  for (const row of rows) m.set(row.tier, (m.get(row.tier) ?? 0) + 1)
-  let best: Tier | null = null
-  let bestCount = 0
-  for (const [t, n] of m) {
-    if (n > bestCount) {
-      best = t
-      bestCount = n
-    }
-  }
-  return best
+  return averageTierFloor(rows.map((r) => r.tier))
 }
 
 const SORT_OPTIONS = [

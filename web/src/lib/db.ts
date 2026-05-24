@@ -70,6 +70,26 @@ export const TIER_SLOT_VAR: Record<Tier, string> = {
   bad: 'var(--color-tier-bad-slot)',
 }
 
+/** 6 → boom, 5 → hang, 4 → top, 3 → upper, 2 → npc, 1 → bad */
+export const TIER_VALUE: Record<Tier, number> = {
+  boom: 6,
+  hang: 5,
+  top: 4,
+  upper: 3,
+  npc: 2,
+  bad: 1,
+}
+
+/** 全用户平均档（向下取整）；空数组返回 null */
+export function averageTierFloor(tiers: Tier[]): Tier | null {
+  if (tiers.length === 0) return null
+  const sum = tiers.reduce((s, t) => s + TIER_VALUE[t], 0)
+  const avg = sum / tiers.length
+  const n = Math.floor(avg) // 1..6
+  const idx = 6 - n        // TIER_ORDER index
+  return TIER_ORDER[idx]
+}
+
 /**
  * 食鉴图色块等：黑体、黑色加重（如档位列汉字、占位角标等）
  */
