@@ -451,12 +451,20 @@ export function RestaurantDetailPage() {
                 emptyReviews
                   ? 'border border-orange-100'
                   : headerTierFallback
-                    ? (headerTierFallback === 'boom' || headerTierFallback === 'hang' ? 'border-2' : 'border')
-                    : 'border border-neutral-200/80'
+                    ? ''
+                    : 'border-2 border-neutral-200/80'
               }`}
-              style={!emptyReviews && headerTierFallback ? {
-                borderColor: TIER_COLOR_VAR[headerTierFallback],
-              } : undefined}
+              style={
+                emptyReviews
+                  ? undefined
+                  : headerTierFallback
+                    ? {
+                        borderColor: TIER_COLOR_VAR[headerTierFallback],
+                        borderWidth: headerTierFallback === 'boom' || headerTierFallback === 'hang' ? '2px' : '1.5px',
+                        borderBottomWidth: headerTierFallback === 'boom' || headerTierFallback === 'hang' ? '4px' : '3px',
+                      }
+                    : undefined
+              }
             >
               <div className="flex gap-4">
                 <div className="relative mt-1 h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-xl bg-neutral-100">
