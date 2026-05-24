@@ -1046,7 +1046,7 @@ function StoreTab({
             </div>
 
             <div
-              className="relative z-[1] flex min-h-[3.5rem] items-end justify-between gap-2 px-3 pb-2.5 pt-2"
+              className="relative z-[1] flex min-h-[2.25rem] items-end justify-between gap-2 px-3 pb-2 pt-1.5"
               role="group"
               aria-label="有品野榜表态"
             >
