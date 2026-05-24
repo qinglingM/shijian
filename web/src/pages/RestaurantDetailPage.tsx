@@ -1011,7 +1011,12 @@ function StoreTab({
         return (
           <li
             key={r.id}
-            className="overflow-hidden rounded-2xl border border-neutral-200/90 bg-white shadow-sm shadow-black/[0.04]"
+            className="overflow-hidden rounded-2xl bg-white shadow-sm shadow-black/[0.04]"
+            style={{
+              border: '1.5px solid',
+              borderColor: TIER_COLOR_VAR[r.tier],
+              borderBottomWidth: '3px',
+            }}
           >
             <div className="px-3 pb-2 pt-3">
               <div className="flex items-start gap-2">
