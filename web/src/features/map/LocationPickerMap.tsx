@@ -9,8 +9,13 @@ export interface LocationPickResult {
   longitude: number
   /** 高德逆地理返回的格式化地址 */
   formattedAddress: string
-  /** 城市名，如「北京市」 */
+  /**
+   * 城市名，如「北京市」。
+   * 注意：直辖市（北京/上海/天津/重庆）高德返回空数组，此时用 provinceName 代替。
+   */
   cityName: string
+  /** 省份名，如「北京市」——直辖市匹配城市时的兜底字段 */
+  provinceName: string
   /** 行政区名，如「朝阳区」 */
   districtName: string
 }
@@ -28,7 +33,7 @@ interface Props {
 async function reverseGeocode(
   lng: number,
   lat: number,
-): Promise<{ formattedAddress: string; cityName: string; districtName: string }> {
+): Promise<{ formattedAddress: string; cityName: string; provinceName: string; districtName: string }> {
   const params = new URLSearchParams({
     key: AMAP_KEY,
     location: `${lng.toFixed(6)},${lat.toFixed(6)}`,
@@ -42,17 +47,27 @@ async function reverseGeocode(
     info?: string
     regeocode?: {
       formatted_address?: string
-      addressComponent?: { city?: string | string[]; district?: string }
+      addressComponent?: {
+        city?: string | string[]
+        province?: string | string[]
+        district?: string
+      }
     }
   }
   if (data.status !== '1' || !data.regeocode?.formatted_address) {
     throw new Error(data.info ?? '地址解析异常')
   }
-  const rawCity = data.regeocode.addressComponent?.city
+  const ac = data.regeocode.addressComponent
+  // 直辖市（北京/上海/天津/重庆）city 返回 []，需用 province 兜底
+  const rawCity = ac?.city
+  const rawProvince = ac?.province
+  const cityName = Array.isArray(rawCity) ? '' : (rawCity ?? '')
+  const provinceName = Array.isArray(rawProvince) ? '' : (rawProvince ?? '')
   return {
     formattedAddress: data.regeocode.formatted_address,
-    cityName: Array.isArray(rawCity) ? '' : (rawCity ?? ''),
-    districtName: data.regeocode.addressComponent?.district ?? '',
+    cityName,
+    provinceName,
+    districtName: ac?.district ?? '',
   }
 }
 

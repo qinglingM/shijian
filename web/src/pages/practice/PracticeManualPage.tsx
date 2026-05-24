@@ -4,9 +4,9 @@ import { Camera, ChevronRight } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { LocationPickerMap, type LocationPickResult } from '@/features/map/LocationPickerMap'
 import { useCities } from '@/features/city-picker/useCities'
-import { useDistricts } from '@/features/city-picker/useDistricts'
 import { useCategories } from '@/features/categories/useCategories'
 import { useCityStore } from '@/features/city-picker/cityStore'
+import { AMAP_KEY } from '@/lib/env'
 import { readImageAsDataUrl } from '@/lib/imageFile'
 import { usePracticeDraft } from '@/stores/practiceDraft'
 
@@ -94,33 +94,49 @@ function ManualForm() {
 
   // ── 城市 / 行政区（由地图选点自动填，也可手动调整） ─────────────────────────
   const [cityId, setCityId] = useState<string | null>(currentCityId)
-  const [districtId, setDistrictId] = useState<string | null>(null)
-  // 逆地理返回的行政区名，等 districts 加载后再匹配 id（用 state 而非 ref，保证 effect 能感知变化）
-  const [pendingDistrictName, setPendingDistrictName] = useState<string | null>(null)
-
+  /** 行政区名（如「朝阳区」）；DB 无区 id，直接存名字 */
+  const [districtName, setDistrictName] = useState<string>('')
   const { data: cities = [] } = useCities()
-  const { data: districts = [] } = useDistricts(cityId)
   const { data: categories = [] } = useCategories()
 
   const cityName = cities.find((c) => c.id === cityId)?.name ?? currentCityName ?? ''
-  const districtName = districts.find((d) => d.id === districtId)?.name ?? null
   const categoryName = categories.find((c) => c.id === categoryId)?.name ?? null
 
-  // 地图选点初始中心：若当前城市有坐标就用，否则默认北京
+  // ── 行政区：从高德 /v3/config/district 动态拉取 ──────────────────────────────
+  const [amapDistricts, setAmapDistricts] = useState<{ name: string; adcode: string }[]>([])
+  const [districtsLoading, setDistrictsLoading] = useState(false)
+
+  useEffect(() => {
+    const name = cityName.trim()
+    if (!name || !AMAP_KEY) { setAmapDistricts([]); return }
+    let cancelled = false
+    setDistrictsLoading(true)
+    const params = new URLSearchParams({
+      key: AMAP_KEY,
+      keywords: name,
+      subdistrict: '2',
+      extensions: 'base',
+      output: 'json',
+    })
+    fetch(`https://restapi.amap.com/v3/config/district?${params}`)
+      .then((r) => r.json())
+      .then((data: { status?: string; districts?: Array<{ level?: string; districts?: Array<{ level?: string; districts?: Array<{ name: string; adcode: string }>; name: string; adcode: string }> }> }) => {
+        if (cancelled) return
+        const top = data.districts?.[0]
+        // 直辖市（北京/上海/天津/重庆）：高德返回 level='province'，实际区级在第三层
+        const subs: { name: string; adcode: string }[] = top?.level === 'province'
+          ? (top.districts?.[0]?.districts ?? [])
+          : (top?.districts ?? [])
+        setAmapDistricts(subs)
+      })
+      .catch(() => { if (!cancelled) setAmapDistricts([]) })
+      .finally(() => { if (!cancelled) setDistrictsLoading(false) })
+    return () => { cancelled = true }
+  }, [cityName])
+
+  // 地图选点初始中心
   const initLat = latitude ?? undefined
   const initLng = longitude ?? undefined
-
-  // districts 加载完成 或 pendingDistrictName 变化时，尝试匹配行政区 id
-  useEffect(() => {
-    if (!pendingDistrictName || districts.length === 0) return
-    const matched = districts.find(
-      (d) => d.name === pendingDistrictName || pendingDistrictName.includes(d.name),
-    )
-    if (matched) {
-      setDistrictId(matched.id)
-      setPendingDistrictName(null)
-    }
-  }, [districts, pendingDistrictName])
 
   // ── 地图选点回调 ─────────────────────────────────────────────────────────────
   function handleLocationPick(result: LocationPickResult) {
@@ -128,19 +144,23 @@ function ManualForm() {
     setLongitude(result.longitude)
     setAddressText(result.formattedAddress)
 
-    // 匹配城市（兼容「北京市」↔「北京」等差异）
-    const matchedCity = cities.find(
-      (c) =>
-        c.name === result.cityName ||
-        result.cityName.includes(c.name) ||
-        c.name.includes(result.cityName),
-    )
+    // 直辖市 cityName 为空，用 provinceName 兜底匹配
+    const nameToMatch = result.cityName || result.provinceName
+    const matchedCity = cities.find((c) => {
+      if (!nameToMatch) return false
+      // 精确匹配或互相包含（「北京」↔「北京市」）
+      return (
+        c.name === nameToMatch ||
+        (nameToMatch.length > 0 && nameToMatch.includes(c.name)) ||
+        (c.name.length > 0 && c.name.includes(nameToMatch))
+      )
+    })
     if (matchedCity) {
       setCityId(matchedCity.id)
-      setDistrictId(null)
-      // 触发行政区匹配：用 state 存，以便 useEffect 响应
-      setPendingDistrictName(result.districtName)
     }
+
+    // 行政区直接用名字设置（不依赖 DB id）
+    setDistrictName(result.districtName)
   }
 
   // ── 图片 ────────────────────────────────────────────────────────────────────
@@ -164,8 +184,8 @@ function ManualForm() {
       brand_name: brandName.trim(),
       city_id: cityId,
       city_name: cityName,
-      district_id: districtId,
-      district_name: districtName,
+      district_id: null,          // DB districts 表暂无数据，id 传 null
+      district_name: districtName || null,
       location_hint: locationHint.trim() || null,
       address_text: addressText.trim() || null,
       latitude,
@@ -249,18 +269,27 @@ function ManualForm() {
               value={cityId ?? ''}
               onChange={(v) => {
                 setCityId(v || null)
-                setDistrictId(null)
+                setDistrictName('')
               }}
               options={cities.map((c) => ({ value: c.id, label: c.name }))}
               placeholder="城市"
             />
-            <ManualSelect
-              value={districtId ?? ''}
-              onChange={(v) => setDistrictId(v || null)}
-              options={districts.map((d) => ({ value: d.id, label: d.name }))}
-              placeholder={cityId ? '行政区' : '选城市'}
-              disabled={!cityId}
-            />
+            {/* 行政区：从高德 API 动态拉取，选中后直接存区名 */}
+            <select
+              value={districtName}
+              onChange={(e) => setDistrictName(e.target.value)}
+              disabled={!cityId || districtsLoading}
+              className={`${MANUAL_CONTROL} cursor-pointer appearance-none disabled:cursor-not-allowed disabled:bg-neutral-100/70 disabled:text-neutral-400`}
+            >
+              <option value="">
+                {districtsLoading ? '加载中…' : cityId ? '行政区' : '选城市'}
+              </option>
+              {amapDistricts.map((d) => (
+                <option key={d.adcode} value={d.name}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
