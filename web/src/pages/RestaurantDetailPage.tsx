@@ -1,4 +1,4 @@
-import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X, Bookmark, BookmarkCheck } from 'lucide-react'
@@ -75,9 +75,14 @@ export function RestaurantDetailPage() {
   const routePoiSource = isPoiSource(poiSource) ? poiSource : null
   const isPoiRoute = Boolean(routePoiSource && poiId)
   const id = rawId ?? (isPoiRoute ? `poi:${routePoiSource}:${poiId}` : null)
-  const [searchParams] = useSearchParams()
-  const initialTab = searchParams.get('tab') === 'dish' ? 'dish' : 'store'
-  const [tab, setTab] = useState<TabKey>(initialTab)
+  const [tab, setTab] = useState<TabKey>('store')
+
+  useEffect(() => {
+    if (sessionStorage.getItem('sj:returnToDishTab') === '1') {
+      sessionStorage.removeItem('sj:returnToDishTab')
+      setTab('dish')
+    }
+  }, [])
 
   const demoMeta = id ? lookupDemoRestaurant(id) : null
   const isDemo = !!demoMeta
