@@ -1055,7 +1055,7 @@ function StoreTab({
               <span className="relative shrink-0 whitespace-nowrap text-[10px] tabular-nums text-neutral-400">
                 {dateFmt.format(new Date(r.created_at))}
               </span>
-              <div className="relative flex shrink-0 items-center gap-2">
+              <div className="relative flex shrink-0 items-center gap-2 translate-y-0.5">
               <button
                 type="button"
                 disabled={busy || guestBlocked}
