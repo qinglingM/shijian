@@ -467,7 +467,14 @@ export function RestaurantDetailPage() {
               }
             >
               <div className="flex gap-4">
-                <div className="relative mt-1 h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-xl bg-neutral-100">
+                <div
+                  className="relative mt-1 h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-xl bg-neutral-100"
+                  style={!emptyReviews && headerTierFallback ? {
+                    border: '1px solid',
+                    borderColor: TIER_COLOR_VAR[headerTierFallback],
+                    borderBottomWidth: '2px',
+                  } : undefined}
+                >
                   {coverUrl ? (
                     <img src={coverUrl} alt="" className="size-full object-cover" />
                   ) : (
@@ -1282,7 +1289,6 @@ function dominantTierFromReviewList(
 }
 
 const SORT_OPTIONS = [
-  { value: 'latest' as const, label: '最新' },
   { value: 'hot' as const, label: '最热' },
   { value: 'score' as const, label: '高分' },
 ]
@@ -1301,7 +1307,7 @@ function DishTabFeed({
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const voteMut = useDishReviewVoteMutation(!isDemo ? restaurantId : null)
-  const [sort, setSort] = useState<'latest' | 'hot' | 'score'>('hot')
+  const [sort, setSort] = useState<'hot' | 'score'>('hot')
 
   const groupedDisplays = useMemo(() => {
     const groups = new Map<string, RestaurantDishReviewItem[]>()
@@ -1318,6 +1324,7 @@ function DishTabFeed({
       coverUrl: string | null
       reviewCount: number
       avgScore: number | null
+      totalYoupin: number
     }[] = []
 
     for (const [dishId, reviews] of groups) {
@@ -1333,30 +1340,20 @@ function DishTabFeed({
         ? Math.round((allScores.reduce((a, b) => a + b, 0) / allScores.length) * 10) / 10
         : null
 
-      let sortedReviews: RestaurantDishReviewItem[]
-      if (sort === 'latest') {
-        sortedReviews = [...reviews].sort((a, b) => b.created_at.localeCompare(a.created_at))
-      } else if (sort === 'score') {
-        sortedReviews = [...reviews].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
-      } else {
-        sortedReviews = [...reviews].sort(
-          (a, b) => (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count),
-        )
-      }
+      const totalYoupin = reviews.reduce((s, r) => s + r.youpin_count, 0)
 
-      entries.push({ dishName, dishId, topReview: sortedReviews[0], coverUrl, reviewCount: reviews.length, avgScore })
+      const topReview =
+        sort === 'score'
+          ? [...reviews].sort((a, b) => (b.score ?? -1) - (a.score ?? -1))[0]
+          : [...reviews].sort((a, b) => (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count))[0]
+
+      entries.push({ dishName, dishId, topReview, coverUrl, reviewCount: reviews.length, avgScore, totalYoupin })
     }
 
-    if (sort === 'latest') {
-      entries.sort((a, b) => b.topReview.created_at.localeCompare(a.topReview.created_at))
-    } else if (sort === 'score') {
-      entries.sort((a, b) => (b.topReview.score ?? -1) - (a.topReview.score ?? -1))
+    if (sort === 'score') {
+      entries.sort((a, b) => (b.avgScore ?? -1) - (a.avgScore ?? -1))
     } else {
-      entries.sort(
-        (a, b) =>
-          (b.topReview.youpin_count - b.topReview.yebang_count) -
-          (a.topReview.youpin_count - a.topReview.yebang_count),
-      )
+      entries.sort((a, b) => b.totalYoupin - a.totalYoupin)
     }
 
     return entries
