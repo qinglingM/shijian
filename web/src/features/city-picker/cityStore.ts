@@ -68,7 +68,7 @@ export const useCityStore = create<CityState>()(
         void p.setCity
         if (version < 2) {
           return {
-            tierMapShowsAllChina: false,
+            tierMapShowsAllChina: true,
             cityId: p.cityId ?? null,
             cityName: (p.cityName as string | undefined) ?? '北京',
             geoBootstrapDone: Boolean(p.geoBootstrapDone ?? false),
@@ -78,7 +78,7 @@ export const useCityStore = create<CityState>()(
         }
         if (version < 3) {
           return {
-            tierMapShowsAllChina: Boolean(p.tierMapShowsAllChina ?? false),
+            tierMapShowsAllChina: Boolean(p.tierMapShowsAllChina ?? true),
             cityId: p.cityId ?? null,
             cityName: (p.cityName as string | undefined) ?? '北京',
             geoBootstrapDone: Boolean(p.geoBootstrapDone ?? false),
@@ -87,7 +87,7 @@ export const useCityStore = create<CityState>()(
           } satisfies CitySlice
         }
         return {
-          tierMapShowsAllChina: Boolean(p.tierMapShowsAllChina ?? false),
+          tierMapShowsAllChina: Boolean(p.tierMapShowsAllChina ?? true),
           cityId: p.cityId ?? null,
           cityName: (p.cityName as string | undefined) ?? '北京',
           geoBootstrapDone: Boolean(p.geoBootstrapDone ?? false),

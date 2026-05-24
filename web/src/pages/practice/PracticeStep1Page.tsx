@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Search } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { CityPicker } from '@/features/city-picker/CityPicker'
-import { useCityStore } from '@/features/city-picker/cityStore'
 import {
   lookupExistingRestaurantByPoi,
   usePoiSearch,
@@ -24,7 +23,7 @@ export function PracticeStep1Page() {
   const applyHydrated = usePracticeDraft((s) => s.applyHydratedPracticeFromServer)
   const resetDraft = usePracticeDraft((s) => s.reset)
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
-  const cityName = useCityStore((s) => s.cityName)
+  const [searchCity, setSearchCity] = useState<{ id: string | null; name: string }>({ id: null, name: '' })
 
   useEffect(() => {
     resetDraft()
@@ -33,7 +32,8 @@ export function PracticeStep1Page() {
   const [keyword, setKeyword] = useState('')
   const [picking, setPicking] = useState<string | null>(null)
   const userLoc = useUserLocation()
-  const { data: rawCandidates = [], isLoading, isFetching } = usePoiSearch(keyword, cityName)
+  const searchCityForApi = searchCity.name || undefined
+  const { data: rawCandidates = [], isLoading, isFetching } = usePoiSearch(keyword, searchCityForApi)
 
   const candidates = useMemo<PoiCandidate[]>(() => {
     if (!userLoc || rawCandidates.length === 0) return rawCandidates
@@ -93,7 +93,13 @@ export function PracticeStep1Page() {
       {/* 搜索区：背景固定不变，与下方结果区区分 */}
       <section className="shrink-0 bg-[radial-gradient(120%_85%_at_50%_0%,#f9fafb_0%,#f1f5f9_45%,#e8eef5_100%)] px-4 pt-5 pb-4">
         <div className="mx-auto mt-1 flex max-w-[22rem] items-center gap-3 sm:max-w-none">
-          <CityPicker variant="practiceRow" />
+          <CityPicker
+            variant="practiceRow"
+            controlledCityId={searchCity.id}
+            controlledCityName={searchCity.name || undefined}
+            onCityChange={(id, name) => setSearchCity({ id, name })}
+            onAllChina={() => setSearchCity({ id: null, name: '' })}
+          />
           <div className="relative min-w-0 flex-1">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400"
@@ -106,7 +112,7 @@ export function PracticeStep1Page() {
               autoFocus
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder={`在 ${cityName} 搜店名、地址`}
+              placeholder={`${searchCity.name ? `在 ${searchCity.name}` : '全国'}搜店名、地址`}
               className="w-full rounded-full bg-neutral-100 py-2.5 pr-4 pl-10 text-sm outline-none ring-orange-400/0 transition-[box-shadow,background-color] placeholder:text-neutral-400 focus-visible:bg-neutral-200/80 focus-visible:ring-2 focus-visible:ring-orange-400/35 active:bg-neutral-200/90"
             />
           </div>

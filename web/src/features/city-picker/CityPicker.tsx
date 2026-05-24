@@ -12,10 +12,23 @@ export type CityPickerVariant = 'navbar' | 'field' | 'practiceRow'
 
 interface CityPickerProps {
   variant?: CityPickerVariant
+  /** 受控模式：由外部管理城市状态，不读写全局 cityStore */
+  controlledCityId?: string | null
+  controlledCityName?: string
+  onCityChange?: (cityId: string | null, cityName: string) => void
+  onAllChina?: () => void
 }
 
-export function CityPicker({ variant = 'navbar' }: CityPickerProps) {
+export function CityPicker({
+  variant = 'navbar',
+  controlledCityId,
+  controlledCityName,
+  onCityChange,
+  onAllChina,
+}: CityPickerProps) {
   const [open, setOpen] = useState(false)
+
+  const isControlled = onCityChange !== undefined || onAllChina !== undefined
 
   const citiesQuery = useCities()
   const cities = citiesQuery.data ?? []
@@ -39,10 +52,21 @@ export function CityPicker({ variant = 'navbar' }: CityPickerProps) {
     cities.length,
   ])
 
-  const tierMapShowsAllChina = useCityStore((s) => s.tierMapShowsAllChina)
-  const geoBootstrapDone = useCityStore((s) => s.geoBootstrapDone)
-  const cityId = useCityStore((s) => s.cityId)
-  const cityName = useCityStore((s) => s.cityName)
+  const storeTierMapShowsAllChina = useCityStore((s) => s.tierMapShowsAllChina)
+  const storeGeoBootstrapDone = useCityStore((s) => s.geoBootstrapDone)
+  const storeCityId = useCityStore((s) => s.cityId)
+  const storeCityName = useCityStore((s) => s.cityName)
+
+  const showsAllChina = isControlled
+    ? controlledCityId == null
+    : storeTierMapShowsAllChina
+  const currentCityName = isControlled
+    ? (controlledCityName ?? '北京')
+    : storeCityName
+  const currentCityId = isControlled
+    ? (controlledCityId ?? null)
+    : storeCityId
+  const geoBootstrapDone = isControlled ? true : storeGeoBootstrapDone
 
   const sortedCities = useMemo(() => {
     return [...cities].sort(
@@ -58,30 +82,30 @@ export function CityPicker({ variant = 'navbar' }: CityPickerProps) {
   /** 顶栏 / 食鉴行：缩写；全国模式显示「全部」；表单行用全称 */
   const triggerLabelShown =
     variant === 'field'
-      ? tierMapShowsAllChina
+      ? showsAllChina
         ? '点选搜索城市（食鉴图为全国时不限定）'
-        : !geoBootstrapDone && !cityId
+        : !geoBootstrapDone && !currentCityId
           ? '正在定位默认城市…'
-          : cityName
-      : tierMapShowsAllChina
+          : currentCityName
+      : showsAllChina
         ? '全部'
-        : !geoBootstrapDone && !cityId
+        : !geoBootstrapDone && !currentCityId
           ? '定位中…'
-          : cityNavbarAbbrev(cityName)
+          : cityNavbarAbbrev(currentCityName)
 
   /** 播报 / 语义 */
   const triggerAriaAndTitle =
     variant === 'field' || variant === 'practiceRow'
-      ? tierMapShowsAllChina
+      ? showsAllChina
         ? '选择要搜索门店的地级市；当前为食鉴图全国浏览'
-        : !geoBootstrapDone && !cityId
+        : !geoBootstrapDone && !currentCityId
           ? '正在根据定位推断默认城市'
-          : `当前搜索城市：${cityName}，点击可更换`
-      : tierMapShowsAllChina
+          : `当前搜索城市：${currentCityName}，点击可更换`
+      : showsAllChina
         ? '全部：食鉴图不按城市收窄'
-        : !geoBootstrapDone && !cityId
+        : !geoBootstrapDone && !currentCityId
           ? '正在根据定位推断城市'
-          : cityName
+          : currentCityName
 
   return (
     <>
@@ -152,6 +176,11 @@ export function CityPicker({ variant = 'navbar' }: CityPickerProps) {
         onClose={() => setOpen(false)}
         cities={sortedCities}
         sourceStatus={sourceStatus}
+        controlledCityId={isControlled ? controlledCityId : undefined}
+        controlledCityName={isControlled ? controlledCityName : undefined}
+        controlledShowsAllChina={isControlled ? showsAllChina : undefined}
+        onControlledCityChange={onCityChange}
+        onControlledAllChina={onAllChina}
       />
     </>
   )

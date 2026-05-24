@@ -22,17 +22,50 @@ export function CityPickerSheet({
   onClose,
   cities,
   sourceStatus,
+  controlledCityId,
+  controlledCityName,
+  controlledShowsAllChina,
+  onControlledCityChange,
+  onControlledAllChina,
 }: {
   open: boolean
   onClose: () => void
   cities: CityRow[]
   sourceStatus: CitiesSourceStatus
+  controlledCityId?: string | null
+  controlledCityName?: string
+  controlledShowsAllChina?: boolean
+  onControlledCityChange?: (cityId: string | null, cityName: string) => void
+  onControlledAllChina?: () => void
 }) {
-  const tierMapShowsAllChina = useCityStore((s) => s.tierMapShowsAllChina)
-  const locatedCityId = useCityStore((s) => s.locatedCityId)
-  const cityId = useCityStore((s) => s.cityId)
-  const setConcreteCity = useCityStore((s) => s.setConcreteCity)
-  const setTierMapShowsAllChina = useCityStore((s) => s.setTierMapShowsAllChina)
+  const isControlled = onControlledCityChange !== undefined || onControlledAllChina !== undefined
+  const storeTierMapShowsAllChina = useCityStore((s) => s.tierMapShowsAllChina)
+  const storeLocatedCityId = useCityStore((s) => s.locatedCityId)
+  const storeCityId = useCityStore((s) => s.cityId)
+  const storeSetConcreteCity = useCityStore((s) => s.setConcreteCity)
+  const storeSetTierMapShowsAllChina = useCityStore((s) => s.setTierMapShowsAllChina)
+
+  const tierMapShowsAllChina = isControlled ? (controlledShowsAllChina ?? true) : storeTierMapShowsAllChina
+  const cityId = isControlled ? (controlledCityId ?? null) : storeCityId
+  const locatedCityId = storeLocatedCityId // 定位城市始终从全局读
+
+  function selectAll() {
+    if (isControlled) {
+      onControlledAllChina?.()
+    } else {
+      storeSetTierMapShowsAllChina()
+    }
+    onClose()
+  }
+
+  function selectCity(c: CityRow) {
+    if (isControlled) {
+      onControlledCityChange?.(c.id, c.name)
+    } else {
+      storeSetConcreteCity(c.id, c.name)
+    }
+    onClose()
+  }
 
   const [q, setQ] = useState('')
 
@@ -95,16 +128,6 @@ export function CityPickerSheet({
         ? document.getElementById(`prov-latin-${letter}`)
         : null
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
-  function selectAll() {
-    setTierMapShowsAllChina()
-    onClose()
-  }
-
-  function selectCity(c: CityRow) {
-    setConcreteCity(c.id, c.name)
-    onClose()
   }
 
   if (!open) return null

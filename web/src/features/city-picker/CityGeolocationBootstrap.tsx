@@ -5,8 +5,8 @@ import { useCities } from '@/features/city-picker/useCities'
 import { isSupabaseConfigured } from '@/lib/supabase'
 
 /**
- * 未直连 Supabase 时直接标记首轮推断完成；
- * 有 cities 时在首轮尝试浏览器定位并按全国城市列表匹配；失败且无 cityId 时回退到北京。
+ * 仅记录 GPS 定位到的城市到 locatedCity，不改变当前选中城市。
+ * 用户可手动在城市选择器中切换。
  */
 export function CityGeolocationBootstrap({
   children,
@@ -16,8 +16,6 @@ export function CityGeolocationBootstrap({
   const { data: cities = [], isFetched } = useCities()
 
   const geoBootstrapDone = useCityStore((s) => s.geoBootstrapDone)
-  const cityId = useCityStore((s) => s.cityId)
-  const setConcreteCity = useCityStore((s) => s.setConcreteCity)
   const setLocatedCity = useCityStore((s) => s.setLocatedCity)
   const markGeoBootstrapDone = useCityStore((s) => s.markGeoBootstrapDone)
 
@@ -32,18 +30,8 @@ export function CityGeolocationBootstrap({
     if (geoBootstrapDone) return
     if (!isFetched || attempted.current) return
 
-    function pickFallbackWhenNoCityId() {
-      if (cityId) return
-      const bj =
-        cities.find((c) => c.name === '北京') ??
-        cities.find((c) => c.name.endsWith('北京')) ??
-        cities[0]
-      if (bj) setConcreteCity(bj.id, bj.name)
-    }
-
     if (cities.length === 0) {
       attempted.current = true
-      pickFallbackWhenNoCityId()
       markGeoBootstrapDone()
       return
     }
@@ -55,24 +43,18 @@ export function CityGeolocationBootstrap({
         const result = await locateMatchedCityRow(cities)
         if (result.ok) {
           setLocatedCity(result.row.id, result.row.name)
-          setConcreteCity(result.row.id, result.row.name)
-        } else {
-          pickFallbackWhenNoCityId()
         }
       } catch {
-        pickFallbackWhenNoCityId()
+        // GPS 失败不报错，用户手动选城市即可
       } finally {
         markGeoBootstrapDone()
       }
     })()
-    // geoBootstrapDone 仅首轮；attempted + store 防抖
   }, [
     isSupabaseConfigured,
     isFetched,
     cities,
     geoBootstrapDone,
-    cityId,
-    setConcreteCity,
     setLocatedCity,
     markGeoBootstrapDone,
   ])
