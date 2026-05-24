@@ -39,7 +39,7 @@ export function useSquareFeed() {
     staleTime: 30_000,
     initialPageParam: 0,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
-      if (lastPage.length < PAGE_SIZE) return undefined
+      if (!Array.isArray(lastPage) || lastPage.length < PAGE_SIZE) return undefined
       return (lastPageParam as number) + PAGE_SIZE
     },
     queryFn: async ({ pageParam }) => {
