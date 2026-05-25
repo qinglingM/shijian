@@ -75,17 +75,28 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
 
     try {
       const canvas = await html2canvas(posterRef.current, {
-        scale: 3, // High resolution
+        scale: 3,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
       })
-      const imageUrl = canvas.toDataURL('image/png')
-      
-      const link = document.createElement('a')
-      link.download = `食鉴分享-${restaurant.name}.png`
-      link.href = imageUrl
-      link.click()
+
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/png')
+      })
+      if (!blob) throw new Error('canvas toBlob failed')
+
+      const file = new File([blob], `食鉴分享-${restaurant.name}.png`, { type: 'image/png' })
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: '食鉴分享' })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.download = file.name
+        link.href = url
+        link.click()
+        URL.revokeObjectURL(url)
+      }
     } catch (err) {
       console.error('Failed to generate poster:', err)
       setErrorMsg('生成海报失败，请重试')
