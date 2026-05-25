@@ -8,8 +8,6 @@ import {
 } from '@/features/tier-map/useTierMap'
 import { TierMap } from '@/features/tier-map/TierMap'
 import { TIER_LABEL, TIER_COLOR_VAR, type Tier } from '@/lib/db'
-import type { TierMapDemoStore } from '@/features/tier-map/tierMapDemoStore'
-import { useTierMapDemoStore } from '@/features/tier-map/tierMapDemoStore'
 
 const AMAP_MID_CATEGORIES: { name: string; subs: string[] }[] = [
   {
@@ -50,7 +48,6 @@ function tierTextColor(tier: Tier): string { return TIER_TEXT_COLOR[tier] }
 
 export function HomePage() {
   const navigate = useNavigate()
-  const manualShowDemo = useTierMapDemoStore((s: TierMapDemoStore) => s.manualShowDemo)
   const { map, showingDemo, isLoading, error } = useDisplayedTierMap()
   const { data: allCities = [] } = useCities()
 

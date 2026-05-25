@@ -177,7 +177,6 @@ export function CityPicker({
         cities={sortedCities}
         sourceStatus={sourceStatus}
         controlledCityId={isControlled ? controlledCityId : undefined}
-        controlledCityName={isControlled ? controlledCityName : undefined}
         controlledShowsAllChina={isControlled ? showsAllChina : undefined}
         onControlledCityChange={onCityChange}
         onControlledAllChina={onAllChina}

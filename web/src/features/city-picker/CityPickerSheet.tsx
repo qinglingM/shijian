@@ -23,7 +23,6 @@ export function CityPickerSheet({
   cities,
   sourceStatus,
   controlledCityId,
-  controlledCityName,
   controlledShowsAllChina,
   onControlledCityChange,
   onControlledAllChina,
@@ -33,7 +32,6 @@ export function CityPickerSheet({
   cities: CityRow[]
   sourceStatus: CitiesSourceStatus
   controlledCityId?: string | null
-  controlledCityName?: string
   controlledShowsAllChina?: boolean
   onControlledCityChange?: (cityId: string | null, cityName: string) => void
   onControlledAllChina?: () => void

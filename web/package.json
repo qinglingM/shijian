@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/ios": "^8.3.4",
     "@supabase/supabase-js": "^2.105.4",
     "@tanstack/query-sync-storage-persister": "^5.83.0",
     "@tanstack/react-query": "^5.83.0",
@@ -33,6 +35,7 @@
   },
   "devDependencies": {
     "@alicloud/dypnsapi20170525": "^2.0.0",
+    "@capacitor/cli": "^8.3.4",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.0",
     "@types/leaflet": "^1.9.21",
