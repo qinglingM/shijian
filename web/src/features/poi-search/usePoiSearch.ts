@@ -8,6 +8,7 @@ export function usePoiSearch(keyword: string, city?: string, enabled = true) {
     queryKey: ['poi-search', trimmed, city ?? ''],
     enabled: enabled && trimmed.length >= 1,
     staleTime: 60_000,
+    gcTime: 0,
     queryFn: async ({ signal }) => {
       const provider = getPoiProvider()
       return provider.search({ keyword: trimmed, city, signal })

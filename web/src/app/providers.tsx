@@ -13,7 +13,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         defaultOptions: {
           queries: {
             staleTime: 30_000,
-            gcTime: 1000 * 60 * 60 * 24,
+            gcTime: 1000 * 60 * 30,
             retry: 1,
             refetchOnWindowFocus: false,
           },
@@ -28,7 +28,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         storage: window.localStorage,
         key: 'shijian-rq-cache',
       }),
-      maxAge: 1000 * 60 * 60 * 24,
+      maxAge: 1000 * 60 * 60 * 2,
     })
     return unsubscribe
   }, [queryClient])

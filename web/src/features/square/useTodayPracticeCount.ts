@@ -6,6 +6,7 @@ export function useTodayPracticeCount() {
     queryKey: ['today-practice-count'],
     enabled: isSupabaseConfigured,
     staleTime: 30_000,
+    gcTime: 0,
     queryFn: async () => {
       const sb = getSupabase()
       const today = new Date()

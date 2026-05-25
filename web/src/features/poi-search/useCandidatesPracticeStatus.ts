@@ -20,6 +20,7 @@ export function useCandidatesPracticeStatus(candidates: PoiCandidate[]) {
     queryKey: ['practice-candidate-practiced', userId ?? '', key],
     enabled: !!userId && candidates.length > 0,
     staleTime: 30_000,
+    gcTime: 0,
     queryFn: async (): Promise<Set<string>> => {
       if (!userId || candidates.length === 0) return new Set()
 
