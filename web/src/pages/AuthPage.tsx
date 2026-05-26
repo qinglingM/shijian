@@ -383,7 +383,7 @@ export function AuthPage() {
               if (forgotStep === 2) {
                 setForgotStep(1)
               } else if (authMode === 'forgot') {
-                navigate(-1)
+                navigate('/map', { replace: true })
               } else {
                 goPhoneLogin()
               }
