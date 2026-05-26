@@ -1,31 +1,26 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { BookOpen, Map, Sparkles, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const TABS = [
   {
     to: '/map',
-    label: '美食地图',
-    icon: Map,
+    label: '地图',
     match: (p: string) => p.startsWith('/map'),
   },
   {
     to: '/square',
     label: '广场',
-    icon: Sparkles,
     match: (p: string) => p.startsWith('/square'),
   },
   {
     to: '/tier-map',
     label: '食鉴图',
-    icon: BookOpen,
     match: (p: string) =>
       p === '/tier-map' || p.startsWith('/search') || p.startsWith('/tiers/'),
   },
   {
     to: '/me',
     label: '我的',
-    icon: User,
     match: (p: string) => p.startsWith('/me'),
   },
 ] as const
@@ -65,22 +60,21 @@ export function AppLayout() {
       </main>
 
       {!hideTabs && (
-        <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)] lg:max-w-3xl">
+        <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur lg:max-w-3xl">
           <ul className="grid grid-cols-4">
-            {TABS.map(({ to, label, icon: Icon, match }) => {
+            {TABS.map(({ to, label, match }) => {
               const active = match(pathname)
               return (
                 <li key={to}>
                   <NavLink
                     to={to}
                     className={cn(
-                      'flex flex-col items-center gap-1 py-3 text-xs',
-                      active ? 'text-neutral-900' : 'text-neutral-400',
+                      'flex items-center justify-center py-2.5 text-sm',
+                      active ? 'font-semibold text-neutral-900' : 'text-neutral-400',
                     )}
                     aria-label={label}
                   >
-                    <Icon size={20} strokeWidth={active ? 2.2 : 1.6} />
-                    <span>{label}</span>
+                    {label}
                   </NavLink>
                 </li>
               )
@@ -113,7 +107,7 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
   )
   if (centerTitle) {
     return (
-      <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)]">
+      <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4">
         <div className="absolute left-4">{btn}</div>
         <h1 className="flex-1 text-center text-base font-medium">{title}</h1>
         {rightSlot ? (
@@ -123,7 +117,7 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
     )
   }
   return (
-    <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)]">
+    <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4">
       {btn}
       <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
       {rightSlot ? (

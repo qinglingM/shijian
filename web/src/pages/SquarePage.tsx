@@ -514,13 +514,13 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
 
       <div className="px-3 pb-3 pt-2">
         <p className="text-[13px] font-bold text-neutral-900">{item.restaurant_name}</p>
-        <div className="mt-1.5 flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
+        <div className="mt-1.5 flex items-center justify-between gap-1.5">
+          <div className="flex min-w-0 shrink items-center gap-1.5">
+            <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
               {item.avatar_url ? (
                 <img src={item.avatar_url} alt={item.nickname} className="size-full rounded-full object-cover" />
               ) : (
-                <PenSquare size={12} />
+                <PenSquare size={10} />
               )}
             </div>
             <p className="truncate text-[10px] font-semibold text-sky-700">{item.nickname}</p>
@@ -531,7 +531,7 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
             aria-pressed={liked}
             onClick={toggleYoupin}
             className={cn(
-              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors disabled:opacity-50',
+              'shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors disabled:opacity-50',
               liked
                 ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
                 : 'bg-orange-50 text-orange-700 ring-1 ring-orange-100 active:bg-orange-100',
