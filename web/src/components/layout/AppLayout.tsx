@@ -60,7 +60,7 @@ export function AppLayout() {
       </main>
 
       {!hideTabs && (
-        <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur lg:max-w-3xl">
+        <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)] lg:max-w-3xl">
           <ul className="grid grid-cols-4">
             {TABS.map(({ to, label, match }) => {
               const active = match(pathname)
@@ -107,7 +107,7 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
   )
   if (centerTitle) {
     return (
-      <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4">
+      <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)]">
         <div className="absolute left-4">{btn}</div>
         <h1 className="flex-1 text-center text-base font-medium">{title}</h1>
         {rightSlot ? (
@@ -117,7 +117,7 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
     )
   }
   return (
-    <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4">
+    <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)]">
       {btn}
       <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
       {rightSlot ? (

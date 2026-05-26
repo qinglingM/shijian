@@ -335,7 +335,7 @@ export function PracticeStep2Page() {
 
     if (!dragActiveRef.current) return
 
-    const placement = dragPlacementRef.current ?? nearestPlacement(e.clientY)
+    const placement = nearestPlacement(e.clientY)
 
     dragActiveRef.current = false
 
