@@ -59,37 +59,39 @@ const TIER_TEXT_COLOR: Record<Tier, string> = {
   bad: '#999',
 }
 
-function createRestaurantIcon(coverImageUrl: string | null, tier: Tier | null): L.DivIcon {
-  const bg = tier ? TIER_HEX[tier] : '#fed7aa'
+function createRestaurantIcon(coverImageUrl: string | null, tier: Tier | null, zoom: number): L.DivIcon {
+  const s = 40 + Math.max(0, Math.min(24, (zoom - 8) * 3))
   const inner = coverImageUrl
     ? `<img src="${coverImageUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.nextSibling.style.display='flex'" /><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:18px;">🍽</span>`
     : `<span style="font-size:20px;line-height:1;">🍽</span>`
 
   return L.divIcon({
     html: `<div style="
-      width:44px;height:44px;border-radius:10px;
+      width:${s}px;height:${s}px;border-radius:${s * 0.22}px;
       border:3px solid ${tier ? TIER_HEX[tier] : '#e5e5e5'};
-      box-shadow:0 2px 10px rgba(0,0,0,0.28);
-      background:${bg};
+      box-shadow:0 2px 10px rgba(0,0,0,0.28),0 0 0 1px rgba(0,0,0,0.08) inset;
+      background:#ffffff;
       display:flex;align-items:center;justify-content:center;
       overflow:hidden;cursor:pointer;
     ">${inner}</div>`,
     className: '',
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
+    iconSize: [s, s],
+    iconAnchor: [s / 2, s / 2],
   })
 }
 
 const MapMarker = memo(function MapMarker({
   restaurant,
+  zoom,
   onSelect,
 }: {
   restaurant: MapRestaurant
+  zoom: number
   onSelect: (r: MapRestaurant) => void
 }) {
   const icon = useMemo(
-    () => createRestaurantIcon(restaurant.cover_image_url, restaurant.tier),
-    [restaurant.cover_image_url, restaurant.tier],
+    () => createRestaurantIcon(restaurant.cover_image_url, restaurant.tier, zoom),
+    [restaurant.cover_image_url, restaurant.tier, zoom],
   )
   return (
     <Marker
@@ -789,7 +791,7 @@ export function HomeMap() {
           }
           const restaurant: MapRestaurant = f.properties?.restaurant ?? f
           return (
-            <MapMarker key={restaurant.id} restaurant={restaurant} onSelect={setSelected} />
+            <MapMarker key={`${restaurant.id}-${restaurant.tier}`} restaurant={restaurant} zoom={zoom} onSelect={setSelected} />
           )
         })}
       </MapContainer>

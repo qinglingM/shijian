@@ -361,7 +361,7 @@ function ScorePicker({
           {value === null ? '未评分' : `${value} 分`}
         </span>
       </div>
-      <div className="mt-1 flex flex-wrap gap-1">
+      <div className="mt-1 flex flex-nowrap gap-0.5">
         {Array.from({ length: 11 }, (_, i) => i).map((n) => {
           const active = value === n
           const heat = SCORE_HEAT_BUTTON[n] ?? SCORE_HEAT_BUTTON[0]
@@ -372,7 +372,7 @@ function ScorePicker({
               aria-label={`${n} 分`}
               data-testid={`score-${n}`}
               onClick={() => onChange(active ? null : n)}
-              className={`flex h-7 w-7 items-center justify-center rounded-md text-xs transition-transform ${
+              className={`flex h-7 w-6 items-center justify-center rounded-md text-xs transition-transform ${
                 heat
               } ${active ? 'z-10 scale-105 ring-2 ring-orange-500 ring-offset-1' : 'active:opacity-90'}`}
             >

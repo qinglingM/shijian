@@ -305,12 +305,6 @@ export function PracticeStep2Page() {
 
     const dy = e.clientY - o.y
 
-    const placement = nearestPlacement(e.clientY)
-
-    dragPlacementRef.current = placement
-
-
-
     setDragFloating((prev) =>
 
       prev
@@ -325,7 +319,7 @@ export function PracticeStep2Page() {
 
             height: r.height,
 
-            tier: placement ?? undefined,
+            tier: prev.tier,
 
           }
 
@@ -398,7 +392,7 @@ export function PracticeStep2Page() {
 
             <div
 
-              className={`pointer-events-none h-full ${PRACTICE_DRAG_CARD_OUTER} transition-[top,left,width,height] duration-150 ease-out shadow-[0_18px_50px_-12px_rgba(0,0,0,0.55)]`}
+              className={`pointer-events-none h-full ${PRACTICE_DRAG_CARD_OUTER} shadow-[0_18px_50px_-12px_rgba(0,0,0,0.55)]`}
 
               style={{
 
@@ -444,7 +438,7 @@ export function PracticeStep2Page() {
 
 
 
-      <section className="px-4 pt-4">
+      <section className="pt-4">
         {/* 区域一：待拖动（独立区块，不与六档共用外框） */}
 
         <div className="mb-5">
@@ -495,8 +489,8 @@ export function PracticeStep2Page() {
         {/* 区域二：仅六档。左+顶+底封口，横线拉满；右侧不画竖向框线 */}
         <p className="-ml-2 mb-2 w-fit pl-0 text-[11px] font-medium text-neutral-500 sm:-ml-2.5">六档评级</p>
 
-        <div className="border-b-[3px] border-l-[3px] border-t-[3px] border-neutral-950">
-          <ul className="flex flex-col divide-y-[3px] divide-solid divide-neutral-950">
+        <div className="border-b-2 border-l-2 border-t-2 border-neutral-950">
+          <ul className="flex flex-col divide-y-2 divide-solid divide-neutral-950">
             {TIER_ORDER.map((tier) => (
               <li
                 key={tier}
