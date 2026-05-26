@@ -160,7 +160,7 @@ export function AuthPage() {
         ),
       ])
       if (!result.ok || !result.token) {
-        setMsg(trOtpSend(result.error ?? '验证码发送失败'))
+        setMsg(trOtpSend(result.error ?? '验证码发送失败', purpose))
         return
       }
       setE164Locked(e164)
@@ -875,11 +875,7 @@ function loginUnifiedError(message: string) {
   return '手机号或密码错误'
 }
 
-<<<<<<< Updated upstream
-function trOtpSend(message: string) {
-=======
 function trOtpSend(message: string, _purpose: OtpPurpose) {
->>>>>>> Stashed changes
   const m = message.toLowerCase()
   if (/rate|limit|429|too many/i.test(m)) return '请求过于频繁，请稍后再试'
   if (/sms|phone|provider|not enabled|aliyun|未配置/i.test(m))
