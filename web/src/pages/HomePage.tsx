@@ -280,12 +280,12 @@ export function HomePage() {
         )}
       </div>
 
-      <section className="flex-1 px-4">
+      <section className="flex-1">
         {isLoading && !showingDemo ? (
           <p className="py-12 text-center text-sm text-neutral-400">载入中…</p>
         ) : error && !showingDemo ? (
           <p className="py-12 text-center text-sm text-rose-400">
-            读取失败：{(error as Error).message}
+            加载失败，请检查网络后刷新页面
           </p>
         ) : viewMode === 'grid' ? (
           <TierMap buckets={visibleMap.buckets} />

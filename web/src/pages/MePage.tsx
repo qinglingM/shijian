@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Award,
   Bookmark,
   ChevronRight,
   KeyRound,
-  Settings,
   UserRound,
   UsersRound,
 } from 'lucide-react'
@@ -299,16 +297,6 @@ export function MePage() {
           icon={<UsersRound size={18} />}
           title="我的伯乐"
           desc="你作为伯乐被记录的门店"
-        />
-        <FeatureCard
-          icon={<Award size={18} />}
-          title="我的称号"
-          desc={`${data?.titleCount ?? 0} 个已解锁`}
-        />
-        <FeatureCard
-          icon={<Settings size={18} />}
-          title="偏好设置"
-          desc="城市、隐私、通知"
         />
         <FeatureCard
           to="/auth?mode=forgot&redirect=/me"

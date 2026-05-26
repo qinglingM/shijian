@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import type { VoteType } from '@/lib/db'
+import type { RestaurantDishReviewItem } from '@/features/restaurants/useRestaurantDishReviews'
+import { applyStoreReviewVoteClick } from '@/features/restaurants/storeReviewVotes'
 
 export function useDishReviewVoteMutation(restaurantId: string | null) {
   const qc = useQueryClient()
@@ -37,7 +39,29 @@ export function useDishReviewVoteMutation(restaurantId: string | null) {
       )
       if (error) throw error
     },
-    onSuccess(_data, vars) {
+    onMutate: async (vars) => {
+      const key = ['restaurant-dish-feed', restaurantId, uid]
+      await qc.cancelQueries({ queryKey: key })
+      const previous = qc.getQueryData<RestaurantDishReviewItem[]>(key)
+      if (!previous) return { previous }
+      qc.setQueryData<RestaurantDishReviewItem[]>(key, (old) => {
+        if (!old) return old
+        return old.map((item) => {
+          if (item.id !== vars.dishReviewId) return item
+          const { youpin, yebang, mine } = applyStoreReviewVoteClick(
+            item.youpin_count, item.yebang_count, item.my_vote, vars.next ?? 'youpin',
+          )
+          return { ...item, youpin_count: youpin, yebang_count: yebang, my_vote: mine }
+        })
+      })
+      return { previous }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) {
+        qc.setQueryData(['restaurant-dish-feed', restaurantId, uid], ctx.previous)
+      }
+    },
+    onSettled(_data, _error, vars) {
       if (restaurantId) {
         qc.invalidateQueries({ queryKey: ['restaurant-dish-feed', restaurantId] })
       }

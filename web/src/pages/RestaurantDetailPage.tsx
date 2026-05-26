@@ -16,6 +16,7 @@ import {
   type RestaurantDetail,
 } from '@/features/restaurants/useRestaurant'
 import { SharePosterSheet, type SharePosterProps } from '@/features/restaurants/SharePosterSheet'
+import { RestaurantFeedbackDialog } from '@/features/restaurants/RestaurantFeedbackDialog'
 import {
   applyStoreReviewVoteClick,
   intentAfterVoteTap,
@@ -1128,6 +1129,7 @@ function RestaurantDetailHeader({
 }) {
   const [moreOpen, setMoreOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const [feedbackType, setFeedbackType] = useState<'error_info' | 'duplicate' | null>(null)
   const [toastMsg, setToastMsg] = useState('')
   const moreRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
@@ -1261,7 +1263,7 @@ function RestaurantDetailHeader({
               <div className="absolute right-0 top-full z-30 mt-1 w-44 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg">
                 <button
                   type="button"
-                  onClick={() => { setMoreOpen(false); showToast('反馈错误信息功能开发中') }}
+                  onClick={() => { setMoreOpen(false); setFeedbackType('error_info') }}
                   className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-neutral-700 active:bg-neutral-50"
                 >
                   <Flag size={14} strokeWidth={1.6} className="text-neutral-400" />
@@ -1269,7 +1271,7 @@ function RestaurantDetailHeader({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setMoreOpen(false); showToast('反馈重复店铺功能开发中') }}
+                  onClick={() => { setMoreOpen(false); setFeedbackType('duplicate') }}
                   className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-neutral-700 active:bg-neutral-50"
                 >
                   <Flag size={14} strokeWidth={1.6} className="text-neutral-400" />
@@ -1288,6 +1290,14 @@ function RestaurantDetailHeader({
       review={review}
       url={window.location.href}
     />
+    {restaurantId && feedbackType && (
+      <RestaurantFeedbackDialog
+        open
+        onClose={() => setFeedbackType(null)}
+        restaurantId={restaurantId}
+        restaurantName={restaurant.name}
+      />
+    )}
     </>
   )
 }
