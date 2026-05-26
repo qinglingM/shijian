@@ -379,12 +379,7 @@ export function AuthPage() {
         <button
           type="button"
           onClick={() => {
-            const redirect = params.get('redirect')
-            if (redirect) {
-              navigate(redirect, { replace: true })
-            } else {
-              navigate(-1)
-            }
+            navigate(-1)
           }}
           className="absolute -left-3 -top-2 p-2 text-neutral-400 transition-colors hover:text-neutral-800"
           aria-label="关闭"
