@@ -374,26 +374,23 @@ export function AuthPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col bg-white px-6 pb-12 pt-8 sm:pt-16">
+    <div className="mx-auto flex min-h-screen max-w-md lg:max-w-3xl flex-col bg-white px-6 pb-12 pt-8 sm:pt-16">
       <div className="relative w-full">
-        {phase === 'forgot' && (
-          <button
-            type="button"
-            onClick={() => {
-              if (forgotStep === 2) {
-                setForgotStep(1)
-              } else if (authMode === 'forgot') {
-                navigate('/map', { replace: true })
-              } else {
-                goPhoneLogin()
-              }
-            }}
-            className="absolute -left-3 -top-2 p-2 text-neutral-400 transition-colors hover:text-neutral-800"
-            aria-label="返回"
-          >
-            <ChevronLeft size={28} />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => {
+            const redirect = params.get('redirect')
+            if (redirect) {
+              navigate(redirect, { replace: true })
+            } else {
+              navigate(-1)
+            }
+          }}
+          className="absolute -left-3 -top-2 p-2 text-neutral-400 transition-colors hover:text-neutral-800"
+          aria-label="关闭"
+        >
+          <ChevronLeft size={28} />
+        </button>
         <header className="mb-10 pt-10 text-center">
           <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">{headerTitle(phase, authMode)}</h1>
           <p className="mt-2 text-[15px] text-neutral-500">{subtitle(surface, phase, authMode)}</p>
