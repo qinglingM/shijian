@@ -428,10 +428,12 @@ export function HomeMap() {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
   const [selectedBigCategory, setSelectedBigCategory] = useState<string | null>(null)
 
-  // Applied state (immediate - no pending)
   const [appliedCity, setAppliedCity] = useState<string | null>(null)
   const [appliedTier, setAppliedTier] = useState<Tier | null>(null)
   const [appliedCategory, setAppliedCategory] = useState<string | null>(null)
+  const [pendingCity, setPendingCity] = useState<string | null>(null)
+  const [pendingTier, setPendingTier] = useState<Tier | null>(null)
+  const [pendingCategory, setPendingCategory] = useState<string | null>(null)
 
   // Cities data for province → city drill-down
   const { data: allCities = [] } = useCities()
@@ -524,9 +526,9 @@ export function HomeMap() {
   function handleReset() {
     setSelectedProvince(null)
     setSelectedBigCategory(null)
-    if (filterTab === 'city') setAppliedCity(null)
-    if (filterTab === 'tier') setAppliedTier(null)
-    if (filterTab === 'category') setAppliedCategory(null)
+    if (filterTab === 'city') { setPendingCity(null); setAppliedCity(null) }
+    if (filterTab === 'tier') { setPendingTier(null); setAppliedTier(null) }
+    if (filterTab === 'category') { setPendingCategory(null); setAppliedCategory(null) }
   }
 
   function handleDismiss() {
@@ -545,7 +547,7 @@ export function HomeMap() {
         {/* Filter buttons: browser-tab style, equal-width */}
         <div className="flex">
           <button
-            onClick={() => { setFilterTab('city'); setFilterOpen(true) }}
+            onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'city' && filterOpen
                 ? 'text-blue-600'
@@ -561,7 +563,7 @@ export function HomeMap() {
           </button>
           <div className="w-px bg-neutral-100" />
           <button
-            onClick={() => { setFilterTab('tier'); setFilterOpen(true) }}
+            onClick={() => { setPendingTier(appliedTier); setFilterTab('tier'); setFilterOpen(true) }}
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'tier' && filterOpen
                 ? 'text-blue-600'
@@ -577,7 +579,7 @@ export function HomeMap() {
           </button>
           <div className="w-px bg-neutral-100" />
           <button
-            onClick={() => { setFilterTab('category'); setFilterOpen(true) }}
+            onClick={() => { setPendingCategory(appliedCategory); setFilterTab('category'); setFilterOpen(true) }}
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'category' && filterOpen
                 ? 'text-blue-600'
@@ -629,9 +631,9 @@ export function HomeMap() {
                         cities.map((name) => (
                           <button
                             key={name}
-                            onClick={() => setAppliedCity(appliedCity === name ? null : name)}
+                            onClick={() => setPendingCity(pendingCity === name ? null : name)}
                             className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${
-                              appliedCity === name
+                              pendingCity === name
                                 ? 'font-semibold text-blue-600'
                                 : 'text-neutral-700'
                             }`}
@@ -652,9 +654,9 @@ export function HomeMap() {
                   {TIER_ORDER.map((tier) => (
                     <button
                       key={tier}
-                      onClick={() => setAppliedTier(appliedTier === tier ? null : tier)}
+                      onClick={() => setPendingTier(pendingTier === tier ? null : tier)}
                       className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${
-                        appliedTier === tier
+                        pendingTier === tier
                           ? 'ring-2 ring-blue-500 ring-offset-2 scale-105'
                           : 'shadow-sm ring-1 ring-black/[0.06]'
                       }`}
@@ -675,10 +677,10 @@ export function HomeMap() {
                         onClick={() => {
                           if (selectedBigCategory === g.name) {
                             setSelectedBigCategory(null)
-                            setAppliedCategory(null)
+                            setPendingCategory(null)
                           } else {
                             setSelectedBigCategory(g.name)
-                            setAppliedCategory(g.name)
+                            setPendingCategory(g.name)
                           }
                         }}
                         className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${
@@ -698,9 +700,9 @@ export function HomeMap() {
                         active.subs.map((sub) => (
                           <button
                             key={sub}
-                            onClick={() => setAppliedCategory(appliedCategory === sub ? null : sub)}
+                            onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
                             className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${
-                              appliedCategory === sub
+                              pendingCategory === sub
                                 ? 'font-semibold text-blue-600'
                                 : 'text-neutral-700'
                             }`}
@@ -721,10 +723,10 @@ export function HomeMap() {
             <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
               <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
               <button
-                onClick={() => setFilterOpen(false)}
-                disabled={filterTab === 'city' && !!selectedProvince && !appliedCity}
+                onClick={() => { setAppliedCity(pendingCity); setAppliedTier(pendingTier); setAppliedCategory(pendingCategory); setFilterOpen(false) }}
+                disabled={filterTab === 'city' && !!selectedProvince && !pendingCity}
                 className={`flex-1 rounded-xl py-3 text-[14px] font-semibold text-white shadow-sm ${
-                  filterTab === 'city' && selectedProvince && !appliedCity
+                  filterTab === 'city' && selectedProvince && !pendingCity
                     ? 'bg-blue-300 cursor-not-allowed'
                     : 'bg-blue-500 active:bg-blue-600'
                 }`}

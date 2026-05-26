@@ -60,6 +60,8 @@ export function HomePage() {
   const [selectedBigCategory, setSelectedBigCategory] = useState<string | null>(null)
   const [appliedCity, setAppliedCity] = useState<string | null>(null)
   const [appliedCategory, setAppliedCategory] = useState<string | null>(null)
+  const [pendingCity, setPendingCity] = useState<string | null>(null)
+  const [pendingCategory, setPendingCategory] = useState<string | null>(null)
 
   // Correlated filter data: when city selected, only show categories in that city
   // and vice versa
@@ -149,8 +151,8 @@ export function HomePage() {
   function handleReset() {
     setSelectedProvince(null)
     setSelectedBigCategory(null)
-    if (filterTab === 'city') setAppliedCity(null)
-    if (filterTab === 'category') setAppliedCategory(null)
+    if (filterTab === 'city') { setPendingCity(null); setAppliedCity(null) }
+    if (filterTab === 'category') { setPendingCategory(null); setAppliedCategory(null) }
   }
 
   return (
@@ -182,9 +184,9 @@ export function HomePage() {
         </header>
 
         {/* Filter buttons row */}
-        <div className="flex items-center gap-2 px-4 pb-2">
+        <div className="flex items-center gap-2 px-4 pb-2 z-[998] relative">
           <button
-            onClick={() => { setFilterTab('city'); setFilterOpen(true) }}
+            onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
             className={`text-[13px] font-semibold transition-colors ${
               appliedCity ? 'text-blue-600' : 'text-neutral-500'
             }`}
@@ -193,7 +195,7 @@ export function HomePage() {
           </button>
           <span className="text-neutral-300 shrink-0">|</span>
           <button
-            onClick={() => { setFilterTab('category'); setFilterOpen(true) }}
+            onClick={() => { setPendingCategory(appliedCategory); setFilterTab('category'); setFilterOpen(true) }}
             className={`text-[13px] font-semibold transition-colors ${
               appliedCategory ? 'text-blue-600' : 'text-neutral-500'
             }`}
@@ -225,8 +227,8 @@ export function HomePage() {
                       {(() => {
                         const cities = selectedProvince ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? [] : []
                         return cities.length > 0 ? cities.map((name) => (
-                          <button key={name} onClick={() => setAppliedCity(appliedCity === name ? null : name)}
-                            className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${appliedCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                          <button key={name} onClick={() => setPendingCity(pendingCity === name ? null : name)}
+                            className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
                             {name}
                           </button>
                         )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
@@ -240,15 +242,14 @@ export function HomePage() {
                       {categoryGroups.map((g) => (
                         <button key={g.name} onClick={() => {
                           if (g.subs.length === 0) {
-                            // No subs: toggle directly
-                            setAppliedCategory(appliedCategory === g.name ? null : g.name)
+                            setPendingCategory(pendingCategory === g.name ? null : g.name)
                             setSelectedBigCategory(null)
                           } else if (selectedBigCategory === g.name) {
                             setSelectedBigCategory(null)
-                            setAppliedCategory(null)
+                            setPendingCategory(null)
                           } else {
                             setSelectedBigCategory(g.name)
-                            setAppliedCategory(g.name)
+                            setPendingCategory(g.name)
                           }
                         }}
                           className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedBigCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
@@ -260,8 +261,8 @@ export function HomePage() {
                       {(() => {
                         const active = categoryGroups.find(g => g.name === selectedBigCategory)
                         return active && active.subs.length > 0 ? active.subs.map((sub) => (
-                          <button key={sub} onClick={() => setAppliedCategory(appliedCategory === sub ? null : sub)}
-                            className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${appliedCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                          <button key={sub} onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
+                            className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
                             {sub}
                           </button>
                         )) : null
@@ -272,7 +273,7 @@ export function HomePage() {
               </div>
               <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
                 <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
-                <button onClick={() => setFilterOpen(false)} className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600">确定</button>
+                <button onClick={() => { setAppliedCity(pendingCity); setAppliedCategory(pendingCategory); setFilterOpen(false) }} className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600">确定</button>
               </div>
             </div>
           </>

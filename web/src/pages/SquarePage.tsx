@@ -78,6 +78,10 @@ export function SquarePage() {
   const [appliedTier, setAppliedTier] = useState<Tier | null>(null)
   const [appliedCategory, setAppliedCategory] = useState<string | null>(null)
 
+  const [pendingCity, setPendingCity] = useState<string | null>(null)
+  const [pendingTier, setPendingTier] = useState<Tier | null>(null)
+  const [pendingCategory, setPendingCategory] = useState<string | null>(null)
+
   // Cities data for province → city drill-down
   const provinces = useMemo(() => {
     const map = new Map<string, string[]>()
@@ -151,9 +155,9 @@ export function SquarePage() {
   function handleReset() {
     setSelectedProvince(null)
     setSelectedBigCategory(null)
-    if (filterTab === 'city') setAppliedCity(null)
-    if (filterTab === 'tier') setAppliedTier(null)
-    if (filterTab === 'category') setAppliedCategory(null)
+    if (filterTab === 'city') { setPendingCity(null); setAppliedCity(null) }
+    if (filterTab === 'tier') { setPendingTier(null); setAppliedTier(null) }
+    if (filterTab === 'category') { setPendingCategory(null); setAppliedCategory(null) }
   }
 
   return (
@@ -202,9 +206,9 @@ export function SquarePage() {
       </section>
 
       {/* Filter bar */}
-      <div className="flex items-center gap-1.5 px-4 pt-3">
+      <div className="flex items-center gap-1.5 px-4 pt-3 z-[998] relative">
         <button
-          onClick={() => { const t = 'city'; setFilterTab(t); setFilterOpen(true) }}
+          onClick={() => { setPendingCity(appliedCity); const t = 'city'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
             filterTab === 'city' && filterOpen
               ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
@@ -216,7 +220,7 @@ export function SquarePage() {
           {appliedCity || '城市'}
         </button>
         <button
-          onClick={() => { const t = 'tier'; setFilterTab(t); setFilterOpen(true) }}
+          onClick={() => { setPendingTier(appliedTier); const t = 'tier'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
             filterTab === 'tier' && filterOpen
               ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
@@ -228,7 +232,7 @@ export function SquarePage() {
           {appliedTier ? TIER_LABEL[appliedTier] : '等级'}
         </button>
         <button
-          onClick={() => { const t = 'category'; setFilterTab(t); setFilterOpen(true) }}
+          onClick={() => { setPendingCategory(appliedCategory); const t = 'category'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
             filterTab === 'category' && filterOpen
               ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
@@ -269,8 +273,8 @@ export function SquarePage() {
                     {(() => {
                       const cities = selectedProvince ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? [] : []
                       return cities.length > 0 ? cities.map((name) => (
-                        <button key={name} onClick={() => setAppliedCity(appliedCity === name ? null : name)}
-                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${appliedCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                        <button key={name} onClick={() => setPendingCity(pendingCity === name ? null : name)}
+                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
                           {name}
                         </button>
                       )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
@@ -281,8 +285,8 @@ export function SquarePage() {
               {filterTab === 'tier' && (
                 <div className="grid grid-cols-3 gap-3 px-4 py-5">
                   {TIER_ORDER.map((tier) => (
-                    <button key={tier} onClick={() => setAppliedTier(appliedTier === tier ? null : tier)}
-                      className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${appliedTier === tier ? 'ring-2 ring-blue-500 ring-offset-2 scale-105' : 'shadow-sm ring-1 ring-black/[0.06]'}`}
+                    <button key={tier} onClick={() => setPendingTier(pendingTier === tier ? null : tier)}
+                      className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${pendingTier === tier ? 'ring-2 ring-blue-500 ring-offset-2 scale-105' : 'shadow-sm ring-1 ring-black/[0.06]'}`}
                       style={{ background: TIER_COLOR_VAR[tier], color: TIER_TEXT_COLOR[tier] }}>
                       {TIER_LABEL[tier]}
                     </button>
@@ -295,9 +299,9 @@ export function SquarePage() {
                     {categoryGroups.map((g) => (
                       <button key={g.name} onClick={() => {
                         if (selectedBigCategory === g.name) {
-                          setSelectedBigCategory(null); setAppliedCategory(null)
+                          setSelectedBigCategory(null); setPendingCategory(null)
                         } else {
-                          setSelectedBigCategory(g.name); setAppliedCategory(g.name)
+                          setSelectedBigCategory(g.name); setPendingCategory(g.name)
                         }
                       }}
                         className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedBigCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
@@ -309,8 +313,8 @@ export function SquarePage() {
                     {(() => {
                       const active = categoryGroups.find(g => g.name === selectedBigCategory)
                       return active ? active.subs.map((sub) => (
-                        <button key={sub} onClick={() => setAppliedCategory(appliedCategory === sub ? null : sub)}
-                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${appliedCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                        <button key={sub} onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
+                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
                           {sub}
                         </button>
                       )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择大类</p>
@@ -322,10 +326,15 @@ export function SquarePage() {
             <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
               <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
               <button
-                onClick={() => setFilterOpen(false)}
-                disabled={filterTab === 'city' && !!selectedProvince && !appliedCity}
+                onClick={() => {
+                  setAppliedCity(pendingCity)
+                  setAppliedTier(pendingTier)
+                  setAppliedCategory(pendingCategory)
+                  setFilterOpen(false)
+                }}
+                disabled={filterTab === 'city' && !!selectedProvince && !pendingCity}
                 className={`flex-1 rounded-xl py-3 text-[14px] font-semibold text-white shadow-sm ${
-                  filterTab === 'city' && selectedProvince && !appliedCity
+                  filterTab === 'city' && selectedProvince && !pendingCity
                     ? 'bg-blue-300 cursor-not-allowed'
                     : 'bg-blue-500 active:bg-blue-600'
                 }`}
