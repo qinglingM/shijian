@@ -60,7 +60,7 @@ export function AppLayout() {
       </main>
 
       {!hideTabs && (
-        <nav className="fixed bottom-0 left-1/2 z-10 w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:max-w-3xl">
+        <nav className="fixed bottom-0 left-1/2 z-[101] w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:max-w-3xl">
           <ul className="grid grid-cols-4">
             {TABS.map(({ to, label, match }) => {
               const active = match(pathname)
