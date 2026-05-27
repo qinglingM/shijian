@@ -280,22 +280,24 @@ export function HomePage() {
         )}
       </div>
 
-      <section className="flex-1">
-        {isLoading && !showingDemo ? (
-          <p className="py-12 text-center text-sm text-neutral-400">载入中…</p>
-        ) : error && !showingDemo ? (
-          <p className="py-12 text-center text-sm text-rose-400">
-            加载失败，请检查网络后刷新页面
-          </p>
-        ) : viewMode === 'grid' ? (
-          <TierMap buckets={visibleMap.buckets} />
-        ) : (
-          <TierListView items={flatItems} />
-        )}
+      <section className="flex flex-1 flex-col">
+        <div className="flex-1">
+          {isLoading && !showingDemo ? (
+            <p className="py-12 text-center text-sm text-neutral-400">载入中…</p>
+          ) : error && !showingDemo ? (
+            <p className="py-12 text-center text-sm text-rose-400">
+              加载失败，请检查网络后刷新页面
+            </p>
+          ) : viewMode === 'grid' ? (
+            <TierMap buckets={visibleMap.buckets} />
+          ) : (
+            <TierListView items={flatItems} />
+          )}
+        </div>
 
         <Link
           to="/practice/step1"
-          className="mt-4 mb-2 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-sm active:opacity-90"
+          className="mx-6 mb-4 mt-auto flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-sm active:opacity-90"
         >
           开始食鉴
         </Link>
