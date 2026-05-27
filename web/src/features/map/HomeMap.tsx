@@ -538,9 +538,9 @@ export function HomeMap() {
   }
 
   return (
-    <div className="relative w-full" style={{ height: 'calc(100dvh - 56px)' }}>
+    <div className="relative w-full" style={{ height: 'calc(100dvh - 56px - env(safe-area-inset-bottom))' }}>
       {/* Toolbar: solid white, browser-toolbar style */}
-      <div className="absolute top-0 left-0 right-0 z-[999] bg-white shadow-sm pt-[env(safe-area-inset-top)]">
+      <div className="absolute top-0 left-0 right-0 z-[999] bg-white shadow-sm">
         <SearchBar
           onOpenPoi={handleOpenPoi}
           onInteract={dismiss}
