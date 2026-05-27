@@ -538,7 +538,7 @@ export function HomeMap() {
   }
 
   return (
-    <div className="relative w-full" style={{ height: 'calc(100dvh - 56px)' }}>
+    <div className="relative h-full w-full">
       {/* Toolbar + Filter panel */}
       <div className="absolute top-0 left-0 right-0 z-[999]">
         <div className="relative bg-white shadow-sm pt-[env(safe-area-inset-top)]">

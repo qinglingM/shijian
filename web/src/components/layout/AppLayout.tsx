@@ -38,29 +38,24 @@ const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_
 
 export function AppLayout() {
   const { pathname } = useLocation()
-  const isHome = pathname === '/' || pathname === '/map' || pathname === '/tier-map'
   const hideTabs =
     pathname.startsWith('/restaurants/') ||
     pathname.startsWith('/dishes/') ||
     pathname.startsWith('/practice')
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col bg-white lg:max-w-3xl">
+    <div className="mx-auto flex h-dvh max-w-md flex-col bg-white lg:max-w-3xl">
       <main
         className={cn(
-          'flex-1',
-          hideTabs
-            ? 'pb-[max(1rem,env(safe-area-inset-bottom))]'
-            : isHome
-              ? 'pb-0 overflow-y-auto'
-              : 'pb-20',
+          'flex-1 min-h-0 overflow-y-auto',
+          hideTabs && 'pb-[max(1rem,env(safe-area-inset-bottom))]',
         )}
       >
         <Outlet />
       </main>
 
       {!hideTabs && (
-        <nav className="fixed bottom-0 left-1/2 z-[101] w-full max-w-md -translate-x-1/2 border-t border-neutral-200 bg-white/95 backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:max-w-3xl">
+        <nav className="shrink-0 border-t border-neutral-200 bg-white/95 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <ul className="grid grid-cols-4">
             {TABS.map(({ to, label, match }) => {
               const active = match(pathname)
