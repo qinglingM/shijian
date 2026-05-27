@@ -1049,7 +1049,7 @@ function StoreTab({
                       {TIER_LABEL[r.tier]}
                     </span>
                   </div>
-                  <p className="mt-1.5 text-[13px] leading-relaxed text-neutral-800">
+                  <p className="mt-1.5 text-[14px] leading-relaxed font-bold text-neutral-800 [&::before]:content-['\201C'] [&::after]:content-['\201D']">
                     {r.store_comment?.trim() || '（未填写店铺锐评）'}
                   </p>
                 </div>
@@ -1267,15 +1267,7 @@ function RestaurantDetailHeader({
                   className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-neutral-700 active:bg-neutral-50"
                 >
                   <Flag size={14} strokeWidth={1.6} className="text-neutral-400" />
-                  反馈错误信息
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setMoreOpen(false); setFeedbackType('duplicate') }}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-neutral-700 active:bg-neutral-50"
-                >
-                  <Flag size={14} strokeWidth={1.6} className="text-neutral-400" />
-                  反馈重复店铺
+                  反馈问题
                 </button>
               </div>
             </>
@@ -1473,9 +1465,12 @@ function DishTabFeed({
                       </Link>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
+                      <p className="text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['\201C'] [&::after]:content-['\201D']">
+                        {r.comment?.trim() || '（未填写菜品锐评）'}
+                      </p>
+                      <div className="mt-1 flex items-center justify-between gap-2">
                         <span className="text-[11px] font-semibold text-sky-700">
-                          {r.reviewer_nickname}
+                          @{r.reviewer_nickname}
                         </span>
                         <span className="shrink-0 text-right leading-none">
                           <span className="text-[28px] font-black italic leading-none text-sky-600">
@@ -1483,12 +1478,7 @@ function DishTabFeed({
                           </span>
                           <span className="ml-0.5 text-[11px] font-semibold text-sky-600">分</span>
                         </span>
-                      </div>
-                      <div className="mt-1 flex items-start gap-2">
-                        <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['“'] [&::after]:content-['”']">
-                          {r.comment?.trim() || '（未填写菜品锐评）'}
-                        </p>
-                        <span className="shrink-0 pt-0.5 text-[9px] font-medium text-neutral-400">
+                        <span className="shrink-0 text-[9px] font-medium text-neutral-400">
                           {entry.reviewCount} 条评价
                         </span>
                       </div>
