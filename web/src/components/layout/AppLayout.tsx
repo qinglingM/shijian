@@ -48,7 +48,7 @@ export function AppLayout() {
     <div className="mx-auto flex min-h-full max-w-md flex-col bg-white lg:max-w-3xl">
       <main
         className={cn(
-          'flex-1 pt-[max(env(safe-area-inset-top),0.5rem)]',
+          'flex-1',
           hideTabs
             ? 'pb-[max(1rem,env(safe-area-inset-bottom))]'
             : isHome
@@ -107,7 +107,7 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
   )
   if (centerTitle) {
     return (
-      <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4">
+      <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)]">
         <div className="absolute left-4">{btn}</div>
         <h1 className="flex-1 text-center text-base font-medium">{title}</h1>
         {rightSlot ? (
@@ -117,7 +117,7 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
     )
   }
   return (
-    <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4">
+    <header className="sticky top-0 z-10 flex h-12 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)]">
       {btn}
       <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
       {rightSlot ? (
