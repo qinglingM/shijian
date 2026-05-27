@@ -156,7 +156,7 @@ export function HomePage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] flex-col">
+    <div className="flex min-h-[calc(100vh-5rem)] flex-col pt-[env(safe-area-inset-top)]">
       <div className="relative">
         {/* Header with filters + search + view toggle */}
         <header className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pt-4 pb-2">
