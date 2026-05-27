@@ -538,16 +538,17 @@ export function HomeMap() {
   }
 
   return (
-    <div className="relative w-full" style={{ height: 'calc(100dvh - 56px - env(safe-area-inset-bottom))' }}>
-      {/* Toolbar: solid white, browser-toolbar style */}
-      <div className="absolute top-0 left-0 right-0 z-[999] bg-white shadow-sm pt-[env(safe-area-inset-top)]">
-        <SearchBar
-          onOpenPoi={handleOpenPoi}
-          onInteract={dismiss}
-        />
-        <div className="h-px bg-neutral-100" />
-        {/* Filter buttons: browser-tab style, equal-width */}
-        <div className="flex">
+    <div className="relative w-full" style={{ height: 'calc(100dvh - 56px)' }}>
+      {/* Toolbar + Filter panel */}
+      <div className="absolute top-0 left-0 right-0 z-[999]">
+        <div className="relative bg-white shadow-sm pt-[env(safe-area-inset-top)]">
+          <SearchBar
+            onOpenPoi={handleOpenPoi}
+            onInteract={dismiss}
+          />
+          <div className="h-px bg-neutral-100" />
+          {/* Filter buttons: browser-tab style, equal-width */}
+          <div className="flex">
           <button
             onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
             className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
@@ -598,12 +599,11 @@ export function HomeMap() {
         </div>
       </div>
 
-      {/* Filter panel (no duplicate tabs - buttons above act as tabs) */}
       {filterOpen && (
         <>
           <div className="fixed inset-0 z-[997]" onClick={handleDismiss} />
           <div
-            className="absolute top-[77px] left-0 right-0 z-[998] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden"
+            className="absolute top-full left-0 right-0 z-[998] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden"
             style={{ animation: 'shijian-slide-down 0.2s ease-out' }}
           >
             <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
@@ -739,6 +739,7 @@ export function HomeMap() {
           </div>
         </>
       )}
+      </div>
 
       {isLoading && (
         <div className="absolute inset-0 z-[500] flex items-center justify-center bg-white/70 backdrop-blur-sm pointer-events-none">
