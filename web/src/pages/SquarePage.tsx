@@ -202,7 +202,7 @@ export function SquarePage() {
       {/* Toolbar wrapper (for absolute filter panel) */}
       <div className="relative">
         {/* Search + Sort bar */}
-        <section className="px-4 pt-4">
+        <section className="px-4 pt-4 bg-neutral-50/60">
           <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" aria-hidden />
@@ -211,7 +211,7 @@ export function SquarePage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索餐厅、评价、分类…"
-              className="w-full rounded-full bg-neutral-100 py-2.5 pl-10 pr-4 text-sm outline-none placeholder:text-neutral-400"
+              className="w-full rounded-full bg-neutral-100 py-1.5 pl-10 pr-4 text-sm outline-none placeholder:text-neutral-400"
               enterKeyHint="search"
             />
           </div>
@@ -219,7 +219,7 @@ export function SquarePage() {
             <button
               type="button"
               onClick={() => setSortOpen(!sortOpen)}
-              className="flex items-center gap-1 rounded-full bg-neutral-100 px-3 py-2.5 text-sm font-medium text-neutral-700"
+              className="flex items-center gap-1 rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-700"
             >
               {sortLabel}
               <ChevronDown size={14} className={cn('transition-transform', sortOpen && 'rotate-180')} />
@@ -242,11 +242,13 @@ export function SquarePage() {
         </div>
       </section>
 
+      <div className="h-px bg-neutral-300" />
+
       {/* Filter bar */}
-      <div className="flex px-4 pt-3 z-[998] relative">
+      <div className="flex px-4 z-[998] relative bg-neutral-50/60">
         <button
           onClick={() => { setPendingCity(appliedCity); const t = 'city'; setFilterTab(t); setFilterOpen(true) }}
-          className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+          className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
             (filterTab === 'city' && filterOpen) || appliedCity ? 'text-blue-600' : 'text-neutral-600'
           }`}
         >
@@ -258,7 +260,7 @@ export function SquarePage() {
         <div className="w-px bg-neutral-200 shrink-0" />
         <button
           onClick={() => { setPendingTier(appliedTier); const t = 'tier'; setFilterTab(t); setFilterOpen(true) }}
-          className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+          className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
             (filterTab === 'tier' && filterOpen) || appliedTier ? 'text-blue-600' : 'text-neutral-600'
           }`}
         >
@@ -270,7 +272,7 @@ export function SquarePage() {
         <div className="w-px bg-neutral-200 shrink-0" />
         <button
           onClick={() => { setPendingCategory(appliedCategory); const t = 'category'; setFilterTab(t); setFilterOpen(true) }}
-          className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+          className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
             (filterTab === 'category' && filterOpen) || appliedCategory ? 'text-blue-600' : 'text-neutral-600'
           }`}
         >
@@ -301,7 +303,7 @@ export function SquarePage() {
                       <button
                         key={pname}
                         onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
-                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedProvince === pname ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}
+                        className={`w-full px-3 py-1.5 text-left text-[13px] transition-colors ${selectedProvince === pname ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}
                       >
                         {pname}
                       </button>
@@ -312,7 +314,7 @@ export function SquarePage() {
                       const cities = selectedProvince ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? [] : []
                       return cities.length > 0 ? cities.map((name) => (
                         <button key={name} onClick={() => setPendingCity(pendingCity === name ? null : name)}
-                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                          className={`w-full px-4 py-1.5 text-left text-[13px] transition-colors ${pendingCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
                           {name}
                         </button>
                       )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
@@ -342,7 +344,7 @@ export function SquarePage() {
                           setSelectedBigCategory(g.name); setPendingCategory(g.name)
                         }
                       }}
-                        className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedBigCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
+                        className={`w-full px-3 py-1.5 text-left text-[13px] transition-colors ${selectedBigCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
                         {g.name}
                       </button>
                     ))}
@@ -352,7 +354,7 @@ export function SquarePage() {
                       const active = categoryGroups.find(g => g.name === selectedBigCategory)
                       return active ? active.subs.map((sub) => (
                         <button key={sub} onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
-                          className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                          className={`w-full px-4 py-1.5 text-left text-[13px] transition-colors ${pendingCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
                           {sub}
                         </button>
                       )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择大类</p>

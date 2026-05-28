@@ -180,7 +180,7 @@ export function HomePage() {
           </div>
         </header>
 
-        <hr className="border-neutral-300" />
+        <div className="h-px bg-neutral-300" />
 
         {/* Filter buttons row */}
         <div className="flex items-center gap-2 px-4 pb-2 z-[998] relative">
