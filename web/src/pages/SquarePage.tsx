@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Search, PenSquare, ChevronDown } from 'lucide-react'
+import { Search, PenSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TIER_ORDER, TIER_LABEL, TIER_COLOR_VAR, TIER_SOFT_VAR, type Tier, type VoteType } from '@/lib/db'
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
@@ -67,7 +67,6 @@ export function SquarePage() {
 
   // Sort state
   const [sortMode, setSortMode] = useState<SortMode>('latest')
-  const [sortOpen, setSortOpen] = useState(false)
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false)
@@ -186,7 +185,6 @@ export function SquarePage() {
 
   // Sort dropdown
   const sortLabel = sortMode === 'latest' ? '最新' : '最热'
-  const otherSortLabel = sortMode === 'latest' ? '最热' : '最新'
   const otherSortMode: SortMode = sortMode === 'latest' ? 'hot' : 'latest'
 
   function handleReset() {
@@ -202,7 +200,7 @@ export function SquarePage() {
       {/* Toolbar wrapper (for absolute filter panel) */}
       <div className="relative">
         {/* Search + Sort bar */}
-        <section className="px-4 pt-4 bg-neutral-50/60">
+        <section className="px-4 pt-4 pb-3 bg-neutral-50/60">
           <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" aria-hidden />
@@ -215,37 +213,18 @@ export function SquarePage() {
               enterKeyHint="search"
             />
           </div>
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setSortOpen(!sortOpen)}
-              className="flex items-center gap-1 rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-700"
-            >
-              {sortLabel}
-              <ChevronDown size={14} className={cn('transition-transform', sortOpen && 'rotate-180')} />
-            </button>
-            {sortOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 z-50 min-w-[5rem] rounded-lg bg-white shadow-lg ring-1 ring-black/[0.06] overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => { setSortMode(otherSortMode); setSortOpen(false) }}
-                    className="block w-full px-3 py-2 text-left text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-                  >
-                    {otherSortLabel}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setSortMode(otherSortMode)}
+            className="shrink-0 rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-700 active:bg-neutral-200"
+          >
+            {sortLabel}
+          </button>
         </div>
       </section>
 
-      <div className="h-px bg-neutral-300" />
-
       {/* Filter bar */}
-      <div className="flex px-4 z-[998] relative bg-neutral-50/60">
+      <div className="flex px-4 pt-1 pb-2 z-[998] relative bg-neutral-100/40">
         <button
           onClick={() => { setPendingCity(appliedCity); const t = 'city'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
@@ -282,8 +261,6 @@ export function SquarePage() {
           ) : null}
         </button>
       </div>
-
-      <hr className="mt-3 border-neutral-300" />
 
       {/* 今日新增 */}
       <p className="px-4 pb-2 pt-2 text-center text-xs text-neutral-500">
