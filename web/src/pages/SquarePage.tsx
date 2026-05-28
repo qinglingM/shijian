@@ -200,7 +200,7 @@ export function SquarePage() {
       {/* Toolbar wrapper (for absolute filter panel) */}
       <div className="relative">
         {/* Search + Sort bar */}
-        <section className="px-4 pt-4 pb-3 bg-neutral-50/60">
+        <section className="px-4 pt-2 pb-3 bg-neutral-50/60">
           <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" aria-hidden />
@@ -224,7 +224,7 @@ export function SquarePage() {
       </section>
 
       {/* Filter bar */}
-      <div className="flex px-4 pt-1 pb-2 z-[998] relative bg-neutral-100/40">
+      <div className="flex px-4 z-[998] relative bg-neutral-100/40">
         <button
           onClick={() => { setPendingCity(appliedCity); const t = 'city'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${

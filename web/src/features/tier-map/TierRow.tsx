@@ -30,7 +30,7 @@ export function TierRow({
   }, [displayRestaurants.length])
 
   return (
-    <div className="grid grid-cols-[5.75rem_minmax(0,1fr)] items-stretch gap-x-0">
+    <div className="grid grid-cols-[5.75rem_minmax(0,1fr)] items-stretch gap-x-0 border-b-[1.5px] border-solid border-neutral-950">
       <TierLabelBlock tier={tier} count={count} href={`/tiers/${tier}`} />
 
       <div

@@ -7,7 +7,7 @@ export function TierMap({
   buckets: TierBucket[]
 }) {
   return (
-    <div className="flex flex-col divide-y-[1.5px] divide-solid divide-neutral-950">
+    <div className="flex flex-col">
       {buckets.map((b) => (
         <TierRow
           key={b.tier}
