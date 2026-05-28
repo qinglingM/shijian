@@ -146,8 +146,6 @@ export function HomePage() {
     })
   }, [visibleMap.buckets])
 
-  const totalCount = visibleMap.buckets.reduce((s, b) => s + b.restaurants.length, 0)
-
   function handleReset() {
     setSelectedProvince(null)
     setSelectedBigCategory(null)
@@ -178,7 +176,6 @@ export function HomePage() {
               className="flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium text-neutral-500 ring-1 ring-neutral-200 active:bg-neutral-50"
             >
               {viewMode === 'grid' ? <List size={14} /> : <LayoutGrid size={14} />}
-              <span className="tabular-nums">{totalCount}</span>
             </button>
           </div>
         </header>
@@ -203,6 +200,12 @@ export function HomePage() {
             {appliedCategory || '种类'}
           </button>
         </div>
+
+        <p className="px-4 pb-2 text-center text-[11px] text-neutral-500">
+          你已在食鉴创下了{' '}
+          <span className="font-semibold text-orange-600">{map.total_count}</span>
+          {' '}条实践记录
+        </p>
 
         {/* Filter panel */}
         {filterOpen && (
@@ -297,7 +300,7 @@ export function HomePage() {
 
         <Link
           to="/practice/step1"
-          className="mx-6 mb-4 mt-auto flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-sm active:opacity-90"
+          className="fixed bottom-24 left-1/2 z-50 mx-6 -translate-x-1/2 flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-600/25 active:opacity-90"
         >
           开始食鉴
         </Link>
