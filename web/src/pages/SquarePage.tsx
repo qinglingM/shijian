@@ -147,6 +147,9 @@ export function SquarePage() {
     return () => observer.disconnect()
   }, [hasNextPage, fetchNextPage])
 
+  // 用 ref 记住「热门」排序的 ID 顺序，避免投票后重新排序
+  const hotOrderRef = useRef<string[]>([])
+
   // Filter + search + sort logic
   const filteredFeed = useMemo(() => {
     let items = feed
@@ -175,7 +178,15 @@ export function SquarePage() {
 
     // Sort
     if (sortMode === 'hot') {
-      items = [...items].sort((a, b) => b.youpin_count - a.youpin_count)
+      if (items.length !== hotOrderRef.current.length) {
+        // 条目数变了（加载了新数据、搜索/筛选变了）→ 重新按有品数排序
+        items = [...items].sort((a, b) => b.youpin_count - a.youpin_count)
+        hotOrderRef.current = items.map(i => i.id)
+      } else {
+        // 条目数没变（只是投票引起的缓存更新）→ 保持原有排序
+        const order = new Map(hotOrderRef.current.map((id, i) => [id, i]))
+        items = [...items].sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999))
+      }
     }
 
     return items
