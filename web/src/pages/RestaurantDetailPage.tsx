@@ -832,6 +832,7 @@ function StoreTab({
   const [demoVotes, setDemoVotes] = useState<
     Record<string, { y: number; b: number; m: 'youpin' | 'yebang' | null }>
   >({})
+  const storeSortRef = useRef<string[]>([])
 
   const displayReviews = useMemo(() => {
     return reviews.map((r) => {
@@ -846,17 +847,21 @@ function StoreTab({
   const [newestFirst, setNewestFirst] = useState(true)
   const [compoundHighNetFirst, setCompoundHighNetFirst] = useState(true)
 
-  const filteredSorted = useMemo(
-    () =>
-      filterAndSortStoreReviews(
-        displayReviews,
-        tierFilter,
-        sortMode,
-        newestFirst,
-        compoundHighNetFirst,
-      ),
-    [displayReviews, tierFilter, sortMode, newestFirst, compoundHighNetFirst],
-  )
+  const filteredSorted = useMemo(() => {
+    const sorted = filterAndSortStoreReviews(
+      displayReviews,
+      tierFilter,
+      sortMode,
+      newestFirst,
+      compoundHighNetFirst,
+    )
+    if (storeSortRef.current.length !== sorted.length) {
+      storeSortRef.current = sorted.map(i => i.id)
+      return sorted
+    }
+    const order = new Map(storeSortRef.current.map((id, i) => [id, i]))
+    return [...sorted].sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999))
+  }, [displayReviews, tierFilter, sortMode, newestFirst, compoundHighNetFirst])
 
   if (loading) {
     return <p className="py-14 text-center text-sm text-neutral-400">载入店铺匿名评价…</p>
@@ -1320,6 +1325,7 @@ function DishTabFeed({
   const user = useAuthStore((s) => s.user)
   const voteMut = useDishReviewVoteMutation(!isDemo ? restaurantId : null)
   const [sort, setSort] = useState<'hot' | 'score'>('hot')
+  const dishSortRef = useRef<string[]>([])
 
   const groupedDisplays = useMemo(() => {
     const groups = new Map<string, RestaurantDishReviewItem[]>()
@@ -1367,8 +1373,15 @@ function DishTabFeed({
 
     if (sort === 'score') {
       entries.sort((a, b) => (b.avgScore ?? -1) - (a.avgScore ?? -1))
+      dishSortRef.current = entries.map(e => e.dishId)
     } else {
-      entries.sort((a, b) => b.reviewCount - a.reviewCount || b.totalYoupin - a.totalYoupin)
+      if (entries.length !== dishSortRef.current.length) {
+        entries.sort((a, b) => b.reviewCount - a.reviewCount || b.totalYoupin - a.totalYoupin)
+        dishSortRef.current = entries.map(e => e.dishId)
+      } else {
+        const order = new Map(dishSortRef.current.map((id, i) => [id, i]))
+        entries.sort((a, b) => (order.get(a.dishId) ?? 999) - (order.get(b.dishId) ?? 999))
+      }
     }
 
     return entries
