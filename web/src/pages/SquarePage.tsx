@@ -282,6 +282,8 @@ export function SquarePage() {
         </button>
       </div>
 
+      <hr className="mx-4 border-neutral-100" />
+
       {/* 今日新增 */}
       <p className="px-4 pb-2 pt-2 text-center text-xs text-neutral-500">
         今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价

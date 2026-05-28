@@ -180,6 +180,8 @@ export function HomePage() {
           </div>
         </header>
 
+        <hr className="mx-4 border-neutral-100" />
+
         {/* Filter buttons row */}
         <div className="flex items-center gap-2 px-4 pb-2 z-[998] relative">
           <button
@@ -300,7 +302,7 @@ export function HomePage() {
 
         <Link
           to="/practice/step1"
-          className="fixed bottom-24 left-1/2 z-50 mx-6 -translate-x-1/2 flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-600/25 active:opacity-90"
+          className="fixed bottom-20 left-1/2 z-50 w-[calc(100%-3rem)] max-w-md -translate-x-1/2 flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-600/25 active:opacity-90"
         >
           开始食鉴
         </Link>
