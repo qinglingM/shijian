@@ -1449,16 +1449,18 @@ function DishTabFeed({
                     <span className="min-w-0 truncate text-[13px] font-bold leading-tight text-orange-700">
                       {entry.dishName}
                     </span>
-                    <span className="ml-auto shrink-0 text-right leading-none">
+                    <span className="ml-auto shrink-0 text-[10px] text-neutral-400">
+                      {dateFmt.format(new Date(r.created_at))}
+                    </span>
+                  </span>
+                  <div className="mb-1 flex justify-end">
+                    <span className="text-right leading-none">
                       <span className="text-[24px] font-black italic leading-none text-sky-600">
                         {entry.avgScore !== null ? entry.avgScore.toFixed(1) : '—'}
                       </span>
                       <span className="ml-0.5 text-[10px] font-semibold text-sky-600">分</span>
                     </span>
-                    <span className="shrink-0 text-[10px] text-neutral-400">
-                      {dateFmt.format(new Date(r.created_at))}
-                    </span>
-                  </span>
+                  </div>
                   <div className="flex items-start gap-3">
                     <div className="shrink-0">
                       <Link
