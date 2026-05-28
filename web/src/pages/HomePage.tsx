@@ -157,7 +157,7 @@ export function HomePage() {
     <div className="flex min-h-[calc(100vh-5rem)] flex-col pt-[env(safe-area-inset-top)]">
       <div className="relative">
         {/* Header with filters + search + view toggle */}
-        <header className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pt-4 pb-2">
+        <header className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pt-4 pb-2 bg-neutral-50/60">
           <div />
           <h1 className="text-center text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
           <div className="flex items-center gap-1.5 justify-end">
@@ -181,7 +181,7 @@ export function HomePage() {
         </header>
 
         {/* Filter buttons row */}
-        <div className="flex items-center gap-2 px-4 pb-2 z-[998] relative bg-neutral-50/60">
+        <div className="flex items-center gap-2 px-4 pb-2 z-[998] relative">
           <button
             onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
             className={`text-[13px] font-semibold transition-colors ${

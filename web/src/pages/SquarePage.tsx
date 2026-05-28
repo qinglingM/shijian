@@ -202,21 +202,21 @@ export function SquarePage() {
         {/* Search + Sort bar */}
         <section className="px-4 pt-2 pb-3 bg-neutral-50/60">
           <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" aria-hidden />
+          <div className="flex flex-1 items-center gap-2">
+            <Search size={15} className="shrink-0 text-neutral-400" />
             <input
               ref={inputRef}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索餐厅、评价、分类…"
-              className="w-full rounded-full bg-neutral-100 py-1.5 pl-10 pr-4 text-sm outline-none placeholder:text-neutral-400"
+              className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
               enterKeyHint="search"
             />
           </div>
           <button
             type="button"
             onClick={() => setSortMode(otherSortMode)}
-            className="shrink-0 rounded-full bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-700 active:bg-neutral-200"
+            className="shrink-0 text-sm font-medium text-neutral-500 active:text-neutral-700"
           >
             {sortLabel}
           </button>
