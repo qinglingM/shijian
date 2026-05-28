@@ -282,7 +282,7 @@ export function SquarePage() {
         </button>
       </div>
 
-      <hr className="mx-4 border-neutral-100" />
+      <hr className="mt-3 border-neutral-200" />
 
       {/* 今日新增 */}
       <p className="px-4 pb-2 pt-2 text-center text-xs text-neutral-500">
