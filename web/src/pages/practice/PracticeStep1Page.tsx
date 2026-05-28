@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPin, Search } from 'lucide-react'
+import { MapPin, Search, ChevronDown } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
-import { CityPicker } from '@/features/city-picker/CityPicker'
+import { CityPickerSheet } from '@/features/city-picker/CityPickerSheet'
+import { useCities } from '@/features/city-picker/useCities'
 import { useDebounce } from '@/lib/useDebounce'
+import { isSupabaseConfigured } from '@/lib/supabase'
+import type { CitiesSourceStatus } from '@/features/city-picker/citiesSourceStatus'
 import {
   lookupExistingRestaurantByPoi,
   usePoiSearch,
@@ -31,7 +34,19 @@ export function PracticeStep1Page() {
   }, [resetDraft])
 
   const [keyword, setKeyword] = useState('')
+  const [citySheetOpen, setCitySheetOpen] = useState(false)
   const debouncedKeyword = useDebounce(keyword, 300)
+  const citiesQuery = useCities()
+  const cityRows = citiesQuery.data ?? []
+  const sourceStatus: CitiesSourceStatus = useMemo(() => {
+    if (!isSupabaseConfigured) return { kind: 'no_supabase' }
+    if (citiesQuery.isPending) return { kind: 'loading' }
+    if (citiesQuery.isError) {
+      return { kind: 'error', message: citiesQuery.error?.message ?? String(citiesQuery.error) }
+    }
+    if (cityRows.length === 0) return { kind: 'empty_db' }
+    return { kind: 'ok' }
+  }, [citiesQuery.isPending, citiesQuery.isError, citiesQuery.error, cityRows.length])
   const [picking, setPicking] = useState<string | null>(null)
   const userLoc = useUserLocation()
   const searchCityForApi = searchCity.name || undefined
@@ -95,13 +110,14 @@ export function PracticeStep1Page() {
       {/* 搜索区：背景固定不变，与下方结果区区分 */}
       <section className="shrink-0 bg-[radial-gradient(120%_85%_at_50%_0%,#f9fafb_0%,#f1f5f9_45%,#e8eef5_100%)] px-4 pt-5 pb-4">
         <div className="mx-auto mt-1 flex max-w-[22rem] items-center gap-3 sm:max-w-none">
-          <CityPicker
-            variant="practiceRow"
-            controlledCityId={searchCity.id}
-            controlledCityName={searchCity.name || undefined}
-            onCityChange={(id, name) => setSearchCity({ id, name })}
-            onAllChina={() => setSearchCity({ id: null, name: '' })}
-          />
+          <button
+            type="button"
+            onClick={() => setCitySheetOpen(true)}
+            className="flex shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-3 py-2 text-xs font-medium text-neutral-700 active:bg-neutral-200"
+          >
+            {searchCity.name || '全国'}
+            <ChevronDown size={14} strokeWidth={2} />
+          </button>
           <div className="relative min-w-0 flex-1">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400"
@@ -236,6 +252,17 @@ export function PracticeStep1Page() {
             </Link>
           </div>
         )}
+
+        <CityPickerSheet
+          open={citySheetOpen}
+          onClose={() => setCitySheetOpen(false)}
+          cities={cityRows}
+          sourceStatus={sourceStatus}
+          controlledCityId={searchCity.id}
+          controlledShowsAllChina={!searchCity.id}
+          onControlledCityChange={(id, name) => { setSearchCity({ id, name }); setCitySheetOpen(false) }}
+          onControlledAllChina={() => { setSearchCity({ id: null, name: '' }); setCitySheetOpen(false) }}
+        />
       </div>
     </div>
   )
