@@ -1468,22 +1468,34 @@ function DishTabFeed({
                       <p className="text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['\201C'] [&::after]:content-['\201D']">
                         {r.comment?.trim() || '（未填写菜品锐评）'}
                       </p>
-                      <div className="mt-1 flex items-center justify-between gap-2">
+                      <div className="mt-1">
                         <span className="text-[11px] font-semibold text-sky-700">
                           @{r.reviewer_nickname}
                         </span>
-                        <span className="shrink-0 text-[9px] font-medium text-neutral-400">
-                          {entry.reviewCount} 条评价
-                        </span>
                       </div>
-                      <div className="flex items-center justify-end gap-1.5">
+                      {voteMut.isError && voteMut.variables?.dishReviewId === r.id ? (
+                        <p className="mt-2 px-1 text-[10px] text-rose-600">
+                          {(voteMut.error as Error)?.message ?? '投票失败'}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-2 pt-0.5">
+                      <span className="text-right leading-none">
+                        <span className="text-[24px] font-black italic leading-none text-sky-600">
+                          {entry.avgScore !== null ? entry.avgScore.toFixed(1) : '—'}
+                        </span>
+                        <span className="ml-0.5 text-[10px] font-semibold text-sky-600">分</span>
+                      </span>
+                      <span className="text-[9px] font-medium text-neutral-400 whitespace-nowrap">
+                        {entry.reviewCount} 条评价
+                      </span>
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
                           disabled={votingThis || guestBlocked}
-                          title={guestBlocked ? '请先登录' : '觉得这条菜评中肯、有参考价值'}
                           aria-pressed={r.my_vote === 'youpin'}
-                          onClick={(e) => { e.stopPropagation(); onTap('youpin') }}
-                          className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
+                          onClick={() => onTap('youpin')}
+                          className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                             r.my_vote === 'youpin'
                               ? 'bg-orange-50 text-orange-950 shadow-[inset_0_0_0_2px_rgb(251_146_60)]'
                               : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-orange-50/60'
@@ -1495,10 +1507,9 @@ function DishTabFeed({
                         <button
                           type="button"
                           disabled={votingThis || guestBlocked}
-                          title={guestBlocked ? '请先登录' : '觉得这条菜评离谱、参考价值低'}
                           aria-pressed={r.my_vote === 'yebang'}
-                          onClick={(e) => { e.stopPropagation(); onTap('yebang') }}
-                          className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
+                          onClick={() => onTap('yebang')}
+                          className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                             r.my_vote === 'yebang'
                               ? 'bg-violet-50 text-violet-950 shadow-[inset_0_0_0_2px_rgb(167_139_250)]'
                               : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-violet-50/55'
@@ -1508,17 +1519,6 @@ function DishTabFeed({
                           <span className="tabular-nums opacity-85">{r.yebang_count}</span>
                         </button>
                       </div>
-                      {voteMut.isError && voteMut.variables?.dishReviewId === r.id ? (
-                        <p className="mt-2 px-1 text-[10px] text-rose-600">
-                          {(voteMut.error as Error)?.message ?? '投票失败'}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div className="shrink-0 text-right pt-0.5">
-                      <span className="text-[24px] font-black italic leading-none text-sky-600">
-                        {entry.avgScore !== null ? entry.avgScore.toFixed(1) : '—'}
-                      </span>
-                      <span className="ml-0.5 text-[10px] font-semibold text-sky-600">分</span>
                     </div>
                   </div>
                 </li>
