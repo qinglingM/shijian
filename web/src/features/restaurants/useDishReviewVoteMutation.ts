@@ -40,11 +40,14 @@ export function useDishReviewVoteMutation(restaurantId: string | null) {
       if (error) throw error
     },
     onMutate: async (vars) => {
-      const key = ['restaurant-dish-feed', restaurantId, uid]
-      await qc.cancelQueries({ queryKey: key })
-      const previous = qc.getQueryData<RestaurantDishReviewItem[]>(key)
-      if (!previous) return { previous }
-      qc.setQueryData<RestaurantDishReviewItem[]>(key, (old) => {
+      const dishFeedKey = ['restaurant-dish-feed', restaurantId, uid]
+      const dishReviewsKey = ['dish-reviews', vars.dishId]
+      await qc.cancelQueries({ queryKey: dishFeedKey })
+      await qc.cancelQueries({ queryKey: dishReviewsKey })
+      const previous = qc.getQueryData<RestaurantDishReviewItem[]>(dishFeedKey)
+
+      // 乐观更新餐厅菜品评价列表
+      qc.setQueryData<RestaurantDishReviewItem[]>(dishFeedKey, (old) => {
         if (!old) return old
         return old.map((item) => {
           if (item.id !== vars.dishReviewId) return item
@@ -54,6 +57,19 @@ export function useDishReviewVoteMutation(restaurantId: string | null) {
           return { ...item, youpin_count: youpin, yebang_count: yebang, my_vote: mine }
         })
       })
+
+      // 乐观更新菜品详情页缓存
+      qc.setQueryData<RestaurantDishReviewItem[]>(dishReviewsKey, (old) => {
+        if (!old) return old
+        return old.map((item) => {
+          if (item.id !== vars.dishReviewId) return item
+          const { youpin, yebang, mine } = applyStoreReviewVoteClick(
+            item.youpin_count, item.yebang_count, item.my_vote, vars.next ?? 'youpin',
+          )
+          return { ...item, youpin_count: youpin, yebang_count: yebang, my_vote: mine }
+        })
+      })
+
       return { previous }
     },
     onError: (_err, _vars, ctx) => {

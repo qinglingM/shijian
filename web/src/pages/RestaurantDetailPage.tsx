@@ -1326,6 +1326,7 @@ function DishTabFeed({
   const voteMut = useDishReviewVoteMutation(!isDemo ? restaurantId : null)
   const [sort, setSort] = useState<'hot' | 'score'>('hot')
   const dishSortRef = useRef<string[]>([])
+  const topReviewRef = useRef<Record<string, string>>({})
 
   const groupedDisplays = useMemo(() => {
     const groups = new Map<string, RestaurantDishReviewItem[]>()
@@ -1360,13 +1361,20 @@ function DishTabFeed({
 
       const totalYoupin = reviews.reduce((s, r) => s + r.youpin_count, 0)
 
-      const topReview = [...reviews].sort((a, b) => {
-        const net = (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count)
-        if (net !== 0) return net
-        const scoreDiff = (b.score ?? -1) - (a.score ?? -1)
-        if (scoreDiff !== 0) return scoreDiff
-        return b.created_at.localeCompare(a.created_at)
-      })[0]
+      // Lock topReview by dishId: only pick on first data load, stable across votes
+      const lockedId = topReviewRef.current[dishId]
+      const lockedReview = lockedId ? reviews.find(r => r.id === lockedId) : null
+      const topReview = lockedReview ?? (() => {
+        const picked = [...reviews].sort((a, b) => {
+          const net = (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count)
+          if (net !== 0) return net
+          const scoreDiff = (b.score ?? -1) - (a.score ?? -1)
+          if (scoreDiff !== 0) return scoreDiff
+          return b.created_at.localeCompare(a.created_at)
+        })[0]
+        topReviewRef.current[dishId] = picked.id
+        return picked
+      })()
 
       entries.push({ dishName, dishId, topReview, coverUrl, reviewCount: reviews.length, avgScore, totalYoupin })
     }
