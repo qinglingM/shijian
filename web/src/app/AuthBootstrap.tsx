@@ -3,6 +3,7 @@ import { CityGeolocationBootstrap } from '@/features/city-picker/CityGeolocation
 import { isSupabaseConfigured, getSupabase } from '@/lib/supabase'
 import { AUTH_LAX_DEV, ensureLaxDevAuthenticated } from '@/lib/laxDevAuth'
 import { useAuthStore } from '@/stores/authStore'
+import { Keyboard, KeyboardResize } from '@capacitor/keyboard'
 
 const FIXTURE_EMAIL = import.meta.env.VITE_FIXTURE_EMAIL as string | undefined
 const FIXTURE_PASSWORD = import.meta.env.VITE_FIXTURE_PASSWORD as string | undefined
@@ -57,6 +58,7 @@ export function AuthBootstrap({ children }: { children: ReactNode }) {
       })
 
       const main = (async () => {
+        try { await Keyboard.setResizeMode({ mode: KeyboardResize.None }) } catch { /* 浏览器环境忽略 */ }
         const { data } = await supabase.auth.getSession()
         if (data.session) {
           const { data: userData, error } = await supabase.auth.getUser()

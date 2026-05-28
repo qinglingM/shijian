@@ -1449,7 +1449,13 @@ function DishTabFeed({
                     <span className="min-w-0 truncate text-[13px] font-bold leading-tight text-orange-700">
                       {entry.dishName}
                     </span>
-                    <span className="ml-auto shrink-0 text-[10px] text-neutral-400">
+                    <span className="ml-auto shrink-0 text-right leading-none">
+                      <span className="text-[24px] font-black italic leading-none text-sky-600">
+                        {entry.avgScore !== null ? entry.avgScore.toFixed(1) : '—'}
+                      </span>
+                      <span className="ml-0.5 text-[10px] font-semibold text-sky-600">分</span>
+                    </span>
+                    <span className="shrink-0 text-[10px] text-neutral-400">
                       {dateFmt.format(new Date(r.created_at))}
                     </span>
                   </span>
@@ -1471,12 +1477,6 @@ function DishTabFeed({
                       <div className="mt-1 flex items-center justify-between gap-2">
                         <span className="text-[11px] font-semibold text-sky-700">
                           @{r.reviewer_nickname}
-                        </span>
-                        <span className="shrink-0 text-right leading-none">
-                          <span className="text-[28px] font-black italic leading-none text-sky-600">
-                            {entry.avgScore !== null ? entry.avgScore.toFixed(1) : '—'}
-                          </span>
-                          <span className="ml-0.5 text-[11px] font-semibold text-sky-600">分</span>
                         </span>
                         <span className="shrink-0 text-[9px] font-medium text-neutral-400">
                           {entry.reviewCount} 条评价

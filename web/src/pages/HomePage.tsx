@@ -298,12 +298,14 @@ export function HomePage() {
           )}
         </div>
 
-        <Link
-          to="/practice/step1"
-          className="fixed bottom-20 left-1/2 z-50 w-[calc(100%-3rem)] max-w-md -translate-x-1/2 flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-600/25 active:opacity-90"
-        >
-          开始食鉴
-        </Link>
+        {viewMode === 'grid' && (
+          <Link
+            to="/practice/step1"
+            className="fixed bottom-20 left-1/2 z-50 w-[calc(100%-3rem)] max-w-md -translate-x-1/2 flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-600/25 active:opacity-90"
+          >
+            开始食鉴
+          </Link>
+        )}
       </section>
 
 
