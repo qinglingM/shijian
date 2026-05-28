@@ -62,9 +62,7 @@ export function useStoreReviewVoteMutation(restaurantId: string | null) {
       }
     },
     onSettled() {
-      if (restaurantId) {
-        qc.invalidateQueries({ queryKey: ['store-reviews', restaurantId] })
-      }
+      /* 不主动 invalidate，依赖 staleTime 自然刷新，避免排序瞬间变化 */
     },
   })
 }

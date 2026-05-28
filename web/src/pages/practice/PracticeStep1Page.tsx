@@ -2,11 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Search } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
-import { CityPickerSheet } from '@/features/city-picker/CityPickerSheet'
 import { useCities } from '@/features/city-picker/useCities'
 import { useDebounce } from '@/lib/useDebounce'
-import { isSupabaseConfigured } from '@/lib/supabase'
-import type { CitiesSourceStatus } from '@/features/city-picker/citiesSourceStatus'
 import {
   lookupExistingRestaurantByPoi,
   usePoiSearch,
@@ -34,19 +31,21 @@ export function PracticeStep1Page() {
   }, [resetDraft])
 
   const [keyword, setKeyword] = useState('')
-  const [citySheetOpen, setCitySheetOpen] = useState(false)
+  const [cityFilterOpen, setCityFilterOpen] = useState(false)
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
   const debouncedKeyword = useDebounce(keyword, 300)
   const citiesQuery = useCities()
   const cityRows = citiesQuery.data ?? []
-  const sourceStatus: CitiesSourceStatus = useMemo(() => {
-    if (!isSupabaseConfigured) return { kind: 'no_supabase' }
-    if (citiesQuery.isPending) return { kind: 'loading' }
-    if (citiesQuery.isError) {
-      return { kind: 'error', message: citiesQuery.error?.message ?? String(citiesQuery.error) }
+
+  const provinces = useMemo(() => {
+    const map = new Map<string, string[]>()
+    for (const c of cityRows) {
+      const p = c.province_name?.trim() || '其他'
+      if (!map.has(p)) map.set(p, [])
+      map.get(p)!.push(c.name)
     }
-    if (cityRows.length === 0) return { kind: 'empty_db' }
-    return { kind: 'ok' }
-  }, [citiesQuery.isPending, citiesQuery.isError, citiesQuery.error, cityRows.length])
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
+  }, [cityRows])
   const [picking, setPicking] = useState<string | null>(null)
   const userLoc = useUserLocation()
   const searchCityForApi = searchCity.name || undefined
@@ -110,13 +109,50 @@ export function PracticeStep1Page() {
       {/* 搜索区：背景固定不变，与下方结果区区分 */}
       <section className="shrink-0 bg-[radial-gradient(120%_85%_at_50%_0%,#f9fafb_0%,#f1f5f9_45%,#e8eef5_100%)] px-4 pt-3 pb-3">
         <div className="mx-auto flex max-w-[22rem] items-center gap-2 sm:max-w-none">
-          <button
-            type="button"
-            onClick={() => setCitySheetOpen(true)}
-            className="shrink-0 text-[13px] font-semibold text-neutral-500"
-          >
-            {searchCity.name || '全国'}
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setCityFilterOpen(!cityFilterOpen)}
+              className="shrink-0 text-[13px] font-semibold text-neutral-500"
+            >
+              {searchCity.name || '全国'}
+            </button>
+
+            {cityFilterOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setCityFilterOpen(false)} />
+                <div className="absolute top-full left-0 mt-1 z-20 w-72 rounded-xl bg-white shadow-xl ring-1 ring-black/[0.06] overflow-hidden">
+                  <div className="flex" style={{ height: '30dvh' }}>
+                    <div className="w-[120px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                      {provinces.map(([pname]) => (
+                        <button
+                          key={pname}
+                          onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
+                          className={`w-full px-3 py-2 text-left text-[12px] transition-colors ${selectedProvince === pname ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}
+                        >
+                          {pname}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                      {(() => {
+                        const cities = selectedProvince ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? [] : []
+                        return cities.length > 0 ? cities.map((name) => (
+                          <button
+                            key={name}
+                            onClick={() => { setSearchCity({ id: null, name }); setCityFilterOpen(false) }}
+                            className={`w-full px-3 py-2 text-left text-[12px] transition-colors ${searchCity.name === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}
+                          >
+                            {name}
+                          </button>
+                        )) : <p className="px-3 py-6 text-center text-[11px] text-neutral-400">请先选择省份</p>
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           <div className="flex flex-1 items-center gap-2">
             <Search size={15} className="shrink-0 text-neutral-400" aria-hidden />
             <input
@@ -248,16 +284,6 @@ export function PracticeStep1Page() {
           </div>
         )}
 
-        <CityPickerSheet
-          open={citySheetOpen}
-          onClose={() => setCitySheetOpen(false)}
-          cities={cityRows}
-          sourceStatus={sourceStatus}
-          controlledCityId={searchCity.id}
-          controlledShowsAllChina={!searchCity.id}
-          onControlledCityChange={(id, name) => { setSearchCity({ id, name }); setCitySheetOpen(false) }}
-          onControlledAllChina={() => { setSearchCity({ id: null, name: '' }); setCitySheetOpen(false) }}
-        />
       </div>
     </div>
   )

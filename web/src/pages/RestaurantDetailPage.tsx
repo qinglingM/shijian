@@ -1072,7 +1072,7 @@ function StoreTab({
                 disabled={busy || guestBlocked}
                 title={guestBlocked ? '请先登录' : '觉得这条店评中肯、有参考价值'}
                 aria-pressed={r.my_vote === 'youpin'}
-                onClick={() => onTap('youpin')}
+                onClick={(e) => { e.stopPropagation(); onTap('youpin') }}
                 className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                   r.my_vote === 'youpin'
                     ? 'bg-orange-50 text-orange-950 shadow-[inset_0_0_0_2px_rgb(251_146_60)]'
@@ -1087,7 +1087,7 @@ function StoreTab({
                 disabled={busy || guestBlocked}
                 title={guestBlocked ? '请先登录' : '觉得这条店评离谱、参考价值低'}
                 aria-pressed={r.my_vote === 'yebang'}
-                onClick={() => onTap('yebang')}
+                onClick={(e) => { e.stopPropagation(); onTap('yebang') }}
                 className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                   r.my_vote === 'yebang'
                     ? 'bg-violet-50 text-violet-950 shadow-[inset_0_0_0_2px_rgb(167_139_250)]'
@@ -1479,7 +1479,7 @@ function DishTabFeed({
                         </p>
                       ) : null}
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2 pt-0.5">
+                    <div className="flex shrink-0 flex-col items-end self-stretch pt-0.5">
                       <span className="text-right leading-none">
                         <span className="text-[24px] font-black italic leading-none text-sky-600">
                           {entry.avgScore !== null ? entry.avgScore.toFixed(1) : '—'}
@@ -1489,12 +1489,12 @@ function DishTabFeed({
                       <span className="text-[9px] font-medium text-neutral-400 whitespace-nowrap">
                         {entry.reviewCount} 条评价
                       </span>
-                      <div className="flex items-center gap-1">
+                      <div className="mt-auto flex items-center gap-1">
                         <button
                           type="button"
                           disabled={votingThis || guestBlocked}
                           aria-pressed={r.my_vote === 'youpin'}
-                          onClick={() => onTap('youpin')}
+                          onClick={(e) => { e.stopPropagation(); onTap('youpin') }}
                           className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                             r.my_vote === 'youpin'
                               ? 'bg-orange-50 text-orange-950 shadow-[inset_0_0_0_2px_rgb(251_146_60)]'
@@ -1508,7 +1508,7 @@ function DishTabFeed({
                           type="button"
                           disabled={votingThis || guestBlocked}
                           aria-pressed={r.my_vote === 'yebang'}
-                          onClick={() => onTap('yebang')}
+                          onClick={(e) => { e.stopPropagation(); onTap('yebang') }}
                           className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
                             r.my_vote === 'yebang'
                               ? 'bg-violet-50 text-violet-950 shadow-[inset_0_0_0_2px_rgb(167_139_250)]'

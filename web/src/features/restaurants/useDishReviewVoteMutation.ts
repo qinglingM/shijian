@@ -61,11 +61,8 @@ export function useDishReviewVoteMutation(restaurantId: string | null) {
         qc.setQueryData(['restaurant-dish-feed', restaurantId, uid], ctx.previous)
       }
     },
-    onSettled(_data, _error, vars) {
-      if (restaurantId) {
-        qc.invalidateQueries({ queryKey: ['restaurant-dish-feed', restaurantId] })
-      }
-      qc.invalidateQueries({ queryKey: ['dish-reviews', vars.dishId] })
+    onSettled() {
+      /* 不主动 invalidate，依赖 staleTime 自然刷新，避免排序瞬间变化 */
     },
   })
 }
