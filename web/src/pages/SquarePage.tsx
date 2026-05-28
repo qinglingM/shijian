@@ -262,11 +262,6 @@ export function SquarePage() {
         </button>
       </div>
 
-      {/* 今日新增 */}
-      <p className="px-4 pb-2 pt-2 text-center text-xs text-neutral-500">
-        今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
-      </p>
-
       {/* Filter panel (absolute positioned) */}
       {filterOpen && (
         <>
@@ -371,8 +366,11 @@ export function SquarePage() {
         onTouchStart={handlePullStart}
         onTouchMove={handlePullMove}
         onTouchEnd={handlePullEnd}
-        className="flex-1 px-4 pt-3 pb-6 bg-neutral-50/60"
+        className="flex-1 px-4 pb-6 bg-neutral-50/60"
       >
+        <p className="pt-3 pb-2 text-center text-xs text-neutral-500">
+          今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
+        </p>
         {pullDist > 0 && (
           <div className="flex justify-center pb-2" style={{ height: pullDist, overflow: 'hidden', transition: 'height 0.15s' }}>
             <div className="flex items-center gap-1.5 text-xs text-neutral-400">
