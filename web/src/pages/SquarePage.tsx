@@ -200,7 +200,7 @@ export function SquarePage() {
       {/* Toolbar wrapper (for absolute filter panel) */}
       <div className="relative">
         {/* Search + Sort bar */}
-        <section className="px-4 pt-2 pb-3 bg-neutral-50/60">
+        <section className="px-4 pt-2 pb-3">
           <div className="flex items-center gap-2">
           <div className="flex flex-1 items-center gap-2">
             <Search size={15} className="shrink-0 text-neutral-400" />
@@ -224,7 +224,7 @@ export function SquarePage() {
       </section>
 
       {/* Filter bar */}
-      <div className="flex px-4 z-[998] relative bg-neutral-100/40">
+      <div className="flex px-4 z-[998] relative">
         <button
           onClick={() => { setPendingCity(appliedCity); const t = 'city'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
@@ -371,7 +371,7 @@ export function SquarePage() {
         onTouchStart={handlePullStart}
         onTouchMove={handlePullMove}
         onTouchEnd={handlePullEnd}
-        className="flex-1 px-4 pt-3 pb-6"
+        className="flex-1 px-4 pt-3 pb-6 bg-neutral-50/60"
       >
         {pullDist > 0 && (
           <div className="flex justify-center pb-2" style={{ height: pullDist, overflow: 'hidden', transition: 'height 0.15s' }}>

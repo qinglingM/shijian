@@ -181,7 +181,7 @@ export function HomePage() {
         </header>
 
         {/* Filter buttons row */}
-        <div className="flex items-center gap-2 px-4 pb-2 z-[998] relative">
+        <div className="flex items-center gap-2 px-4 pb-2 z-[998] relative bg-neutral-50/40">
           <button
             onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
             className={`text-[13px] font-semibold transition-colors ${
