@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Search, PenSquare } from 'lucide-react'
+import { Search, PenSquare, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TIER_ORDER, TIER_LABEL, TIER_COLOR_VAR, TIER_SOFT_VAR, type Tier, type VoteType } from '@/lib/db'
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
@@ -200,7 +200,7 @@ export function SquarePage() {
       {/* Toolbar wrapper (for absolute filter panel) */}
       <div className="relative">
         {/* Search + Sort bar */}
-        <section className="px-4 pt-2 pb-3">
+        <section className="px-4 py-2">
           <div className="flex items-center gap-2">
           <div className="flex flex-1 items-center gap-2">
             <Search size={15} className="shrink-0 text-neutral-400" />
@@ -216,15 +216,16 @@ export function SquarePage() {
           <button
             type="button"
             onClick={() => setSortMode(otherSortMode)}
-            className="shrink-0 text-sm font-medium text-neutral-500 active:text-neutral-700"
+            className="flex shrink-0 items-center gap-0.5 text-sm font-medium text-neutral-500 active:text-neutral-700"
           >
+            <ChevronDown size={14} strokeWidth={2} className="text-neutral-400" />
             {sortLabel}
           </button>
         </div>
       </section>
 
       {/* Filter bar */}
-      <div className="flex px-4 z-[998] relative">
+      <div className="flex px-4 z-[998] relative bg-neutral-50/40">
         <button
           onClick={() => { setPendingCity(appliedCity); const t = 'city'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${

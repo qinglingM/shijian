@@ -197,7 +197,7 @@ function SearchBar({
 
   return (
     <div>
-      <div className="flex items-center gap-2 px-4 py-2.5">
+          <div className="flex items-center gap-2 px-4 py-2">
         <Search size={15} className="shrink-0 text-neutral-400" />
         <input
           ref={inputRef}
@@ -547,10 +547,10 @@ export function HomeMap() {
             onInteract={dismiss}
           />
           {/* Filter buttons: browser-tab style, equal-width */}
-          <div className="flex">
+          <div className="flex bg-neutral-50/40">
           <button
             onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
-            className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+            className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'city' && filterOpen
                 ? 'text-blue-600'
                 : appliedCity
@@ -566,7 +566,7 @@ export function HomeMap() {
           <div className="w-px bg-neutral-100" />
           <button
             onClick={() => { setPendingTier(appliedTier); setFilterTab('tier'); setFilterOpen(true) }}
-            className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+            className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'tier' && filterOpen
                 ? 'text-blue-600'
                 : appliedTier
@@ -582,7 +582,7 @@ export function HomeMap() {
           <div className="w-px bg-neutral-100" />
           <button
             onClick={() => { setPendingCategory(appliedCategory); setFilterTab('category'); setFilterOpen(true) }}
-            className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+            className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'category' && filterOpen
                 ? 'text-blue-600'
                 : appliedCategory
