@@ -1453,14 +1453,6 @@ function DishTabFeed({
                       {dateFmt.format(new Date(r.created_at))}
                     </span>
                   </span>
-                  <div className="mb-1 flex justify-end">
-                    <span className="text-right leading-none">
-                      <span className="text-[24px] font-black italic leading-none text-sky-600">
-                        {entry.avgScore !== null ? entry.avgScore.toFixed(1) : '—'}
-                      </span>
-                      <span className="ml-0.5 text-[10px] font-semibold text-sky-600">分</span>
-                    </span>
-                  </div>
                   <div className="flex items-start gap-3">
                     <div className="shrink-0">
                       <Link
@@ -1521,6 +1513,12 @@ function DishTabFeed({
                           {(voteMut.error as Error)?.message ?? '投票失败'}
                         </p>
                       ) : null}
+                    </div>
+                    <div className="shrink-0 text-right pt-0.5">
+                      <span className="text-[24px] font-black italic leading-none text-sky-600">
+                        {entry.avgScore !== null ? entry.avgScore.toFixed(1) : '—'}
+                      </span>
+                      <span className="ml-0.5 text-[10px] font-semibold text-sky-600">分</span>
                     </div>
                   </div>
                 </li>
