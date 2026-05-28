@@ -157,7 +157,7 @@ export function HomePage() {
     <div className="flex min-h-[calc(100vh-5rem)] flex-col pt-[env(safe-area-inset-top)]">
       <div className="relative">
         {/* Header with filters + search + view toggle */}
-        <header className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pt-4 pb-2 bg-neutral-50/60">
+        <header className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pt-4 pb-2 bg-neutral-100">
           <div />
           <h1 className="text-center text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
           <div className="flex items-center gap-1.5 justify-end">
@@ -181,7 +181,7 @@ export function HomePage() {
         </header>
 
         {/* Filter buttons row */}
-        <div className="flex items-center gap-2 px-4 pb-2 z-[998] relative bg-neutral-50/40">
+        <div className="flex items-center gap-2 px-4 pb-2 z-[998] relative">
           <button
             onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
             className={`text-[13px] font-semibold transition-colors ${
@@ -201,7 +201,7 @@ export function HomePage() {
           </button>
         </div>
 
-        <p className="px-4 pb-2 text-center text-[11px] text-neutral-500">
+        <p className="px-4 pb-2 text-center text-[12px] text-neutral-500">
           你已在食鉴创下了{' '}
           <span className="font-semibold text-orange-600">{map.total_count}</span>
           {' '}条实践记录

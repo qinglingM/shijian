@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPin, Search, ChevronDown } from 'lucide-react'
+import { MapPin, Search } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { CityPickerSheet } from '@/features/city-picker/CityPickerSheet'
 import { useCities } from '@/features/city-picker/useCities'
@@ -108,22 +108,17 @@ export function PracticeStep1Page() {
       <BackHeader title="搜索确认店铺" backTo="/tier-map" />
 
       {/* 搜索区：背景固定不变，与下方结果区区分 */}
-      <section className="shrink-0 bg-[radial-gradient(120%_85%_at_50%_0%,#f9fafb_0%,#f1f5f9_45%,#e8eef5_100%)] px-4 pt-5 pb-4">
-        <div className="mx-auto mt-1 flex max-w-[22rem] items-center gap-3 sm:max-w-none">
+      <section className="shrink-0 bg-[radial-gradient(120%_85%_at_50%_0%,#f9fafb_0%,#f1f5f9_45%,#e8eef5_100%)] px-4 pt-3 pb-3">
+        <div className="mx-auto flex max-w-[22rem] items-center gap-2 sm:max-w-none">
           <button
             type="button"
             onClick={() => setCitySheetOpen(true)}
-            className="flex shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-3 py-2 text-xs font-medium text-neutral-700 active:bg-neutral-200"
+            className="shrink-0 text-[13px] font-semibold text-neutral-500"
           >
             {searchCity.name || '全国'}
-            <ChevronDown size={14} strokeWidth={2} />
           </button>
-          <div className="relative min-w-0 flex-1">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400"
-              aria-hidden
-              strokeWidth={2.2}
-            />
+          <div className="flex flex-1 items-center gap-2">
+            <Search size={15} className="shrink-0 text-neutral-400" aria-hidden />
             <input
               type="search"
               enterKeyHint="search"
@@ -131,7 +126,7 @@ export function PracticeStep1Page() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder={`${searchCity.name ? `在 ${searchCity.name}` : '全国'}搜店名、地址`}
-              className="w-full rounded-full bg-neutral-100 py-2.5 pr-4 pl-10 text-sm outline-none ring-orange-400/0 transition-[box-shadow,background-color] placeholder:text-neutral-400 focus-visible:bg-neutral-200/80 focus-visible:ring-2 focus-visible:ring-orange-400/35 active:bg-neutral-200/90"
+              className="flex-1 bg-transparent text-sm text-neutral-700 placeholder:text-neutral-400 outline-none"
             />
           </div>
         </div>
