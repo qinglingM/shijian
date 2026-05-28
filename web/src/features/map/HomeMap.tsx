@@ -546,7 +546,7 @@ export function HomeMap() {
             onOpenPoi={handleOpenPoi}
             onInteract={dismiss}
           />
-          <div className="h-px bg-neutral-200" />
+          <div className="h-px bg-neutral-300" />
           {/* Filter buttons: browser-tab style, equal-width */}
           <div className="flex">
           <button

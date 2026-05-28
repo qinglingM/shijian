@@ -243,46 +243,45 @@ export function SquarePage() {
       </section>
 
       {/* Filter bar */}
-      <div className="flex items-center gap-1.5 px-4 pt-3 z-[998] relative">
+      <div className="flex px-4 pt-3 z-[998] relative">
         <button
           onClick={() => { setPendingCity(appliedCity); const t = 'city'; setFilterTab(t); setFilterOpen(true) }}
-          className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
-            filterTab === 'city' && filterOpen
-              ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-              : appliedCity
-                ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-                : 'bg-neutral-100 text-neutral-500'
+          className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+            (filterTab === 'city' && filterOpen) || appliedCity ? 'text-blue-600' : 'text-neutral-600'
           }`}
         >
           {appliedCity || '城市'}
+          {(filterTab === 'city' && filterOpen) || appliedCity ? (
+            <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
+          ) : null}
         </button>
+        <div className="w-px bg-neutral-200 shrink-0" />
         <button
           onClick={() => { setPendingTier(appliedTier); const t = 'tier'; setFilterTab(t); setFilterOpen(true) }}
-          className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
-            filterTab === 'tier' && filterOpen
-              ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-              : appliedTier
-                ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-                : 'bg-neutral-100 text-neutral-500'
+          className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+            (filterTab === 'tier' && filterOpen) || appliedTier ? 'text-blue-600' : 'text-neutral-600'
           }`}
         >
           {appliedTier ? TIER_LABEL[appliedTier] : '等级'}
+          {(filterTab === 'tier' && filterOpen) || appliedTier ? (
+            <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
+          ) : null}
         </button>
+        <div className="w-px bg-neutral-200 shrink-0" />
         <button
           onClick={() => { setPendingCategory(appliedCategory); const t = 'category'; setFilterTab(t); setFilterOpen(true) }}
-          className={`flex-1 rounded-lg px-2 py-1.5 text-[12px] font-medium transition-colors ${
-            filterTab === 'category' && filterOpen
-              ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-              : appliedCategory
-                ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-300'
-                : 'bg-neutral-100 text-neutral-500'
+          className={`flex-1 py-2.5 text-[13px] font-medium transition-colors relative ${
+            (filterTab === 'category' && filterOpen) || appliedCategory ? 'text-blue-600' : 'text-neutral-600'
           }`}
         >
           {appliedCategory || '分类'}
+          {(filterTab === 'category' && filterOpen) || appliedCategory ? (
+            <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
+          ) : null}
         </button>
       </div>
 
-      <hr className="mt-3 border-neutral-200" />
+      <hr className="mt-3 border-neutral-300" />
 
       {/* 今日新增 */}
       <p className="px-4 pb-2 pt-2 text-center text-xs text-neutral-500">
