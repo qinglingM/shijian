@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPin, Search } from 'lucide-react'
+import { MapPin, Search, ChevronDown } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { useCities } from '@/features/city-picker/useCities'
 import { useDebounce } from '@/lib/useDebounce'
@@ -102,20 +102,26 @@ export function PracticeStep1Page() {
     }
   }
 
+  function shortenCityName(name: string | null): string {
+    if (!name) return '全国'
+    return name.replace(/市$/, '').slice(0, 4)
+  }
+
   return (
     <div className="flex min-h-[calc(100dvh-6rem)] flex-col">
       <BackHeader title="搜索确认店铺" backTo="/tier-map" />
 
       {/* 搜索区：背景固定不变，与下方结果区区分 */}
-      <section className="shrink-0 bg-[radial-gradient(120%_85%_at_50%_0%,#f9fafb_0%,#f1f5f9_45%,#e8eef5_100%)] px-4 pt-3 pb-3">
+      <section className="shrink-0 bg-[radial-gradient(120%_85%_at_50%_0%,#f9fafb_0%,#f1f5f9_45%,#e8eef5_100%)] px-4 py-2">
         <div className="mx-auto flex max-w-[22rem] items-center gap-2 sm:max-w-none">
           <div className="relative">
             <button
               type="button"
               onClick={() => setCityFilterOpen(!cityFilterOpen)}
-              className="shrink-0 text-[13px] font-semibold text-neutral-500"
+              className="flex shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-700 active:bg-neutral-200"
             >
-              {searchCity.name || '全国'}
+              <ChevronDown size={14} strokeWidth={2} />
+              {shortenCityName(searchCity.name)}
             </button>
 
             {cityFilterOpen && (
@@ -153,8 +159,8 @@ export function PracticeStep1Page() {
               </>
             )}
           </div>
-          <div className="flex flex-1 items-center gap-2">
-            <Search size={15} className="shrink-0 text-neutral-400" aria-hidden />
+          <div className="flex flex-1 items-center gap-1.5">
+            <Search size={14} className="shrink-0 text-neutral-400" aria-hidden />
             <input
               type="search"
               enterKeyHint="search"
@@ -162,7 +168,7 @@ export function PracticeStep1Page() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder={`${searchCity.name ? `在 ${searchCity.name}` : '全国'}搜店名、地址`}
-              className="flex-1 bg-transparent text-sm text-neutral-700 placeholder:text-neutral-400 outline-none"
+              className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none py-1"
             />
           </div>
         </div>

@@ -442,7 +442,7 @@ export function PracticeStep2Page() {
         {/* 区域一：待拖动（独立区块，不与六档共用外框） */}
 
         <div className="mb-5">
-          <p className="mb-2 text-[11px] font-medium text-neutral-500">待拖动区域</p>
+          <p className="mb-2 px-4 text-[11px] font-medium text-neutral-500">待拖动区域</p>
 
           <div className="grid grid-cols-[20%_1fr] items-stretch gap-0">
             <div className="flex aspect-square w-full flex-col items-center justify-center overflow-hidden bg-neutral-100 p-1 ring-1 ring-black/8">
@@ -487,7 +487,7 @@ export function PracticeStep2Page() {
         </div>
 
         {/* 区域二：仅六档。左+顶+底封口，横线拉满；右侧不画竖向框线 */}
-        <p className="-ml-2 mb-2 w-fit pl-0 text-[11px] font-medium text-neutral-500 sm:-ml-2.5">六档评级</p>
+        <p className="mb-2 px-4 text-[11px] font-medium text-neutral-500">六档评级</p>
 
         <div className="border-b-2 border-l-2 border-t-2 border-neutral-950">
           <ul className="flex flex-col divide-y-2 divide-solid divide-neutral-950">
@@ -520,7 +520,7 @@ export function PracticeStep2Page() {
           </ul>
         </div>
 
-        <div className="mt-3 text-[11px] leading-snug text-neutral-500">
+        <div className="mt-3 px-4 text-[11px] leading-snug text-neutral-500">
           {!draft.tier ? (
             <span>
               从待拖动区域把店卡拖进下方六档；松手时纵向靠近哪一档即选哪档。
