@@ -10,6 +10,11 @@
   to   { transform: translateY(0);     opacity: 1; }
 }
 
+@keyframes shijian-slide-down-out {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0; }
+}
+
 @theme {
   --color-brand: oklch(0.55 0.20 25);
 }

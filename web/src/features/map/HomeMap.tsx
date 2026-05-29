@@ -118,23 +118,40 @@ function MapBoundsZoomTracker({ onChange }: { onChange: (b: L.LatLngBounds, z: n
   return null
 }
 
-function ClusterMarker({ count, lat, lng, onClick }: { count: number; lat: number; lng: number; onClick: () => void }) {
-  const size = Math.min(50 + Math.log2(count) * 8, 80)
+const FALLBACK_CLUSTER = { bg: '#a3a3a3', text: '#fff' }
+
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '')
+  return `rgba(${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)},${alpha})`
+}
+
+function getDominantTier(props: Record<string, number>): Tier | null {
+  const maxCount = Math.max(
+    props.boom ?? 0, props.hang ?? 0, props.top ?? 0,
+    props.upper ?? 0, props.npc ?? 0, props.bad ?? 0,
+  )
+  if (maxCount <= 0) return null
+  return TIER_ORDER.find((t) => (props[t] ?? 0) === maxCount) ?? null
+}
+
+function ClusterMarker({ count, lat, lng, onClick, bg, text, border }: {
+  count: number
+  lat: number
+  lng: number
+  onClick: () => void
+  bg: string
+  text: string
+  border: string
+}) {
+  const size = Math.min(52 + Math.log2(count) * 7, 74)
   const icon = useMemo(
     () => L.divIcon({
-      html: `<div style="
-        width:${size}px;height:${size}px;border-radius:50%;
-        background:rgba(251,146,60,0.85);
-        border:3px solid rgba(251,146,60,0.5);
-        box-shadow:0 2px 10px rgba(0,0,0,0.2);
-        display:flex;align-items:center;justify-content:center;
-        font-size:${count > 99 ? '11px' : '13px'};font-weight:900;color:#fff;cursor:pointer;
-      ">${count}</div>`,
+      html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${hexToRgba(bg, 0.9)};border:${border};box-shadow:0 2px 10px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;font-size:${count > 99 ? '11px' : '13px'};font-weight:900;color:${text};cursor:pointer;">${count}</div>`,
       className: '',
       iconSize: [size, size],
       iconAnchor: [size / 2, size / 2],
     }),
-    [size],
+    [size, bg, text, border],
   )
   return <Marker position={[lat, lng]} icon={icon} eventHandlers={{ click: onClick }} />
 }
@@ -182,7 +199,6 @@ function SearchBar({
 
   const showDropdown = focused && keyword.length > 0
   const hasResults = results.length > 0
-  const cityScopeLabel = tierMapShowsAllChina ? '全国' : cityName
 
   async function handlePickPoi(poi: PoiCandidate) {
     setOpeningPoiId(poi.poi_id)
@@ -211,7 +227,7 @@ function SearchBar({
             onInteract()
           }}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
-          placeholder={`在${cityScopeLabel}搜店名、区域、地址`}
+          placeholder="搜店名、区域、地址"
           className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
         />
         {query && (
@@ -286,10 +302,10 @@ function TierChip({ tier, small }: { tier: Tier; small?: boolean }) {
 
 function BottomSheet({
   restaurant: r,
-  onClose,
+  exiting,
 }: {
   restaurant: MapRestaurant
-  onClose: () => void
+  exiting?: boolean
 }) {
   const fullAddressLine = [r.city_name, r.district_name, r.address_text]
     .filter(Boolean)
@@ -297,11 +313,9 @@ function BottomSheet({
   const dateStr = r.review_created_at?.slice(0, 10)
 
   return (
-    <>
-      <div className="absolute inset-0 z-[401]" onClick={onClose} aria-hidden />
-      <div
-        className="absolute bottom-3 left-3 right-3 z-[402] rounded-2xl bg-white shadow-2xl overflow-hidden"
-        style={{ animation: 'shijian-slide-up 0.22s ease-out' }}
+    <div
+      className="absolute bottom-3 left-3 right-3 z-[402] rounded-2xl bg-white shadow-2xl overflow-hidden"
+        style={{ animation: exiting ? 'shijian-slide-down-out 0.22s ease-out forwards' : 'shijian-slide-up 0.22s ease-out' }}
       >
         <div className="flex justify-center pt-2.5 pb-1">
           <div className="w-9 h-1 rounded-full bg-neutral-200" />
@@ -411,13 +425,14 @@ function BottomSheet({
           </Link>
         </div>
       </div>
-    </>
   )
 }
 
 export function HomeMap() {
   const { data: restaurants = [], isLoading, error } = useMapRestaurants()
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
+  const [exiting, setExiting] = useState(false)
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [bounds, setBounds] = useState<L.LatLngBounds | null>(null)
   const [zoom, setZoom] = useState(4)
   const mapRef = useRef<L.Map | null>(null)
@@ -489,6 +504,22 @@ export function HomeMap() {
     const sc = new Supercluster({
       radius: 60,
       maxZoom: 16,
+      map: (props) => ({
+        boom: props.restaurant?.tier === 'boom' ? 1 : 0,
+        hang: props.restaurant?.tier === 'hang' ? 1 : 0,
+        top: props.restaurant?.tier === 'top' ? 1 : 0,
+        upper: props.restaurant?.tier === 'upper' ? 1 : 0,
+        npc: props.restaurant?.tier === 'npc' ? 1 : 0,
+        bad: props.restaurant?.tier === 'bad' ? 1 : 0,
+      }),
+      reduce: (acc, props) => {
+        acc.boom += props.boom
+        acc.hang += props.hang
+        acc.top += props.top
+        acc.upper += props.upper
+        acc.npc += props.npc
+        acc.bad += props.bad
+      },
     })
     sc.load(visibleRestaurants.map((r) => ({
       type: 'Feature',
@@ -498,7 +529,29 @@ export function HomeMap() {
     superclusterRef.current = sc
   }, [visibleRestaurants])
 
-  const dismiss = useCallback(() => setSelected(null), [])
+  const dismiss = useCallback(() => {
+    if (!selected) return
+    setExiting(true)
+    clearTimeout(closeTimerRef.current)
+    closeTimerRef.current = setTimeout(() => {
+      setSelected(null)
+      setExiting(false)
+    }, 220)
+  }, [selected])
+
+  const cancelClose = useCallback(() => {
+    clearTimeout(closeTimerRef.current)
+    setExiting(false)
+  }, [])
+
+  const handleSelect = useCallback((r: MapRestaurant) => {
+    if (selected && r.id === selected.id) {
+      dismiss()
+    } else {
+      cancelClose()
+      setSelected(r)
+    }
+  }, [cancelClose, dismiss, selected])
 
   const handleMapCapture = useCallback((map: L.Map) => {
     mapRef.current = map
@@ -776,12 +829,20 @@ export function HomeMap() {
           const [lng, lat] = f.geometry ? f.geometry.coordinates : [f.longitude, f.latitude]
           const isCluster = f.properties?.cluster
           if (isCluster) {
+            const dominantTier = getDominantTier(f.properties)
+            const cc = dominantTier
+              ? { bg: TIER_HEX[dominantTier], text: TIER_TEXT_COLOR[dominantTier] }
+              : FALLBACK_CLUSTER
+            const border = dominantTier === 'bad' ? '2px solid rgba(0,0,0,0.35)' : ''
             return (
               <ClusterMarker
                 key={`c-${f.properties.cluster_id}`}
                 count={f.properties.point_count}
                 lat={lat}
                 lng={lng}
+                bg={cc.bg}
+                text={cc.text}
+                border={border}
                 onClick={() => {
                   const map = mapRef.current
                   if (map) map.flyTo([lat, lng], Math.min(zoom + 2, 18), { animate: true, duration: 0.5 })
@@ -791,12 +852,12 @@ export function HomeMap() {
           }
           const restaurant: MapRestaurant = f.properties?.restaurant ?? f
           return (
-            <MapMarker key={`${restaurant.id}-${restaurant.tier}`} restaurant={restaurant} zoom={zoom} onSelect={setSelected} />
+            <MapMarker key={`${restaurant.id}-${restaurant.tier}`} restaurant={restaurant} zoom={zoom} onSelect={handleSelect} />
           )
         })}
       </MapContainer>
 
-      {selected && <BottomSheet restaurant={selected} onClose={dismiss} />}
+      {selected && <BottomSheet restaurant={selected} exiting={exiting} />}
 
       {restaurants.length === 0 && !isLoading && !error && (
         <div className="pointer-events-none absolute bottom-16 left-4 right-4 z-[400] rounded-2xl bg-white/95 px-4 py-3 text-center text-sm text-neutral-500 shadow-lg ring-1 ring-black/5">
