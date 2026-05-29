@@ -12,9 +12,18 @@ fi
 
 cd "$REPO_DIR/web"
 
-corepack prepare pnpm@10.17.0 --activate
-corepack pnpm install --frozen-lockfile
-corepack pnpm build
-corepack pnpm exec cap sync ios
+if command -v corepack >/dev/null 2>&1; then
+  corepack prepare pnpm@10.17.0 --activate
+  PNPM="corepack pnpm"
+elif command -v npx >/dev/null 2>&1; then
+  PNPM="npx -y pnpm@10.17.0"
+else
+  echo "Neither corepack nor npx is available; cannot install web dependencies."
+  exit 127
+fi
+
+$PNPM install --frozen-lockfile
+$PNPM build
+$PNPM exec cap sync ios
 
 touch "$MARKER"
