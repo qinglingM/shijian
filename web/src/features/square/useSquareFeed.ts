@@ -37,7 +37,6 @@ export function useSquareFeed() {
     queryKey: ['square-feed', viewerId],
     enabled: isSupabaseConfigured,
     staleTime: 30_000,
-    gcTime: 0,
     initialPageParam: 0,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       if (!Array.isArray(lastPage) || lastPage.length < PAGE_SIZE) return undefined

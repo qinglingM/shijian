@@ -54,7 +54,6 @@ export function SquarePage() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-    refetch,
   } = useSquareFeed()
   const feed = useMemo(() => infiniteData?.pages.flat() ?? [], [infiniteData])
   const { data: todayCount = 0 } = useTodayPracticeCount()
@@ -81,42 +80,6 @@ export function SquarePage() {
   const [pendingCity, setPendingCity] = useState<string | null>(null)
   const [pendingTier, setPendingTier] = useState<Tier | null>(null)
   const [pendingCategory, setPendingCategory] = useState<string | null>(null)
-
-  // Pull-to-refresh
-  const [pullState, setPullState] = useState<'idle' | 'pulling' | 'refreshing'>('idle')
-  const [pullDist, setPullDist] = useState(0)
-  const touchStartY = useRef(0)
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  function getScrollTop(): number {
-    const el = scrollRef.current?.parentElement
-    if (!el) return 0
-    return el.scrollTop
-  }
-
-  function handlePullStart(e: React.TouchEvent) {
-    if (isLoading || pullState === 'refreshing') return
-    if (getScrollTop() > 0) return
-    touchStartY.current = e.touches[0].clientY
-    setPullState('pulling')
-  }
-
-  function handlePullMove(e: React.TouchEvent) {
-    if (pullState !== 'pulling') return
-    const dy = e.touches[0].clientY - touchStartY.current
-    if (dy <= 0) { setPullDist(0); setPullState('idle'); return }
-    setPullDist(Math.min(dy * 0.4, 80))
-  }
-
-  async function handlePullEnd() {
-    if (pullState !== 'pulling') return
-    if (pullDist > 40) {
-      setPullState('refreshing')
-      try { await refetch() } catch { /* ignore */ }
-    }
-    setPullDist(0)
-    setPullState('idle')
-  }
 
   // Cities data for province → city drill-down
   const provinces = useMemo(() => {
@@ -373,26 +336,10 @@ export function SquarePage() {
       </div>
 
       {/* Content */}
-      <section
-        ref={scrollRef}
-        onTouchStart={handlePullStart}
-        onTouchMove={handlePullMove}
-        onTouchEnd={handlePullEnd}
-        className="flex-1 overflow-y-auto min-h-0 px-4 pb-6 bg-neutral-50/60"
-      >
+      <section className="flex-1 overflow-y-auto min-h-0 px-4 pb-6 bg-neutral-50/60">
         <p className="pt-3 pb-2 text-center text-xs text-neutral-500">
           今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
         </p>
-        {pullDist > 0 && (
-          <div className="flex justify-center pb-2" style={{ height: pullDist, overflow: 'hidden', transition: 'height 0.15s' }}>
-            <div className="flex items-center gap-1.5 text-xs text-neutral-400">
-              <svg className={`size-4 ${pullState === 'refreshing' ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" strokeLinecap="round" />
-              </svg>
-              {pullState === 'refreshing' ? '刷新中…' : pullDist > 40 ? '松手刷新' : '下拉刷新'}
-            </div>
-          </div>
-        )}
         {isLoading ? (
           <p className="py-14 text-center text-sm text-neutral-400">载入广场内容…</p>
         ) : !isLoading && filteredFeed.length === 0 ? (
