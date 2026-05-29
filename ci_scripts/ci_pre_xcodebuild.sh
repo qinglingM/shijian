@@ -1,4 +1,5 @@
 #!/bin/sh
 set -e
 
-"$(dirname "$0")/bootstrap_web_ios.sh"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+"$SCRIPT_DIR/bootstrap_web_ios.sh"
