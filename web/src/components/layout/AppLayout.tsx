@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { Keyboard } from '@capacitor/keyboard'
 
 const TABS = [
   {
@@ -38,6 +40,17 @@ const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_
 
 export function AppLayout() {
   const { pathname } = useLocation()
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
+
+  useEffect(() => {
+    const listeners: Array<{ remove: () => void }> = []
+    try {
+      Keyboard.addListener('keyboardWillShow', () => setKeyboardOpen(true)).then((h) => listeners.push(h))
+      Keyboard.addListener('keyboardWillHide', () => setKeyboardOpen(false)).then((h) => listeners.push(h))
+    } catch {}
+    return () => { listeners.forEach((h) => h.remove()) }
+  }, [])
+
   const hideTabs =
     pathname.startsWith('/restaurants/') ||
     pathname.startsWith('/dishes/') ||
@@ -54,7 +67,7 @@ export function AppLayout() {
         <Outlet />
       </main>
 
-      {!hideTabs && (
+      {!hideTabs && !keyboardOpen && (
         <nav className="shrink-0 border-t border-neutral-200 bg-white/95 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <ul className="grid grid-cols-4">
             {TABS.map(({ to, label, match }) => {

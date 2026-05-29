@@ -54,6 +54,16 @@ body,
   height: 100%;
 }
 
+* {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",

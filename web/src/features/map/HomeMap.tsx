@@ -808,6 +808,8 @@ export function HomeMap() {
       <MapContainer
         center={ChinaCenter}
         zoom={4}
+        minZoom={3}
+        maxBounds={[[3, 70], [56, 140]]}
         className="absolute inset-0 h-full w-full outline-none"
         zoomControl={false}
         attributionControl={false}
