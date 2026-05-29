@@ -74,19 +74,8 @@ export function ImageCropDialog({
 
   return (
     <div ref={dialogRef} className="fixed inset-0 z-50 flex flex-col bg-black/80">
-      <div className="flex h-12 shrink-0 items-center justify-between px-4 text-white">
-        <button type="button" onClick={onCancel} className="text-sm text-white/75">
-          取消
-        </button>
+      <div className="flex h-12 shrink-0 items-center justify-center px-4 pt-[env(safe-area-inset-top)] text-white">
         <p className="text-sm font-medium">{title}</p>
-        <button
-          type="button"
-          onClick={() => void confirmCrop()}
-          disabled={saving}
-          className="text-sm font-semibold text-orange-300 disabled:opacity-50"
-        >
-          {saving ? '处理中…' : '完成'}
-        </button>
       </div>
 
       <div className="relative min-h-0 flex-1">
@@ -122,6 +111,24 @@ export function ImageCropDialog({
           <p className="mt-3 text-center text-xs text-white/50">菜品后续会用圆角正方形展示。</p>
         )}
         {error ? <p className="mt-3 text-center text-xs text-rose-200">{error}</p> : null}
+
+        <div className="mt-5 flex gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 rounded-xl border border-white/30 py-3 text-sm font-semibold text-white active:bg-white/10"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={() => void confirmCrop()}
+            disabled={saving}
+            className="flex-1 rounded-xl bg-orange-500 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-50 active:bg-orange-600"
+          >
+            {saving ? '处理中…' : '完成'}
+          </button>
+        </div>
       </div>
     </div>
   )

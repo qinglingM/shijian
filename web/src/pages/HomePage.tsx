@@ -154,12 +154,12 @@ export function HomePage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] flex-col pt-[env(safe-area-inset-top)]">
-      <div className="relative">
+    <div className="flex min-h-[calc(100vh-5rem)] flex-col">
+      <div className="relative bg-neutral-100 pt-[env(safe-area-inset-top)]">
         {/* Header with filters + search + view toggle */}
-        <header className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pt-4 pb-2 bg-neutral-100">
+        <header className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pt-1 pb-1">
           <div />
-          <h1 className="text-center text-xl font-semibold tracking-tight text-neutral-900">食鉴图</h1>
+          <h1 className="text-center text-base font-semibold tracking-tight text-neutral-900">我的食鉴图</h1>
           <div className="flex items-center gap-1.5 justify-end">
             <button
               type="button"
@@ -301,7 +301,7 @@ export function HomePage() {
         {viewMode === 'grid' && (
           <Link
             to="/practice/step1"
-            className="fixed bottom-20 left-1/2 z-50 w-[calc(100%-3rem)] max-w-md -translate-x-1/2 flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-600/25 active:opacity-90"
+            className="fixed bottom-24 left-1/2 z-50 w-[calc(100%-3rem)] max-w-md -translate-x-1/2 flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-600/25 active:opacity-90"
           >
             开始食鉴
           </Link>

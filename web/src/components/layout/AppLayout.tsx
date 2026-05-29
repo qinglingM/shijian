@@ -78,7 +78,7 @@ export function AppLayout() {
                     to={to}
                     className={cn(
                       'flex items-center justify-center py-2.5 text-sm',
-                      active ? 'font-semibold text-neutral-900' : 'text-neutral-400',
+                      active ? 'font-semibold text-orange-500' : 'text-neutral-400',
                     )}
                     aria-label={label}
                   >

@@ -209,7 +209,7 @@ export function SquarePage() {
   return (
     <div className="flex min-h-[calc(100dvh-6rem)] flex-col bg-white pt-[env(safe-area-inset-top)]">
       {/* Toolbar wrapper (for absolute filter panel) */}
-      <div className="relative">
+      <div className="sticky top-0 z-10 bg-white">
         {/* Search + Sort bar */}
         <section className="px-4 py-2">
           <div className="flex items-center gap-2">
