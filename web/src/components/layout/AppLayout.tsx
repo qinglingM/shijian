@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Keyboard } from '@capacitor/keyboard'
+import { HomePage } from '@/pages/HomePage'
+import { HomeMap } from '@/features/map/HomeMap'
+import { SquarePage } from '@/pages/SquarePage'
+import { MePage } from '@/pages/MePage'
 
 const TABS = [
   {
@@ -38,6 +42,8 @@ const PRACTICE_STEP_CLIP_B = 90
 const PRACTICE_STEP_CLIP_C = PRACTICE_STEP_CLIP_A + (100 - PRACTICE_STEP_CLIP_B)
 const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_CLIP_B}% 0%, 100% 50%, ${PRACTICE_STEP_CLIP_B}% 100%, ${PRACTICE_STEP_CLIP_A}% 100%, ${PRACTICE_STEP_CLIP_C}% 50%)`
 
+const TAB_ROUTES = new Set(['/map', '/square', '/tier-map', '/me'])
+
 export function AppLayout() {
   const { pathname } = useLocation()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
@@ -56,6 +62,8 @@ export function AppLayout() {
     pathname.startsWith('/dishes/') ||
     pathname.startsWith('/practice')
 
+  const isTabRoute = TAB_ROUTES.has(pathname)
+
   return (
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-white lg:max-w-3xl">
       <main
@@ -64,7 +72,13 @@ export function AppLayout() {
           hideTabs && 'pb-[max(1rem,env(safe-area-inset-bottom))]',
         )}
       >
-        <Outlet />
+        <div className={isTabRoute ? 'contents' : 'hidden'}>
+          <div className={pathname === '/map' ? 'h-full' : 'hidden'}><HomeMap /></div>
+          <div className={pathname === '/square' ? '' : 'hidden'}><SquarePage /></div>
+          <div className={pathname === '/tier-map' ? '' : 'hidden'}><HomePage /></div>
+          <div className={pathname === '/me' ? '' : 'hidden'}><MePage /></div>
+        </div>
+        {!isTabRoute && <Outlet />}
       </main>
 
       {!hideTabs && !keyboardOpen && (

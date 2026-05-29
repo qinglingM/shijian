@@ -9,7 +9,6 @@ import { lookupExistingRestaurantByPoi, usePoiSearch } from '@/features/poi-sear
 import { useCityStore } from '@/features/city-picker/cityStore'
 import { useDebounce } from '@/lib/useDebounce'
 import { useMapRestaurants, type MapRestaurant } from './useMapRestaurants'
-import { useMapViewStore } from '@/features/map/mapViewStore'
 import { TIER_ORDER, TIER_LABEL, type Tier } from '@/lib/db'
 import type { PoiCandidate } from '@/lib/poi'
 import { useCities } from '@/features/city-picker/useCities'
@@ -435,8 +434,7 @@ export function HomeMap() {
   const [exiting, setExiting] = useState(false)
   const closeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [bounds, setBounds] = useState<L.LatLngBounds | null>(null)
-  const mapStore = useMapViewStore()
-  const [zoom, setZoom] = useState(mapStore.zoom ?? 4)
+  const [zoom, setZoom] = useState(4)
   const mapRef = useRef<L.Map | null>(null)
   const navigate = useNavigate()
   const superclusterRef = useRef<Supercluster | null>(null)
@@ -496,9 +494,7 @@ export function HomeMap() {
   const handleBoundsChange = useCallback((b: L.LatLngBounds, z: number) => {
     setBounds(b)
     setZoom(z)
-    const c = b.getCenter()
-    mapStore.setView([c.lat, c.lng], z)
-  }, [mapStore])
+  }, [])
 
   useEffect(() => {
     if (visibleRestaurants.length === 0) {
@@ -810,8 +806,8 @@ export function HomeMap() {
       )}
 
       <MapContainer
-        center={mapStore.center ?? ChinaCenter}
-        zoom={mapStore.zoom ?? 4}
+        center={ChinaCenter}
+        zoom={4}
         minZoom={3}
         maxBounds={[[3, 70], [56, 140]]}
         className="absolute inset-0 h-full w-full outline-none"

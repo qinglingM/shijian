@@ -132,15 +132,13 @@ export function PracticeStep2Page() {
   const reviewInputRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    let cleanup: (() => void) | undefined
     try {
       Keyboard.addListener('keyboardWillShow', () => {
         setTimeout(() => {
           reviewInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         }, 100)
-      })
+      }).catch(() => {})
     } catch {}
-    return () => cleanup?.()
   }, [])
 
 
