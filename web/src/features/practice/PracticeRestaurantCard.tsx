@@ -41,7 +41,7 @@ export const PRACTICE_RESTAURANT_CARD_FRAME =
  * 第二步「拖动」槽内外层：与 `RestaurantDragSurface` 根节点 class 完全一致（仅不含指针/抓取态）。
  */
 export const PRACTICE_DRAG_CARD_OUTER = cn(
-  'relative z-10 flex min-h-0 w-full min-w-0 flex-1 overflow-hidden',
+  'relative flex min-h-0 w-full min-w-0 flex-1 overflow-hidden',
   PRACTICE_RESTAURANT_CARD_FRAME,
 )
 
@@ -98,7 +98,7 @@ export function PracticeRestaurantCard({
     <div
       className={cn(
         'pointer-events-none flex w-full items-stretch bg-white overflow-hidden',
-        fillContainer ? 'h-full min-h-0 flex-1 rounded-[inherit]' : 'min-h-[3.25rem]',
+        fillContainer ? 'h-full min-h-0 flex-1 max-h-[95%] rounded-[inherit]' : 'min-h-[3.25rem]',
         className,
       )}
     >

@@ -207,9 +207,9 @@ export function SquarePage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-6rem)] flex-col bg-white pt-[env(safe-area-inset-top)]">
+    <div className="flex min-h-0 flex-1 flex-col bg-white pt-[env(safe-area-inset-top)]">
       {/* Toolbar wrapper (for absolute filter panel) */}
-      <div className="sticky top-0 z-10 bg-white">
+      <div className="bg-white">
         {/* Search + Sort bar */}
         <section className="px-4 py-2">
           <div className="flex items-center gap-2">
@@ -378,7 +378,7 @@ export function SquarePage() {
         onTouchStart={handlePullStart}
         onTouchMove={handlePullMove}
         onTouchEnd={handlePullEnd}
-        className="flex-1 px-4 pb-6 bg-neutral-50/60"
+        className="flex-1 overflow-y-auto min-h-0 px-4 pb-6 bg-neutral-50/60"
       >
         <p className="pt-3 pb-2 text-center text-xs text-neutral-500">
           今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价

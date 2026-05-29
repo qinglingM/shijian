@@ -170,8 +170,6 @@ export function MePage() {
   })
 
   const profile = data?.profile
-  const followersCount = data?.followersCount ?? 0
-  const followingCount = data?.followingCount ?? 0
   const nickname = profile?.nickname || '食鉴用户'
   const userCode = profile?.user_code || 'SJ000000'
 
@@ -245,8 +243,6 @@ export function MePage() {
           <div className="flex items-center gap-7 text-center">
             <StatCard label="食鉴" value={data?.practiceCount ?? 0} plain />
             <StatCard label="有品" value={data?.youpinCount ?? 0} plain />
-            <StatCard label="粉丝" value={followersCount} plain />
-            <StatCard label="关注" value={followingCount} plain />
           </div>
           <Link
             to="/me/edit"

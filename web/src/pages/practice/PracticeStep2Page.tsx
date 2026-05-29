@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom'
 
 import { Link, useLocation } from 'react-router-dom'
 
+import { Dices } from 'lucide-react'
+
 import { BackHeader } from '@/components/layout/AppLayout'
 
 import {
@@ -17,6 +19,8 @@ import {
   type Tier,
 
 } from '@/lib/db'
+
+import { pickRandomPhrase } from '@/lib/storeReviewPhrases'
 
 import { useRestaurantPublicTierMode } from '@/features/restaurants/useRestaurantPublicTierMode'
 
@@ -420,11 +424,7 @@ export function PracticeStep2Page() {
 
                 tier={dragFloating.tier}
 
-                badge={
-
-                  dragFloating.tier ? TIER_LABEL[dragFloating.tier] : '待摆放'
-
-                }
+                badge={consensusQ.data ? `店铺等级 · ${TIER_LABEL[consensusQ.data]}` : '暂未评级'}
 
               />
 
@@ -466,6 +466,7 @@ export function PracticeStep2Page() {
                 <RestaurantDragSurface
                   display={display}
                   dragging={dragging}
+                  actualTier={consensusQ.data}
                   {...dragCallbacks}
                 />
               ) : (
@@ -509,6 +510,7 @@ export function PracticeStep2Page() {
                       display={display}
                       dragging={dragging}
                       tier={tier}
+                      actualTier={consensusQ.data}
                       {...dragCallbacks}
                     />
                   ) : (
@@ -545,27 +547,45 @@ export function PracticeStep2Page() {
 
         </h2>
 
-        <input
+        <div className="relative mt-2">
 
-          type="text"
+          <input
 
-          value={draft.store_comment}
+            type="text"
 
-          onChange={(e) => draft.setStoreComment(e.target.value)}
+            value={draft.store_comment}
 
-          placeholder={
+            onChange={(e) => draft.setStoreComment(e.target.value)}
 
-            draft.tier
+            placeholder={
 
-              ? STORE_REVIEW_PLACEHOLDER[draft.tier]
+              draft.tier
 
-              : '先拖卡片选定档，狠话模版会跟着档位来。'
+                ? STORE_REVIEW_PLACEHOLDER[draft.tier]
 
-          }
+                : '先拖卡片选定档，狠话模版会跟着档位来。'
 
-          className="mt-2 h-8 w-full rounded-full border-0 bg-neutral-100 px-3.5 text-sm leading-8 text-neutral-900 outline-none ring-orange-400/0 placeholder:text-neutral-400 focus-visible:bg-neutral-200/80 focus-visible:ring-2 focus-visible:ring-orange-400/30"
+            }
 
-        />
+            className="h-8 w-full rounded-full border-0 bg-neutral-100 px-3.5 pr-9 text-sm leading-8 text-neutral-900 outline-none ring-orange-400/0 placeholder:text-neutral-400 focus-visible:bg-neutral-200/80 focus-visible:ring-2 focus-visible:ring-orange-400/30"
+
+          />
+
+          {draft.tier && (
+            <button
+              type="button"
+              onClick={() => {
+                const phrase = pickRandomPhrase(draft.tier!)
+                if (phrase) draft.setStoreComment(phrase)
+              }}
+              className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center size-7 rounded-full text-neutral-400 active:bg-neutral-200"
+              aria-label="随机一句评价"
+            >
+              <Dices size={15} />
+            </button>
+          )}
+
+        </div>
 
 
       </section>
@@ -590,6 +610,8 @@ function RestaurantDragSurface({
 
   tier,
 
+  actualTier,
+
   onPointerDown,
 
   onPointerMove,
@@ -606,6 +628,8 @@ function RestaurantDragSurface({
 
   tier?: Tier
 
+  actualTier?: Tier | null
+
   onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void
 
   onPointerMove: (e: ReactPointerEvent<HTMLDivElement>) => void
@@ -616,7 +640,7 @@ function RestaurantDragSurface({
 
 }) {
 
-  const statusText = tier ? TIER_LABEL[tier] : '待摆放'
+  const statusText = actualTier ? `店铺等级 · ${TIER_LABEL[actualTier]}` : '暂未评级'
 
   const ariaHint = tier
 
