@@ -25,10 +25,34 @@ fi
 
 cd "$REPO_DIR/web"
 
-export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+NODE_VERSION="22.11.0"
+NODE_HOME="$REPO_DIR/.ci-node/node"
+export PATH="$NODE_HOME/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 if ! command -v node >/dev/null 2>&1; then
-  brew install node
+  case "$(uname -m)" in
+    arm64) NODE_ARCH="arm64" ;;
+    x86_64) NODE_ARCH="x64" ;;
+    *)
+      echo "Unsupported macOS architecture: $(uname -m)"
+      exit 1
+      ;;
+  esac
+
+  NODE_DIST="node-v$NODE_VERSION-darwin-$NODE_ARCH"
+  NODE_TARBALL="$REPO_DIR/.ci-node/$NODE_DIST.tar.xz"
+  NODE_URL="https://nodejs.org/dist/v$NODE_VERSION/$NODE_DIST.tar.xz"
+
+  mkdir -p "$REPO_DIR/.ci-node"
+  curl -fsSL "$NODE_URL" -o "$NODE_TARBALL"
+  rm -rf "$NODE_HOME" "$REPO_DIR/.ci-node/$NODE_DIST"
+  tar -xJf "$NODE_TARBALL" -C "$REPO_DIR/.ci-node"
+  mv "$REPO_DIR/.ci-node/$NODE_DIST" "$NODE_HOME"
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js is still unavailable after bootstrap."
+  exit 1
 fi
 
 if command -v corepack >/dev/null 2>&1; then
