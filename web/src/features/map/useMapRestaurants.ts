@@ -97,6 +97,18 @@ export function useMapRestaurants() {
       })
       if (!restaurants.length) return []
 
+      // 重复坐标微偏移，避免 Supercluster 无法展开
+      const seenCoords = new Set<string>()
+      for (const r of restaurants) {
+        const key = `${r.latitude},${r.longitude}`
+        if (seenCoords.has(key)) {
+          r.latitude += (Math.random() - 0.5) * 0.0002
+          r.longitude += (Math.random() - 0.5) * 0.0002
+        } else {
+          seenCoords.add(key)
+        }
+      }
+
       const ids = restaurants.map((r) => r.id)
 
       // 2. 这些餐厅的所有公开实践（含 tier + store_comment）

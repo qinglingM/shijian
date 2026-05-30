@@ -1054,7 +1054,7 @@ function StoreTab({
                       {TIER_LABEL[r.tier]}
                     </span>
                   </div>
-                  <p className="mt-1.5 text-[14px] leading-relaxed font-bold text-neutral-800 [&::before]:content-['\u201C'] [&::after]:content-['\u201D']">
+                  <p className="mt-1.5 text-[14px] leading-relaxed font-bold text-neutral-800 ">
                     {r.store_comment?.trim() || '（未填写店铺锐评）'}
                   </p>
                 </div>
@@ -1486,7 +1486,7 @@ function DishTabFeed({
                       </Link>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['\u201C'] [&::after]:content-['\u201D']">
+                      <p className="text-[14px] leading-6 font-bold text-neutral-800 ">
                         {r.comment?.trim() || '（未填写菜品锐评）'}
                       </p>
                       <div className="mt-1">

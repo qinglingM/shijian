@@ -219,7 +219,7 @@ function SearchBar({
 
   return (
     <div>
-          <div className="flex items-center gap-2 px-4 py-2">
+          <div className="flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1.5 mx-4 my-2">
         <Search size={15} className="shrink-0 text-neutral-400" />
         <input
           ref={inputRef}
@@ -233,19 +233,20 @@ function SearchBar({
             onInteract()
           }}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
+          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
           placeholder="搜店名、区域、地址"
           className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
         />
         {query && (
           <button
-            className="shrink-0 text-neutral-400"
+            className="flex items-center justify-center size-5 rounded-full text-neutral-400 active:bg-neutral-200 shrink-0"
             onClick={() => {
               setQuery('')
               inputRef.current?.focus()
             }}
             aria-label="清空搜索词"
           >
-            <X size={14} />
+            <X size={13} />
           </button>
         )}
       </div>

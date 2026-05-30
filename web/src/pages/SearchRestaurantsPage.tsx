@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronRight, MapPin, Search as SearchIcon } from 'lucide-react'
+import { ChevronRight, MapPin, Search as SearchIcon, X } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { useAuthStore } from '@/stores/authStore'
@@ -75,25 +75,33 @@ export function SearchRestaurantsPage() {
       <BackHeader title="搜索门店" backTo="/tier-map" />
 
       <div className="border-b border-neutral-100 px-4 pb-3 pt-2">
-        <form onSubmit={onSubmit} className="flex gap-2">
-          <div className="relative min-w-0 flex-1">
-            <SearchIcon
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400"
-              aria-hidden
-            />
+        <form onSubmit={onSubmit} className="flex items-center gap-2">
+          <div className="relative flex-1 flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1.5">
+            <SearchIcon size={15} className="shrink-0 text-neutral-400" aria-hidden />
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
               placeholder="搜你评价过的餐厅"
-              className="w-full rounded-full bg-neutral-100 py-2.5 pr-10 pl-10 text-sm outline-none placeholder:text-neutral-400"
+              className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
               autoComplete="off"
               enterKeyHint="search"
               autoFocus
             />
+            {draft && (
+              <button
+                type="button"
+                onClick={() => setDraft('')}
+                className="flex items-center justify-center size-5 rounded-full text-neutral-400 active:bg-neutral-200 shrink-0"
+                aria-label="清除搜索"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
           <button
             type="submit"
-            className="shrink-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm"
+            className="shrink-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-1.5 text-sm font-semibold text-white shadow-sm"
           >
             搜索
           </button>
