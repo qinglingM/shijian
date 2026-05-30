@@ -107,6 +107,7 @@ export function getDemoStoreReviews(restaurantId: string, tier: Tier): StoreRevi
       nickname: '辣味雷达',
       avatar_url: null,
       titleName: null,
+      titleRarity: null,
       tier,
       store_comment: '氛围还可以，但整体偏「及格线」，适合随便吃一吃。',
       created_at: new Date().toISOString(),
@@ -120,6 +121,7 @@ export function getDemoStoreReviews(restaurantId: string, tier: Tier): StoreRevi
       nickname: '干饭指南针',
       avatar_url: null,
       titleName: null,
+      titleRarity: null,
       tier: 'top',
       store_comment:
         tier === 'boom'

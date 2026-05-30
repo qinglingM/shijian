@@ -9,6 +9,7 @@ export interface StoreReviewItem {
   nickname: string
   avatar_url: string | null
   titleName: string | null
+  titleRarity: string | null
   tier: Tier
   store_comment: string | null
   created_at: string
@@ -77,10 +78,10 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
       }
 
       const titleIds = [...new Set([...profileMap.values()].map(p => p.current_title_id).filter(Boolean))] as string[]
-      const titleMap = new Map<string, string>()
+      const titleMap = new Map<string, { name: string; rarity: string }>()
       if (titleIds.length > 0) {
-        const { data: titleRows } = await sb.from('titles').select('id, name').in('id', titleIds)
-        for (const t of (titleRows ?? []) as Array<{id: string; name: string}>) titleMap.set(t.id, t.name)
+        const { data: titleRows } = await sb.from('titles').select('id, name, rarity').in('id', titleIds)
+        for (const t of (titleRows ?? []) as Array<{id: string; name: string; rarity: string}>) titleMap.set(t.id, t)
       }
 
       const { data: votesRaw, error: e3 } = await sb
@@ -110,7 +111,8 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
           user_id: r.user_id,
           nickname: profile ? profile.nickname : ANONYMOUS_REVIEWER,
           avatar_url: profile ? profile.avatar_url : null,
-          titleName: titleMap.get(profile?.current_title_id ?? '') ?? null,
+          titleName: titleMap.get(profile?.current_title_id ?? '')?.name ?? null,
+          titleRarity: titleMap.get(profile?.current_title_id ?? '')?.rarity ?? null,
           tier: r.tier as Tier,
           store_comment: r.store_comment,
           created_at: r.created_at,

@@ -10,6 +10,7 @@ export interface SquareFeedItem {
   nickname: string
   avatar_url: string | null
   titleName: string | null
+  titleRarity: string | null
   content: string
   tier: Tier
   tier_label: string
@@ -81,10 +82,10 @@ export function useSquareFeed() {
       for (const p of (profsRaw ?? []) as ProfileMini[]) profs.set(p.id, p)
 
       const titleIds = [...new Set([...profs.values()].map(p => p.current_title_id).filter(Boolean))] as string[]
-      const titleMap = new Map<string, string>()
+      const titleMap = new Map<string, { name: string; rarity: string }>()
       if (titleIds.length > 0) {
-        const { data: titleRows } = await sb.from('titles').select('id, name').in('id', titleIds)
-        for (const t of (titleRows ?? []) as Array<{id: string; name: string}>) titleMap.set(t.id, t.name)
+        const { data: titleRows } = await sb.from('titles').select('id, name, rarity').in('id', titleIds)
+        for (const t of (titleRows ?? []) as Array<{id: string; name: string; rarity: string}>) titleMap.set(t.id, t)
       }
 
       const rests = new Map<string, { display_name: string; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>()
@@ -121,7 +122,8 @@ export function useSquareFeed() {
           user_id: r.user_id,
           nickname: prof?.nickname?.trim() || '食鉴用户',
           avatar_url: prof?.avatar_url ?? null,
-          titleName: titleMap.get(prof?.current_title_id ?? '') ?? null,
+          titleName: titleMap.get(prof?.current_title_id ?? '')?.name ?? null,
+          titleRarity: titleMap.get(prof?.current_title_id ?? '')?.rarity ?? null,
           content: r.store_comment ?? '',
           tier: restaurantTier,
           tier_label: TIER_LABEL[restaurantTier],

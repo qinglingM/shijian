@@ -79,10 +79,10 @@ export function MeTitlesPage() {
 
   function rarityColor(rarity: string) {
     const map: Record<string, string> = {
-      common: 'bg-neutral-100 text-neutral-600',
+      common: 'bg-emerald-100 text-emerald-700',
       rare: 'bg-sky-100 text-sky-700',
       epic: 'bg-indigo-100 text-indigo-700',
-      legendary: 'bg-amber-100 text-amber-700',
+      legendary: 'bg-amber-950 text-amber-100',
     }
     return map[rarity] ?? 'bg-neutral-100 text-neutral-600'
   }
@@ -108,7 +108,7 @@ export function MeTitlesPage() {
       ) : (
         <div className="px-4 py-6 space-y-3">
           {userTitles.map((ut) => {
-            const isEquipped = ut.title_id === equippedId
+            const isEquipped = ut.id === equippedId
             return (
               <div
                 key={ut.id}
@@ -121,7 +121,6 @@ export function MeTitlesPage() {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-neutral-900">{ut.titles.name}</p>
                       <span className={`rounded-full px-1.5 py-[1px] text-[9px] font-semibold ${rarityColor(ut.titles.rarity)}`}>
-                        {ut.titles.rarity === 'common' ? '普通' : ut.titles.rarity === 'rare' ? '稀有' : ut.titles.rarity === 'epic' ? '史诗' : '传说'}
                       </span>
                     </div>
                     {ut.titles.description && (
@@ -142,7 +141,7 @@ export function MeTitlesPage() {
                     <button
                       type="button"
                       disabled={equipping === ut.title_id}
-                      onClick={() => { setEquipping(ut.title_id); equipMut.mutate(ut.title_id) }}
+                      onClick={() => { setEquipping(ut.id); equipMut.mutate(ut.id) }}
                       className="shrink-0 rounded-full bg-gradient-to-r from-indigo-400 to-purple-500 px-3 py-1 text-[11px] font-semibold text-white shadow-sm active:opacity-80 disabled:opacity-50"
                     >
                       佩戴

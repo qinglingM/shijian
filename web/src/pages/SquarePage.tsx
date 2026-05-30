@@ -355,7 +355,7 @@ export function SquarePage() {
       </div>
 
       {/* Content */}
-      <section className="flex-1 overflow-y-auto min-h-0 px-4 pb-6 bg-neutral-50/60">
+      <section className="flex-1 overflow-y-auto min-h-0 h-0 px-4 pb-6 bg-neutral-50/60">
         <div className="flex items-center justify-center gap-1.5 pt-3 pb-2 text-xs text-neutral-500">
           <span>
             今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
@@ -542,7 +542,7 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
                 <PenSquare size={10} />
               )}
             </div>
-            <p className="truncate text-[10px] font-semibold text-sky-700">{item.nickname}<UserTitleBadge name={item.titleName} /></p>
+            <p className="truncate text-[10px] font-semibold text-sky-700">{item.nickname}<UserTitleBadge name={item.titleName} rarity={item.titleRarity} /></p>
           </div>
           <button
             type="button"

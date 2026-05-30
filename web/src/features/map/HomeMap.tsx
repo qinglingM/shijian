@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import { MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import Supercluster from 'supercluster'
@@ -398,7 +398,7 @@ function BottomSheet({
               </div>
               <div style={{ gridArea: 'name' }} className="flex items-center">
                 <p className="truncate text-[11px] font-semibold text-sky-700">
-                  {r.top_reviewer_nickname}<UserTitleBadge name={r.titleName} />
+                  {r.top_reviewer_nickname}<UserTitleBadge name={r.titleName} rarity={r.titleRarity} />
                 </p>
               </div>
               <div style={{ gridArea: 'hot' }} className="flex items-center justify-self-start">
@@ -428,7 +428,10 @@ export function HomeMap() {
   const { data: restaurants = [], isLoading, error } = useMapRestaurants()
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
   const [exiting, setExiting] = useState(false)
-  const [nearbyRestaurants, setNearbyRestaurants] = useState<MapRestaurant[] | null>(null)
+  const [spiderGroup, setSpiderGroup] = useState<{
+    center: MapRestaurant
+    leaves: Array<{ restaurant: MapRestaurant; lat: number; lng: number }>
+  } | null>(null)
   const closeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [bounds, setBounds] = useState<L.LatLngBounds | null>(null)
   const [zoom, setZoom] = useState(4)
@@ -527,7 +530,7 @@ export function HomeMap() {
   }, [visibleRestaurants])
 
   const dismiss = useCallback(() => {
-    setNearbyRestaurants(null)
+    setSpiderGroup(null)
     if (!selected) return
     setExiting(true)
     clearTimeout(closeTimerRef.current)
@@ -544,24 +547,31 @@ export function HomeMap() {
 
   const handleSelect = useCallback((r: MapRestaurant) => {
     const map = mapRef.current
-    if (map) {
+    if (map && zoom >= 16 && r.latitude != null && r.longitude != null) {
       const candidates = visibleRestaurants.filter(v => v.id !== r.id && v.latitude != null && v.longitude != null)
-      const threshold = zoom >= 16 ? 22 : 0
-      let nearby: MapRestaurant[] = []
-      if (threshold > 0 && candidates.length > 0) {
-        const pt = map.latLngToContainerPoint([r.latitude, r.longitude])
-        nearby = candidates.filter(v => {
-          const other = map.latLngToContainerPoint([v.latitude!, v.longitude!])
-          return pt.distanceTo(other) < threshold
-        })
-      }
+      const pt = map.latLngToContainerPoint([r.latitude, r.longitude])
+      const nearby = candidates.filter(v => {
+        const other = map.latLngToContainerPoint([v.latitude!, v.longitude!])
+        return pt.distanceTo(other) < 22
+      })
       if (nearby.length > 0) {
         cancelClose()
-        setNearbyRestaurants([r, ...nearby])
+        const all = [r, ...nearby]
+        const radius = all.length <= 5 ? 80 : 100
+        const count = Math.min(all.length, 12)
+        const leaves = all.slice(0, count).map((rest, i) => {
+          const angle = (i / count) * Math.PI * 2 - Math.PI / 2
+          const target = map.containerPointToLatLng(
+            L.point(pt.x + Math.cos(angle) * radius, pt.y + Math.sin(angle) * radius)
+          )
+          return { restaurant: rest, lat: target.lat, lng: target.lng }
+        })
+        setSpiderGroup({ center: r, leaves })
+        setSelected(null)
         return
       }
     }
-    setNearbyRestaurants(null)
+    setSpiderGroup(null)
     if (selected && r.id === selected.id) {
       dismiss()
     } else {
@@ -874,41 +884,46 @@ export function HomeMap() {
             <MapMarker key={`${restaurant.id}-${restaurant.tier}`} restaurant={restaurant} zoom={zoom} onSelect={handleSelect} />
           )
         })}
+
+        {spiderGroup && (
+          <>
+            {spiderGroup.leaves.map((leaf, i) => (
+              <Polyline
+                key={`spider-leg-${i}`}
+                positions={[[spiderGroup.center.latitude!, spiderGroup.center.longitude!], [leaf.lat, leaf.lng]]}
+                pathOptions={{ color: '#888', weight: 1.5, opacity: 0.5, dashArray: '4 4' }}
+              />
+            ))}
+            {spiderGroup.leaves.map((leaf, i) => (
+              <Marker
+                key={`spider-leaf-${i}`}
+                position={[leaf.lat, leaf.lng]}
+                icon={L.divIcon({
+                  html: `<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.95);border:2px solid #888;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#333;cursor:pointer;">${leaf.restaurant.display_name.slice(0, 2)}</div>`,
+                  className: '',
+                  iconSize: [36, 36],
+                  iconAnchor: [18, 18],
+                })}
+                eventHandlers={{ click: () => { cancelClose(); setSelected(leaf.restaurant); setSpiderGroup(null) } }}
+              />
+            ))}
+            {spiderGroup.leaves.length < visibleRestaurants.length && (
+              <Marker
+                position={[spiderGroup.center.latitude!, spiderGroup.center.longitude!]}
+                icon={L.divIcon({
+                  html: `<div style="width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#666;cursor:pointer;">+${visibleRestaurants.length - spiderGroup.leaves.length}</div>`,
+                  className: '',
+                  iconSize: [40, 40],
+                  iconAnchor: [20, 20],
+                })}
+                eventHandlers={{ click: () => setSpiderGroup(null) }}
+              />
+            )}
+          </>
+        )}
       </MapContainer>
 
       {selected && <BottomSheet restaurant={selected} exiting={exiting} />}
-
-      {nearbyRestaurants && (
-        <>
-          <div className="fixed inset-0 z-[500]" onClick={() => setNearbyRestaurants(null)} />
-          <div className="fixed bottom-0 left-0 right-0 z-[501] rounded-t-2xl bg-white shadow-2xl pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-            style={{ animation: 'shijian-slide-up 0.22s ease-out' }}
-          >
-            <div className="flex justify-center pt-2.5 pb-1">
-              <div className="w-9 h-1 rounded-full bg-neutral-200" />
-            </div>
-            <p className="px-5 pb-2 text-[13px] font-semibold text-neutral-800">附近多家门店</p>
-            <div className="max-h-[40dvh] overflow-y-auto px-3 space-y-1">
-              {nearbyRestaurants.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => { setNearbyRestaurants(null); cancelClose(); setSelected(r) }}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 active:bg-neutral-100 text-left"
-                >
-                  <div className="size-10 shrink-0 rounded-lg overflow-hidden bg-neutral-100 flex items-center justify-center text-[10px] text-neutral-400">
-                    {r.cover_image_url ? <img src={r.cover_image_url} alt="" className="size-full object-cover" /> : '🍽'}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-neutral-900">{r.display_name}</p>
-                    <p className="truncate text-[11px] text-neutral-400">{r.city_name ?? ''} {r.district_name ?? ''}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
 
       {restaurants.length === 0 && !isLoading && !error && (
         <div className="pointer-events-none absolute bottom-16 left-4 right-4 z-[400] rounded-2xl bg-white/95 px-4 py-3 text-center text-sm text-neutral-500 shadow-lg ring-1 ring-black/5">

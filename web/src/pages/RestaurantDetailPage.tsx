@@ -1046,7 +1046,7 @@ function StoreTab({
                 <div className="min-w-0 flex-1 pt-0.5">
                   <div className="flex items-center gap-2">
                       <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-sky-700">
-                        {r.nickname}<UserTitleBadge name={r.titleName} />
+                        {r.nickname}<UserTitleBadge name={r.titleName} rarity={r.titleRarity} />
                       </span>
                     <span
                       className="shrink-0 text-[13px] font-black tracking-tight"
@@ -1492,7 +1492,7 @@ function DishTabFeed({
                       </p>
                       <div className="mt-1">
                         <span className="text-[11px] font-semibold text-sky-700">
-                          @{r.reviewer_nickname}<UserTitleBadge name={r.titleName} />
+                          @{r.reviewer_nickname}<UserTitleBadge name={r.titleName} rarity={r.titleRarity} />
                         </span>
                       </div>
                       {voteMut.isError && voteMut.variables?.dishReviewId === r.id ? (

@@ -24,6 +24,7 @@ export interface MapRestaurant {
   review_created_at: string | null
   practice_count: number
   titleName: string | null
+  titleRarity: string | null
 }
 
 interface RestaurantRow {
@@ -146,6 +147,7 @@ export function useMapRestaurants() {
           review_created_at: null,
           practice_count: 0,
           titleName: null,
+          titleRarity: null,
         }))
       }
 
@@ -210,10 +212,10 @@ export function useMapRestaurants() {
       }
 
       const titleIds = [...new Set([...profileMap.values()].map(p => p.current_title_id).filter(Boolean))] as string[]
-      const titleMap = new Map<string, string>()
+      const titleMap = new Map<string, { name: string; rarity: string }>()
       if (titleIds.length > 0) {
-        const { data: titleRows } = await sb.from('titles').select('id, name').in('id', titleIds)
-        for (const t of (titleRows ?? []) as Array<{id: string; name: string}>) titleMap.set(t.id, t.name)
+        const { data: titleRows } = await sb.from('titles').select('id, name, rarity').in('id', titleIds)
+        for (const t of (titleRows ?? []) as Array<{id: string; name: string; rarity: string}>) titleMap.set(t.id, t)
       }
 
       return restaurants.map((r) => {
@@ -235,7 +237,8 @@ export function useMapRestaurants() {
           tier: averageTierFloor(tiersByRestaurant.get(r.id) ?? []),
           top_reviewer_nickname: top ? (profile ? profile.nickname : ANONYMOUS_REVIEWER) : null,
           top_reviewer_avatar_url: profile ? profile.avatar_url : null,
-          titleName: titleMap.get(profile?.current_title_id ?? '') ?? null,
+          titleName: titleMap.get(profile?.current_title_id ?? '')?.name ?? null,
+          titleRarity: titleMap.get(profile?.current_title_id ?? '')?.rarity ?? null,
           top_store_comment: top?.store_comment ?? null,
           review_tier: top ? (top.tier as Tier) : null,
           review_youpin: top?.score ?? 0,
