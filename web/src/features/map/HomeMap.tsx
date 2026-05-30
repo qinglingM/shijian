@@ -916,7 +916,7 @@ export function HomeMap() {
                     setExpandedCluster(null)
                     return
                   }
-                  if (f.properties.point_count > 12) {
+                  if (zoom < 15 || f.properties.point_count > 12) {
                     map.flyTo([lat, lng], Math.min(zoom + 2, 18), { animate: true, duration: 0.5 })
                     return
                   }
@@ -944,7 +944,7 @@ export function HomeMap() {
             centerLat={expandedCluster.centerLat}
             centerLng={expandedCluster.centerLng}
             leaves={expandedCluster.leaves}
-            onSelect={(r) => { cancelClose(); setSelected(r); setExpandedCluster(null) }}
+            onSelect={(r) => { cancelClose(); setSelected(r) }}
           />
         )}
         <SpiderZoomResetter onZoom={() => setExpandedCluster(null)} />

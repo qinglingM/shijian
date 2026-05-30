@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+
 import { cn } from '@/lib/utils'
 import { Keyboard } from '@capacitor/keyboard'
 import { HomePage } from '@/pages/HomePage'
@@ -116,31 +116,20 @@ export function AppLayout() {
 
   return (
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-white lg:max-w-3xl">
-      <main className="flex-1 min-h-0 overflow-hidden">
-        {/* Tab pages always rendered in background */}
-        <div className={pathname === '/map' ? 'h-full' : 'hidden'}><HomeMap /></div>
-        <div className={pathname === '/square' ? 'flex flex-col flex-1 min-h-0 absolute inset-0' : 'hidden'}><SquarePage /></div>
-        <div className={pathname === '/tier-map' ? 'absolute inset-0' : 'hidden'}><HomePage /></div>
-        <div className={pathname === '/me' ? 'absolute inset-0' : 'hidden'}><MePage /></div>
-
-        {/* Non-tab pages overlay tab pages with white bg */}
-        <AnimatePresence>
-          {!isTabRoute && (
-            <SwipeBackHandler>
-              <motion.div
-                key={pathname}
-                initial={{ x: '30%', opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: '30%', opacity: 0 }}
-                transition={{ duration: 0.22, ease: 'easeOut' }}
-                className="absolute inset-0 z-10 bg-white overflow-y-auto"
-                style={hideTabs ? { paddingBottom: 'max(1rem,env(safe-area-inset-bottom))' } : undefined}
-              >
-                <Outlet />
-              </motion.div>
-            </SwipeBackHandler>
-          )}
-        </AnimatePresence>
+      <main
+        className={cn(
+          'flex-1 min-h-0',
+          isTabRoute ? 'overflow-hidden' : 'overflow-y-auto',
+          hideTabs && 'pb-[max(1rem,env(safe-area-inset-bottom))]',
+        )}
+      >
+        <div className={isTabRoute ? 'contents' : 'hidden'}>
+          <div className={pathname === '/map' ? 'h-full' : 'hidden'}><HomeMap /></div>
+          <div className={pathname === '/square' ? 'flex flex-col flex-1 min-h-0' : 'hidden'}><SquarePage /></div>
+          <div className={pathname === '/tier-map' ? '' : 'hidden'}><HomePage /></div>
+          <div className={pathname === '/me' ? '' : 'hidden'}><MePage /></div>
+        </div>
+        {!isTabRoute && <SwipeBackHandler><Outlet /></SwipeBackHandler>}
       </main>
 
       {!hideTabs && !keyboardOpen && (
