@@ -35,6 +35,7 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
   const posterRef = useRef<HTMLDivElement>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -97,6 +98,8 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
         link.click()
         URL.revokeObjectURL(url)
       }
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
     } catch (err) {
       console.error('Failed to generate poster:', err)
       setErrorMsg('生成海报失败，请重试')
@@ -260,6 +263,11 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
           </div>
           </div>
         </div>
+        {saved && (
+          <div className="fixed bottom-10 left-1/2 z-[200] -translate-x-1/2 rounded-full bg-neutral-900 px-4 py-2 text-sm text-white shadow-lg">
+            已保存到相册
+          </div>
+        )}
       </div>
     </>
   )

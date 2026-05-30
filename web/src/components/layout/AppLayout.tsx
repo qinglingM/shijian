@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Keyboard } from '@capacitor/keyboard'
 import { HomePage } from '@/pages/HomePage'
@@ -44,27 +45,53 @@ const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_
 
 const TAB_ROUTES = new Set(['/map', '/square', '/tier-map', '/me'])
 
-function SwipeBackHandler() {
+function SwipeBackHandler({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
+  const x = useRef(0)
+  const dragging = useRef(false)
+  const [slideX, setSlideX] = useState(0)
+  const animFrame = useRef<number>(0)
+
   useEffect(() => {
-    let startX = 0
     function handleTouchStart(e: TouchEvent) {
-      if (e.touches[0].clientX < 30) startX = e.touches[0].clientX
-      else startX = 0
+      if (e.touches[0].clientX > 30) return
+      if (!window.history.length || window.history.length <= 1) return
+      dragging.current = true
+      x.current = e.touches[0].clientX
+    }
+    function handleTouchMove(e: TouchEvent) {
+      if (!dragging.current) return
+      const dx = Math.max(0, e.touches[0].clientX - x.current)
+      cancelAnimationFrame(animFrame.current!)
+      animFrame.current = requestAnimationFrame(() => setSlideX(Math.min(dx * 0.6, window.innerWidth * 0.45)))
     }
     function handleTouchEnd(e: TouchEvent) {
-      if (!startX) return
-      const dx = e.changedTouches[0].clientX - startX
-      if (dx > 60 && window.history.length > 1) navigate(-1)
+      if (!dragging.current) return
+      dragging.current = false
+      const dx = e.changedTouches[0].clientX - x.current
+      cancelAnimationFrame(animFrame.current!)
+      if (dx > 80) {
+        setSlideX(window.innerWidth)
+        setTimeout(() => navigate(-1), 200)
+      } else {
+        setSlideX(0)
+      }
     }
-    window.addEventListener('touchstart', handleTouchStart)
+    window.addEventListener('touchstart', handleTouchStart, { passive: true })
+    window.addEventListener('touchmove', handleTouchMove, { passive: true })
     window.addEventListener('touchend', handleTouchEnd)
     return () => {
       window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchmove', handleTouchMove)
       window.removeEventListener('touchend', handleTouchEnd)
     }
   }, [navigate])
-  return null
+
+  return (
+    <div style={{ transform: `translateX(${slideX}px)`, transition: dragging.current ? 'none' : 'transform 0.25s ease-out' }}>
+      {children}
+    </div>
+  )
 }
 
 export function AppLayout() {
@@ -96,14 +123,28 @@ export function AppLayout() {
           hideTabs && 'pb-[max(1rem,env(safe-area-inset-bottom))]',
         )}
       >
-        <SwipeBackHandler />
         <div className={isTabRoute ? 'contents' : 'hidden'}>
           <div className={pathname === '/map' ? 'h-full' : 'hidden'}><HomeMap /></div>
           <div className={pathname === '/square' ? '' : 'hidden'}><SquarePage /></div>
           <div className={pathname === '/tier-map' ? '' : 'hidden'}><HomePage /></div>
           <div className={pathname === '/me' ? '' : 'hidden'}><MePage /></div>
         </div>
-        {!isTabRoute && <Outlet />}
+        <AnimatePresence mode="wait">
+          {!isTabRoute && (
+            <SwipeBackHandler>
+              <motion.div
+                key={pathname}
+                initial={{ x: '30%', opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '30%', opacity: 0 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="h-full"
+              >
+                <Outlet />
+              </motion.div>
+            </SwipeBackHandler>
+          )}
+        </AnimatePresence>
       </main>
 
       {!hideTabs && !keyboardOpen && (

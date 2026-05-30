@@ -428,6 +428,7 @@ export function HomeMap() {
   const { data: restaurants = [], isLoading, error } = useMapRestaurants()
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
   const [exiting, setExiting] = useState(false)
+  const [nearbyRestaurants, setNearbyRestaurants] = useState<MapRestaurant[] | null>(null)
   const closeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [bounds, setBounds] = useState<L.LatLngBounds | null>(null)
   const [zoom, setZoom] = useState(4)
@@ -526,6 +527,7 @@ export function HomeMap() {
   }, [visibleRestaurants])
 
   const dismiss = useCallback(() => {
+    setNearbyRestaurants(null)
     if (!selected) return
     setExiting(true)
     clearTimeout(closeTimerRef.current)
@@ -541,13 +543,32 @@ export function HomeMap() {
   }, [])
 
   const handleSelect = useCallback((r: MapRestaurant) => {
+    const map = mapRef.current
+    if (map) {
+      const candidates = visibleRestaurants.filter(v => v.id !== r.id && v.latitude != null && v.longitude != null)
+      const threshold = zoom >= 16 ? 22 : 0
+      let nearby: MapRestaurant[] = []
+      if (threshold > 0 && candidates.length > 0) {
+        const pt = map.latLngToContainerPoint([r.latitude, r.longitude])
+        nearby = candidates.filter(v => {
+          const other = map.latLngToContainerPoint([v.latitude!, v.longitude!])
+          return pt.distanceTo(other) < threshold
+        })
+      }
+      if (nearby.length > 0) {
+        cancelClose()
+        setNearbyRestaurants([r, ...nearby])
+        return
+      }
+    }
+    setNearbyRestaurants(null)
     if (selected && r.id === selected.id) {
       dismiss()
     } else {
       cancelClose()
       setSelected(r)
     }
-  }, [cancelClose, dismiss, selected])
+  }, [cancelClose, dismiss, selected, visibleRestaurants, zoom])
 
   const handleMapCapture = useCallback((map: L.Map) => {
     mapRef.current = map
@@ -856,6 +877,38 @@ export function HomeMap() {
       </MapContainer>
 
       {selected && <BottomSheet restaurant={selected} exiting={exiting} />}
+
+      {nearbyRestaurants && (
+        <>
+          <div className="fixed inset-0 z-[500]" onClick={() => setNearbyRestaurants(null)} />
+          <div className="fixed bottom-0 left-0 right-0 z-[501] rounded-t-2xl bg-white shadow-2xl pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+            style={{ animation: 'shijian-slide-up 0.22s ease-out' }}
+          >
+            <div className="flex justify-center pt-2.5 pb-1">
+              <div className="w-9 h-1 rounded-full bg-neutral-200" />
+            </div>
+            <p className="px-5 pb-2 text-[13px] font-semibold text-neutral-800">附近多家门店</p>
+            <div className="max-h-[40dvh] overflow-y-auto px-3 space-y-1">
+              {nearbyRestaurants.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => { setNearbyRestaurants(null); cancelClose(); setSelected(r) }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 active:bg-neutral-100 text-left"
+                >
+                  <div className="size-10 shrink-0 rounded-lg overflow-hidden bg-neutral-100 flex items-center justify-center text-[10px] text-neutral-400">
+                    {r.cover_image_url ? <img src={r.cover_image_url} alt="" className="size-full object-cover" /> : '🍽'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-semibold text-neutral-900">{r.display_name}</p>
+                    <p className="truncate text-[11px] text-neutral-400">{r.city_name ?? ''} {r.district_name ?? ''}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       {restaurants.length === 0 && !isLoading && !error && (
         <div className="pointer-events-none absolute bottom-16 left-4 right-4 z-[400] rounded-2xl bg-white/95 px-4 py-3 text-center text-sm text-neutral-500 shadow-lg ring-1 ring-black/5">
