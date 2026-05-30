@@ -75,8 +75,10 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
       const titleIds = [...new Set([...profileMap.values()].map(p => p.current_title_id).filter(Boolean))] as string[]
       const titleMap = new Map<string, { name: string; rarity: string }>()
       if (titleIds.length > 0) {
-        const { data: titleRows } = await sb.from('titles').select('id, name, rarity').in('id', titleIds)
-        for (const t of (titleRows ?? []) as Array<{id: string; name: string; rarity: string}>) titleMap.set(t.id, t)
+        const { data: utRows } = await sb.from('user_titles').select('id, title_id, titles!inner(name, rarity)').in('id', titleIds)
+        for (const ut of (utRows ?? []) as Array<{id: string; titles: {name: string; rarity: string}[]}>) {
+          if (ut.titles?.[0]) titleMap.set(ut.id, { name: ut.titles[0].name, rarity: ut.titles[0].rarity })
+        }
       }
 
       const { data: drRaw, error: e2 } = await sb

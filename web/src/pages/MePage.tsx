@@ -64,6 +64,7 @@ export function MePage() {
       const supabase = getSupabase()
       const [
         profileResult,
+        equippedTitleResult,
         practiceResult,
         markResult,
         followersResult,
@@ -74,8 +75,13 @@ export function MePage() {
         supabase
           .from('profiles')
           .select(
-            'id, user_code, nickname, avatar_url, bio, created_at, phone, phone_verified_at, phone_binding_exempt, is_profile_public, current_title_id, title:titles(name)',
+            'id, user_code, nickname, avatar_url, bio, created_at, phone, phone_verified_at, phone_binding_exempt, is_profile_public',
           )
+          .eq('id', userId!)
+          .maybeSingle(),
+        supabase
+          .from('profiles')
+          .select('current_title_id, user_titles!current_title_id(title_id, titles!inner(name, rarity))')
           .eq('id', userId!)
           .maybeSingle(),
         supabase
@@ -152,13 +158,15 @@ export function MePage() {
       })
 
       const raw = profileResult.data as Record<string, unknown> | null
+      const titleRaw = equippedTitleResult.data as { current_title_id: string | null; user_titles?: { title_id: string; titles: { name: string; rarity: string } } } | null
+      const title_name = titleRaw?.user_titles?.titles?.name ?? null
       const profile = raw ? {
         ...Object.fromEntries(
           ['id', 'user_code', 'nickname', 'avatar_url', 'bio', 'created_at', 'phone', 'phone_verified_at', 'phone_binding_exempt', 'is_profile_public']
             .map(k => [k, raw[k] ?? null])
         ),
-        current_title_id: (raw.current_title_id as string) ?? null,
-        title_name: ((raw as { title?: { name: string } }).title?.name) ?? null,
+        current_title_id: titleRaw?.current_title_id ?? null,
+        title_name,
       } as MeSummary['profile'] : null
 
       return {

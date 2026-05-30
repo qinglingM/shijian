@@ -119,6 +119,65 @@ function MapBoundsZoomTracker({ onChange }: { onChange: (b: L.LatLngBounds, z: n
   return null
 }
 
+function SpiderLayer({ centerLat, centerLng, leaves, onSelect }: {
+  centerLat: number
+  centerLng: number
+  leaves: MapRestaurant[]
+  onSelect: (r: MapRestaurant) => void
+}) {
+  const map = useMap()
+  const items = useMemo(() => {
+    const center = map.latLngToContainerPoint(L.latLng(centerLat, centerLng))
+    const count = leaves.length
+    const radius = 80
+    return leaves.map((r, i) => {
+      const angle = (i / count) * Math.PI * 2 - Math.PI / 2
+      const pos = L.point(center.x + Math.cos(angle) * radius, center.y + Math.sin(angle) * radius)
+      const latlng = map.containerPointToLatLng(pos)
+      return { restaurant: r, lat: latlng.lat, lng: latlng.lng }
+    })
+  }, [map, centerLat, centerLng, leaves])
+
+  return (
+    <>
+      {items.map((item) => (
+        <Polyline
+          key={`sl-${item.restaurant.id}`}
+          positions={[[centerLat, centerLng], [item.lat, item.lng]]}
+          pathOptions={{ color: '#888', weight: 1.5, opacity: 0.5, dashArray: '4 4' }}
+        />
+      ))}
+      {items.map((item) => {
+        const s = 36
+        const tier = item.restaurant.tier
+        return (
+          <Marker
+            key={`sm-${item.restaurant.id}`}
+            position={[item.lat, item.lng]}
+            icon={L.divIcon({
+              html: `<div style="width:${s}px;height:${s}px;border-radius:${s * 0.22}px;border:3px solid ${tier ? TIER_HEX[tier] : '#e5e5e5'};box-shadow:0 2px 10px rgba(0,0,0,0.28);background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;">${item.restaurant.cover_image_url ? `<img src="${item.restaurant.cover_image_url}" style="width:100%;height:100%;object-fit:cover;" />` : `<span style="font-size:16px;">🍽</span>`}</div>`,
+              className: '',
+              iconSize: [s, s],
+              iconAnchor: [s / 2, s / 2],
+            })}
+            eventHandlers={{ click: () => onSelect(item.restaurant) }}
+          />
+        )
+      })}
+    </>
+  )
+}
+
+function SpiderZoomResetter({ onZoom }: { onZoom: () => void }) {
+  const map = useMap()
+  useEffect(() => {
+    const handler = () => onZoom()
+    map.on('zoomend', handler)
+    return () => { map.off('zoomend', handler) }
+  }, [map, onZoom])
+  return null
+}
+
 const FALLBACK_CLUSTER = { bg: '#a3a3a3', text: '#fff' }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -428,9 +487,10 @@ export function HomeMap() {
   const { data: restaurants = [], isLoading, error } = useMapRestaurants()
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
   const [exiting, setExiting] = useState(false)
-  const [spiderGroup, setSpiderGroup] = useState<{
-    center: MapRestaurant
-    leaves: Array<{ restaurant: MapRestaurant; lat: number; lng: number }>
+  const [expandedCluster, setExpandedCluster] = useState<{
+    centerLat: number
+    centerLng: number
+    leaves: MapRestaurant[]
   } | null>(null)
   const closeTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [bounds, setBounds] = useState<L.LatLngBounds | null>(null)
@@ -530,7 +590,7 @@ export function HomeMap() {
   }, [visibleRestaurants])
 
   const dismiss = useCallback(() => {
-    setSpiderGroup(null)
+    setExpandedCluster(null)
     if (!selected) return
     setExiting(true)
     clearTimeout(closeTimerRef.current)
@@ -546,39 +606,14 @@ export function HomeMap() {
   }, [])
 
   const handleSelect = useCallback((r: MapRestaurant) => {
-    const map = mapRef.current
-    if (map && zoom >= 16 && r.latitude != null && r.longitude != null) {
-      const candidates = visibleRestaurants.filter(v => v.id !== r.id && v.latitude != null && v.longitude != null)
-      const pt = map.latLngToContainerPoint([r.latitude, r.longitude])
-      const nearby = candidates.filter(v => {
-        const other = map.latLngToContainerPoint([v.latitude!, v.longitude!])
-        return pt.distanceTo(other) < 22
-      })
-      if (nearby.length > 0) {
-        cancelClose()
-        const all = [r, ...nearby]
-        const radius = all.length <= 5 ? 80 : 100
-        const count = Math.min(all.length, 12)
-        const leaves = all.slice(0, count).map((rest, i) => {
-          const angle = (i / count) * Math.PI * 2 - Math.PI / 2
-          const target = map.containerPointToLatLng(
-            L.point(pt.x + Math.cos(angle) * radius, pt.y + Math.sin(angle) * radius)
-          )
-          return { restaurant: rest, lat: target.lat, lng: target.lng }
-        })
-        setSpiderGroup({ center: r, leaves })
-        setSelected(null)
-        return
-      }
-    }
-    setSpiderGroup(null)
+    setExpandedCluster(null)
     if (selected && r.id === selected.id) {
       dismiss()
     } else {
       cancelClose()
       setSelected(r)
     }
-  }, [cancelClose, dismiss, selected, visibleRestaurants, zoom])
+  }, [cancelClose, dismiss, selected])
 
   const handleMapCapture = useCallback((map: L.Map) => {
     mapRef.current = map
@@ -874,7 +909,26 @@ export function HomeMap() {
                 border={border}
                 onClick={() => {
                   const map = mapRef.current
-                  if (map) map.flyTo([lat, lng], Math.min(zoom + 2, 18), { animate: true, duration: 0.5 })
+                  const sc = superclusterRef.current
+                  if (!map || !sc) return
+                  const clusterId = f.properties.cluster_id
+                  if (expandedCluster && expandedCluster.centerLat === lat && expandedCluster.centerLng === lng) {
+                    setExpandedCluster(null)
+                    return
+                  }
+                  if (f.properties.point_count > 12) {
+                    map.flyTo([lat, lng], Math.min(zoom + 2, 18), { animate: true, duration: 0.5 })
+                    return
+                  }
+                  const leaves = sc.getLeaves(clusterId, 12)
+                  const leaveData = leaves
+                    .map((leaf) => (leaf.properties as any)?.restaurant as MapRestaurant | undefined)
+                    .filter((r): r is MapRestaurant => !!r)
+                  if (leaveData.length <= 1) {
+                    map.flyTo([lat, lng], Math.min(zoom + 2, 18), { animate: true, duration: 0.5 })
+                    return
+                  }
+                  setExpandedCluster({ centerLat: lat, centerLng: lng, leaves: leaveData })
                 }}
               />
             )
@@ -885,42 +939,15 @@ export function HomeMap() {
           )
         })}
 
-        {spiderGroup && (
-          <>
-            {spiderGroup.leaves.map((leaf, i) => (
-              <Polyline
-                key={`spider-leg-${i}`}
-                positions={[[spiderGroup.center.latitude!, spiderGroup.center.longitude!], [leaf.lat, leaf.lng]]}
-                pathOptions={{ color: '#888', weight: 1.5, opacity: 0.5, dashArray: '4 4' }}
-              />
-            ))}
-            {spiderGroup.leaves.map((leaf, i) => (
-              <Marker
-                key={`spider-leaf-${i}`}
-                position={[leaf.lat, leaf.lng]}
-                icon={L.divIcon({
-                  html: `<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.95);border:2px solid #888;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#333;cursor:pointer;">${leaf.restaurant.display_name.slice(0, 2)}</div>`,
-                  className: '',
-                  iconSize: [36, 36],
-                  iconAnchor: [18, 18],
-                })}
-                eventHandlers={{ click: () => { cancelClose(); setSelected(leaf.restaurant); setSpiderGroup(null) } }}
-              />
-            ))}
-            {spiderGroup.leaves.length < visibleRestaurants.length && (
-              <Marker
-                position={[spiderGroup.center.latitude!, spiderGroup.center.longitude!]}
-                icon={L.divIcon({
-                  html: `<div style="width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#666;cursor:pointer;">+${visibleRestaurants.length - spiderGroup.leaves.length}</div>`,
-                  className: '',
-                  iconSize: [40, 40],
-                  iconAnchor: [20, 20],
-                })}
-                eventHandlers={{ click: () => setSpiderGroup(null) }}
-              />
-            )}
-          </>
+        {expandedCluster && (
+          <SpiderLayer
+            centerLat={expandedCluster.centerLat}
+            centerLng={expandedCluster.centerLng}
+            leaves={expandedCluster.leaves}
+            onSelect={(r) => { cancelClose(); setSelected(r); setExpandedCluster(null) }}
+          />
         )}
+        <SpiderZoomResetter onZoom={() => setExpandedCluster(null)} />
       </MapContainer>
 
       {selected && <BottomSheet restaurant={selected} exiting={exiting} />}

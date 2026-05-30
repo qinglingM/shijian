@@ -6,8 +6,6 @@ import { Link, useLocation } from 'react-router-dom'
 
 import { Dices } from 'lucide-react'
 
-import { Keyboard } from '@capacitor/keyboard'
-
 import { BackHeader } from '@/components/layout/AppLayout'
 
 import {
@@ -129,17 +127,7 @@ export function PracticeStep2Page() {
 
   const dragActiveRef = useRef(false)
 
-  const reviewInputRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    try {
-      Keyboard.addListener('keyboardWillShow', () => {
-        setTimeout(() => {
-          reviewInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }, 100)
-      }).catch(() => {})
-    } catch {}
-  }, [])
+  useEffect(() => { window.scrollTo(0, 0) }, [])
 
 
 
@@ -561,7 +549,7 @@ export function PracticeStep2Page() {
 
         </h2>
 
-        <div className="relative mt-2" ref={reviewInputRef}>
+        <div className="relative mt-2">
 
           <input
 
