@@ -38,6 +38,7 @@ export function useMarkPoiMutation(poi: PoiCandidate | null) {
       if (!uid) return
       qc.invalidateQueries({ queryKey: ['restaurant-mark-status', uid, newRestaurantId] })
       qc.invalidateQueries({ queryKey: ['my-marks-feed', uid] })
+      qc.invalidateQueries({ queryKey: ['me-summary', uid] })
     },
   })
 }
@@ -76,6 +77,7 @@ export function useInsertMarkMutation(restaurantId: string) {
       }
       if (uid) {
         qc.invalidateQueries({ queryKey: ['my-marks-feed', uid] })
+        qc.invalidateQueries({ queryKey: ['me-summary', uid] })
       }
     },
   })

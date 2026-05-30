@@ -44,6 +44,29 @@ const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_
 
 const TAB_ROUTES = new Set(['/map', '/square', '/tier-map', '/me'])
 
+function SwipeBackHandler() {
+  const navigate = useNavigate()
+  useEffect(() => {
+    let startX = 0
+    function handleTouchStart(e: TouchEvent) {
+      if (e.touches[0].clientX < 30) startX = e.touches[0].clientX
+      else startX = 0
+    }
+    function handleTouchEnd(e: TouchEvent) {
+      if (!startX) return
+      const dx = e.changedTouches[0].clientX - startX
+      if (dx > 60 && window.history.length > 1) navigate(-1)
+    }
+    window.addEventListener('touchstart', handleTouchStart)
+    window.addEventListener('touchend', handleTouchEnd)
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [navigate])
+  return null
+}
+
 export function AppLayout() {
   const { pathname } = useLocation()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
@@ -68,10 +91,12 @@ export function AppLayout() {
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-white lg:max-w-3xl">
       <main
         className={cn(
-          'flex-1 min-h-0 overflow-y-auto',
+          'flex-1 min-h-0',
+          isTabRoute ? 'overflow-hidden' : 'overflow-y-auto',
           hideTabs && 'pb-[max(1rem,env(safe-area-inset-bottom))]',
         )}
       >
+        <SwipeBackHandler />
         <div className={isTabRoute ? 'contents' : 'hidden'}>
           <div className={pathname === '/map' ? 'h-full' : 'hidden'}><HomeMap /></div>
           <div className={pathname === '/square' ? '' : 'hidden'}><SquarePage /></div>
@@ -122,7 +147,7 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
           navigate(backTo, { replace: true })
         }
       }}
-      className="text-sm text-neutral-500"
+      className="flex items-center justify-center min-w-[44px] min-h-[44px] -ml-1 text-sm text-neutral-500 active:bg-neutral-100 rounded-lg"
     >
       ←
     </button>

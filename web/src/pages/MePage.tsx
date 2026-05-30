@@ -23,6 +23,12 @@ interface MeActivityItem {
   createdAt: string
 }
 
+interface MeTitleInfo {
+  name: string
+  rarity: string
+  description: string | null
+}
+
 interface MeSummary {
   profile: Pick<
     ProfileRow,
@@ -39,7 +45,8 @@ interface MeSummary {
   > | null
   practiceCount: number
   markCount: number
-  titleCount: number
+  totalMarkCount: number
+  titleInfo: MeTitleInfo | null
   followersCount: number
   followingCount: number
   youpinCount: number
@@ -89,8 +96,10 @@ export function MePage() {
           .eq('user_id', userId!),
         supabase
           .from('user_titles')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId!),
+          .select('title_id, titles!inner(name, rarity, description)')
+          .eq('user_id', userId!)
+          .limit(1)
+          .maybeSingle(),
         supabase
           .from('user_follows')
           .select('id', { count: 'exact', head: true })
@@ -117,6 +126,10 @@ export function MePage() {
       if (practiceResult.error) throw practiceResult.error
       if (markResult.error) throw markResult.error
       if (titleResult.error) throw titleResult.error
+      const titleData = titleResult.data as { title_id: string; titles: { name: string; rarity: string; description: string | null } } | null
+      const titleInfo: MeTitleInfo | null = titleData
+        ? { name: titleData.titles.name, rarity: titleData.titles.rarity, description: titleData.titles.description }
+        : null
       if (followersResult.error) throw followersResult.error
       if (followingResult.error) throw followingResult.error
       if (voteResult.error) throw voteResult.error
@@ -160,7 +173,8 @@ export function MePage() {
         profile: profileResult.data as MeSummary['profile'],
         practiceCount: practiceResult.count ?? 0,
         markCount: markedRestaurantIds.filter((restaurantId) => !reviewedMarkedRestaurantIds.has(restaurantId)).length,
-        titleCount: titleResult.count ?? 0,
+        totalMarkCount: markedRestaurantIds.length,
+        titleInfo,
         followersCount: followersResult.count ?? 0,
         followingCount: followingResult.count ?? 0,
         youpinCount: voteResult.count ?? 0,
@@ -254,6 +268,26 @@ export function MePage() {
         </div>
       </section>
 
+      {data?.titleInfo && (
+        <section className="mt-4 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-purple-700 px-4 py-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-full bg-white/20">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">{data.titleInfo.name}</p>
+                <p className="text-[11px] text-white/70">{data.titleInfo.description ?? ''}</p>
+              </div>
+            </div>
+            <span className="text-white/40 text-lg leading-none">›</span>
+          </div>
+        </section>
+      )}
+
       <section className="mt-4 rounded-2xl border border-dashed border-neutral-200 px-4 py-3.5">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-neutral-800">近期动态</p>
@@ -286,8 +320,8 @@ export function MePage() {
         <FeatureCard
           to="/me/marks"
           icon={<Bookmark size={18} />}
-          title="想去 / 标记"
-          desc={`${data?.markCount ?? 0} 家标记 · 分组：仍想去 / 已评价`}
+          title="我的标记"
+          desc={`${data?.totalMarkCount ?? 0} 家门店`}
         />
         <FeatureCard
           to="/me/bole"

@@ -173,7 +173,13 @@ function GeolocateOnMount() {
 
 function MapRefCapture({ onCapture }: { onCapture: (map: L.Map) => void }) {
   const map = useMap()
-  useEffect(() => { onCapture(map) }, [map, onCapture])
+  useEffect(() => {
+    onCapture(map)
+    const el = map.getContainer()
+    const ro = new ResizeObserver(() => map.invalidateSize())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [map, onCapture])
   return null
 }
 
@@ -555,14 +561,6 @@ export function HomeMap() {
 
   const handleMapCapture = useCallback((map: L.Map) => {
     mapRef.current = map
-  }, [])
-
-  useEffect(() => {
-    const el = mapRef.current?.getContainer()
-    if (!el) return
-    const ro = new ResizeObserver(() => mapRef.current?.invalidateSize())
-    ro.observe(el)
-    return () => ro.disconnect()
   }, [])
 
   const handleOpenPoi = useCallback(

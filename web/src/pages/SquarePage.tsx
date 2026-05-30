@@ -48,13 +48,13 @@ const AMAP_MID_CATEGORIES: { name: string; subs: string[] }[] = [
 ]
 
 export function SquarePage() {
+  const queryClient = useQueryClient()
   const {
     data: infiniteData,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-    refetch,
   } = useSquareFeed()
   const feed = useMemo(() => infiniteData?.pages.flat() ?? [], [infiniteData])
   const { data: todayCount = 0 } = useTodayPracticeCount()
@@ -62,6 +62,7 @@ export function SquarePage() {
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
+  const [committedQuery, setCommittedQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -119,7 +120,7 @@ export function SquarePage() {
     let items = feed
 
     // Search
-    const q = searchQuery.trim().toLowerCase()
+    const q = committedQuery.trim().toLowerCase()
     if (q) {
       items = items.filter(item =>
         item.restaurant_name.toLowerCase().includes(q) ||
@@ -154,7 +155,7 @@ export function SquarePage() {
     }
 
     return items
-  }, [feed, searchQuery, appliedCity, appliedTier, appliedCategory, sortMode])
+  }, [feed, committedQuery, appliedCity, appliedTier, appliedCategory, sortMode])
 
   const columns = useMemo(() => splitIntoMasonryColumns(filteredFeed), [filteredFeed])
 
@@ -183,6 +184,12 @@ export function SquarePage() {
               ref={inputRef}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setCommittedQuery(searchQuery)
+                  e.currentTarget.blur()
+                }
+              }}
               placeholder="搜索餐厅、评价、分类…"
               className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
               enterKeyHint="search"
@@ -242,7 +249,7 @@ export function SquarePage() {
       {filterOpen && (
         <>
           <div className="fixed inset-0 z-[997]" onClick={() => setFilterOpen(false)} />
-          <div className="absolute top-full left-0 right-0 z-[999] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden" style={{ animation: 'shijian-slide-down 0.2s ease-out' }}>
+          <div className="fixed top-[calc(env(safe-area-inset-top)+3rem)] left-0 right-0 z-[999] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden" style={{ animation: 'shijian-slide-down 0.2s ease-out' }}>
             <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
               {filterTab === 'city' && (
                 <div className="flex" style={{ height: '30dvh' }}>
@@ -344,7 +351,7 @@ export function SquarePage() {
           </span>
           <button
             type="button"
-            onClick={() => void refetch()}
+            onClick={() => queryClient.invalidateQueries({ queryKey: ['square-feed'] })}
             className="flex items-center justify-center size-6 rounded-full text-neutral-400 active:bg-neutral-200"
             aria-label="刷新"
           >

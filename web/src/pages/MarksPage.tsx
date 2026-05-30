@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { BackHeader } from '@/components/layout/AppLayout'
-import { useMyMarksFeed } from '@/features/marks/useMyMarksFeed'
+import { useMyMarksFeed, type MyMarksWantRow } from '@/features/marks/useMyMarksFeed'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { Bookmark, ArrowRight } from 'lucide-react'
@@ -69,14 +69,13 @@ export function MarksPage() {
     )
   }
 
-  const { want } = marksQ.data ?? { want: [] }
-  const empty = want.length === 0
+  const { want = [], conquered = [] } = marksQ.data ?? {}
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-12">
       <BackHeader title="我的标记" backTo="/me" />
       
-      {empty ? (
+      {want.length === 0 && conquered.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-6 py-24 text-center">
           <div className="mb-6 flex size-20 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-neutral-200/50">
             <Bookmark className="size-8 text-neutral-300" strokeWidth={1.5} />
@@ -88,10 +87,10 @@ export function MarksPage() {
         </div>
       ) : (
         <div className="px-4 py-6 space-y-10">
-          
+
           <section>
             <div className="mb-4 flex items-end justify-between px-1">
-              <h2 className="text-[18px] font-black tracking-tight text-neutral-900">仍想去</h2>
+              <h2 className="text-[18px] font-black tracking-tight text-neutral-900">我的标记</h2>
               <span className="text-[12px] font-semibold text-orange-600">{want.length} 家</span>
             </div>
 
@@ -101,45 +100,60 @@ export function MarksPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {want.map((m) => (
-                  <Link
-                    key={m.mark_id}
-                    to={`/restaurants/${m.restaurant_id}`}
-                    className="group relative flex gap-4 rounded-2xl bg-white p-4 shadow-sm shadow-black/[0.02] ring-1 ring-neutral-200/50 transition-all active:scale-[0.98] active:shadow-md"
-                  >
-                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
-                      {m.cover_image_url ? (
-                        <img src={m.cover_image_url} alt="" className="size-full object-cover" />
-                      ) : (
-                        <div className="flex size-full items-center justify-center bg-gradient-to-br from-neutral-200 to-neutral-300 text-sm font-bold text-neutral-400">
-                          {m.display_name.slice(0, 2)}
-                        </div>
-                      )}
-                      <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-black/5" />
-                    </div>
-                    
-                    <div className="flex min-w-0 flex-1 flex-col py-0.5">
-                      <h3 className="truncate text-[16px] font-bold leading-snug text-neutral-900">
-                        {m.display_name}
-                      </h3>
-                      <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-neutral-400">
-                        <Bookmark size={12} strokeWidth={2.5} className="text-orange-400" />
-                        标记于 {markedFmt.format(new Date(m.marked_at))}
-                      </p>
-                      
-                      <div className="mt-auto flex justify-end">
-                        <span className="flex items-center gap-1 text-[12px] font-bold text-orange-600">
-                          去看看 <ArrowRight size={14} strokeWidth={2.5} />
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+                {want.map((m) => <MarkCard key={m.mark_id} m={m} />)}
               </div>
             )}
           </section>
+
+          {conquered.length > 0 && (
+            <section>
+              <div className="mb-4 flex items-end justify-between px-1">
+                <h2 className="text-[16px] font-bold tracking-tight text-neutral-800">已经征服的标记</h2>
+                <span className="text-[12px] font-semibold text-orange-600">{conquered.length} 家</span>
+              </div>
+              <div className="space-y-3">
+                {conquered.map((m) => <MarkCard key={m.mark_id} m={m} />)}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </div>
+  )
+}
+
+function MarkCard({ m }: { m: MyMarksWantRow }) {
+  return (
+    <Link
+      to={`/restaurants/${m.restaurant_id}`}
+      className="group relative flex gap-4 rounded-2xl bg-white p-4 shadow-sm shadow-black/[0.02] ring-1 ring-neutral-200/50 transition-all active:scale-[0.98] active:shadow-md"
+    >
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-neutral-100">
+        {m.cover_image_url ? (
+          <img src={m.cover_image_url} alt="" className="size-full object-cover" />
+        ) : (
+          <div className="flex size-full items-center justify-center bg-gradient-to-br from-neutral-200 to-neutral-300 text-sm font-bold text-neutral-400">
+            {m.display_name.slice(0, 2)}
+          </div>
+        )}
+        <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-black/5" />
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col py-0.5">
+        <h3 className="truncate text-[16px] font-bold leading-snug text-neutral-900">
+          {m.display_name}
+        </h3>
+        <p className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-neutral-400">
+          <Bookmark size={12} strokeWidth={2.5} className="text-orange-400" />
+          标记于 {markedFmt.format(new Date(m.marked_at))}
+        </p>
+
+        <div className="mt-auto flex justify-end">
+          <span className="flex items-center gap-1 text-[12px] font-bold text-orange-600">
+            去看看 <ArrowRight size={14} strokeWidth={2.5} />
+          </span>
+        </div>
+      </div>
+    </Link>
   )
 }

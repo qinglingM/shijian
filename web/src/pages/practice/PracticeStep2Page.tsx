@@ -571,6 +571,8 @@ export function PracticeStep2Page() {
 
             onChange={(e) => draft.setStoreComment(e.target.value)}
 
+            onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+
             placeholder={
 
               draft.tier

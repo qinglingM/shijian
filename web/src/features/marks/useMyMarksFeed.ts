@@ -11,6 +11,7 @@ export interface MyMarksWantRow {
 
 interface MarksFeedPack {
   want: MyMarksWantRow[]
+  conquered: MyMarksWantRow[]
 }
 
 export function useMyMarksFeed(userId: string | null) {
@@ -74,20 +75,22 @@ export function useMyMarksFeed(userId: string | null) {
       }
 
       const want: MyMarksWantRow[] = []
+      const conquered: MyMarksWantRow[] = []
       for (const row of (mrows ?? []) as unknown as MarkSel[]) {
-        if (practicedAt.has(row.restaurant_id)) continue
         const rs = row.restaurants
         const r = rs && Array.isArray(rs) ? rs[0] : rs
-        want.push({
+        const item: MyMarksWantRow = {
           mark_id: row.id,
           restaurant_id: row.restaurant_id,
           display_name: r?.display_name ?? '未知门店',
           cover_image_url: r?.cover_image_url ?? null,
           marked_at: row.created_at,
-        })
+        }
+        if (practicedAt.has(row.restaurant_id)) conquered.push(item)
+        else want.push(item)
       }
 
-      return { want }
+      return { want, conquered }
     },
   })
 }
