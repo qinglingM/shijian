@@ -157,31 +157,30 @@ export function HomePage() {
     <div className="flex min-h-[calc(100vh-5rem)] flex-col">
       <div className="relative bg-neutral-100 pt-[env(safe-area-inset-top)]">
         {/* Header with filters + search + view toggle */}
-        <header className="grid grid-cols-[1fr_auto_1fr] items-center px-4 pt-1 pb-1">
-          <div />
-          <h1 className="text-center text-base font-semibold tracking-tight text-neutral-900">我的食鉴图</h1>
-          <div className="flex items-center gap-1.5 justify-end">
+        <header className="flex items-center justify-between px-4 py-0.5">
+          <h1 className="text-sm font-semibold tracking-tight text-neutral-900">我的食鉴图</h1>
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => navigate('/search')}
               aria-label="搜索"
-              className="flex items-center justify-center rounded-full p-1.5 text-neutral-500 active:bg-neutral-100"
+              className="flex items-center justify-center rounded-full p-1 text-neutral-500 active:bg-neutral-100"
             >
-              <SearchIcon size={18} />
+              <SearchIcon size={16} />
             </button>
             <button
               type="button"
               onClick={() => setViewMode((m) => (m === 'grid' ? 'list' : 'grid'))}
               aria-label={viewMode === 'grid' ? '切换为列表视图' : '切换为表格视图'}
-              className="flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-medium text-neutral-500 ring-1 ring-neutral-200 active:bg-neutral-50"
+              className="flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-neutral-500 ring-1 ring-neutral-200 active:bg-neutral-50"
             >
-              {viewMode === 'grid' ? <List size={14} /> : <LayoutGrid size={14} />}
+              {viewMode === 'grid' ? <List size={13} /> : <LayoutGrid size={13} />}
             </button>
           </div>
         </header>
 
         {/* Filter buttons row */}
-        <div className="flex items-center gap-2 px-4 pb-2 z-[998] relative bg-neutral-50/60">
+        <div className="flex items-center gap-2 px-4 pb-1 z-[998] relative bg-neutral-50/60">
           <button
             onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
             className={`text-[13px] font-semibold transition-colors ${

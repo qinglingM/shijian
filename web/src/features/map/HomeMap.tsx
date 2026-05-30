@@ -557,6 +557,14 @@ export function HomeMap() {
     mapRef.current = map
   }, [])
 
+  useEffect(() => {
+    const el = mapRef.current?.getContainer()
+    if (!el) return
+    const ro = new ResizeObserver(() => mapRef.current?.invalidateSize())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   const handleOpenPoi = useCallback(
     async (poi: PoiCandidate) => {
       if (poi.latitude !== null && poi.longitude !== null) {

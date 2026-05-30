@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Search, PenSquare, ChevronDown } from 'lucide-react'
+import { RefreshCw, Search, PenSquare, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TIER_ORDER, TIER_LABEL, TIER_COLOR_VAR, TIER_SOFT_VAR, type Tier, type VoteType } from '@/lib/db'
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
@@ -54,6 +54,7 @@ export function SquarePage() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    refetch,
   } = useSquareFeed()
   const feed = useMemo(() => infiniteData?.pages.flat() ?? [], [infiniteData])
   const { data: todayCount = 0 } = useTodayPracticeCount()
@@ -336,10 +337,20 @@ export function SquarePage() {
       </div>
 
       {/* Content */}
-      <section className="flex-1 overflow-y-auto min-h-0 px-4 pb-6 bg-neutral-50/60">
-        <p className="pt-3 pb-2 text-center text-xs text-neutral-500">
-          今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
-        </p>
+      <section className="flex-1 overflow-y-auto min-h-0 px-4 pb-6 bg-neutral-50/60 [overscroll-behavior:none]">
+        <div className="flex items-center justify-center gap-1.5 pt-3 pb-2 text-xs text-neutral-500">
+          <span>
+            今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
+          </span>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="flex items-center justify-center size-6 rounded-full text-neutral-400 active:bg-neutral-200"
+            aria-label="刷新"
+          >
+            <RefreshCw size={13} />
+          </button>
+        </div>
         {isLoading ? (
           <p className="py-14 text-center text-sm text-neutral-400">载入广场内容…</p>
         ) : !isLoading && filteredFeed.length === 0 ? (
