@@ -118,7 +118,7 @@ export function AppLayout() {
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-white lg:max-w-3xl">
       <main
         className={cn(
-          'flex-1 min-h-0',
+          'flex flex-col flex-1 min-h-0',
           isTabRoute ? 'overflow-hidden' : 'overflow-y-auto',
           hideTabs && 'pb-[max(1rem,env(safe-area-inset-bottom))]',
         )}
