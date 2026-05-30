@@ -55,15 +55,12 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
-if command -v corepack >/dev/null 2>&1; then
-  corepack prepare pnpm@10.17.0 --activate
-  PNPM="corepack pnpm"
-elif command -v npx >/dev/null 2>&1; then
-  PNPM="npx -y pnpm@10.17.0"
-else
-  echo "Neither corepack nor npx is available; cannot install web dependencies."
+if ! command -v npm >/dev/null 2>&1; then
+  echo "npm is unavailable; cannot install web dependencies."
   exit 127
 fi
+
+PNPM="npx -y pnpm@10.17.0"
 
 $PNPM install --frozen-lockfile
 $PNPM build
