@@ -9,6 +9,7 @@ import { lookupExistingRestaurantByPoi, usePoiSearch } from '@/features/poi-sear
 import { useCityStore } from '@/features/city-picker/cityStore'
 import { useDebounce } from '@/lib/useDebounce'
 import { useMapRestaurants, type MapRestaurant } from './useMapRestaurants'
+import { UserTitleBadge } from '@/components/UserTitleBadge'
 import { TIER_ORDER, TIER_LABEL, type Tier } from '@/lib/db'
 import type { PoiCandidate } from '@/lib/poi'
 import { useCities } from '@/features/city-picker/useCities'
@@ -397,7 +398,7 @@ function BottomSheet({
               </div>
               <div style={{ gridArea: 'name' }} className="flex items-center">
                 <p className="truncate text-[11px] font-semibold text-sky-700">
-                  {r.top_reviewer_nickname}
+                  {r.top_reviewer_nickname}<UserTitleBadge name={r.titleName} />
                 </p>
               </div>
               <div style={{ gridArea: 'hot' }} className="flex items-center justify-self-start">

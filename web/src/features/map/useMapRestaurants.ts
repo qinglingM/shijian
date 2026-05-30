@@ -23,6 +23,7 @@ export interface MapRestaurant {
   review_youpin: number
   review_created_at: string | null
   practice_count: number
+  titleName: string | null
 }
 
 interface RestaurantRow {
@@ -52,6 +53,7 @@ interface ProfileRow {
   id: string
   nickname: string
   avatar_url: string | null
+  current_title_id: string | null
 }
 
 interface VoteRow {
@@ -143,6 +145,7 @@ export function useMapRestaurants() {
           review_youpin: 0,
           review_created_at: null,
           practice_count: 0,
+          titleName: null,
         }))
       }
 
@@ -199,11 +202,18 @@ export function useMapRestaurants() {
       if (nonAnonUserIds.length) {
         const { data: profilesRaw } = await sb
           .from('profiles')
-          .select('id, nickname, avatar_url')
+          .select('id, nickname, avatar_url, current_title_id')
           .in('id', nonAnonUserIds)
         for (const p of (profilesRaw ?? []) as ProfileRow[]) {
           profileMap.set(p.id, p)
         }
+      }
+
+      const titleIds = [...new Set([...profileMap.values()].map(p => p.current_title_id).filter(Boolean))] as string[]
+      const titleMap = new Map<string, string>()
+      if (titleIds.length > 0) {
+        const { data: titleRows } = await sb.from('titles').select('id, name').in('id', titleIds)
+        for (const t of (titleRows ?? []) as Array<{id: string; name: string}>) titleMap.set(t.id, t.name)
       }
 
       return restaurants.map((r) => {
@@ -225,6 +235,7 @@ export function useMapRestaurants() {
           tier: averageTierFloor(tiersByRestaurant.get(r.id) ?? []),
           top_reviewer_nickname: top ? (profile ? profile.nickname : ANONYMOUS_REVIEWER) : null,
           top_reviewer_avatar_url: profile ? profile.avatar_url : null,
+          titleName: titleMap.get(profile?.current_title_id ?? '') ?? null,
           top_store_comment: top?.store_comment ?? null,
           review_tier: top ? (top.tier as Tier) : null,
           review_youpin: top?.score ?? 0,

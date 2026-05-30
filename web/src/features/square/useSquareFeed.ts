@@ -9,6 +9,7 @@ export interface SquareFeedItem {
   user_id: string
   nickname: string
   avatar_url: string | null
+  titleName: string | null
   content: string
   tier: Tier
   tier_label: string
@@ -27,6 +28,7 @@ interface ProfileMini {
   id: string
   nickname: string | null
   avatar_url: string | null
+  current_title_id: string | null
 }
 
 const PAGE_SIZE = 40
@@ -64,7 +66,7 @@ export function useSquareFeed() {
       const rids = [...new Set(prs.map((r) => r.restaurant_id))]
 
       const [{ data: profsRaw, error: profErr }, { data: restaurantsRaw, error: restErr }, { data: votesRaw, error: voteErr }, { data: allTiersRaw }] = await Promise.all([
-        sb.from('profiles').select('id,nickname,avatar_url').in('id', uids),
+        sb.from('profiles').select('id,nickname,avatar_url,current_title_id').in('id', uids),
         rids.length
           ?           sb.from('restaurants').select('id,display_name,city_name,display_category_label,amap_mid_category,amap_small_category').in('id', rids)
           : Promise.resolve({ data: [], error: null } as const),
@@ -77,6 +79,14 @@ export function useSquareFeed() {
 
       const profs = new Map<string, ProfileMini>()
       for (const p of (profsRaw ?? []) as ProfileMini[]) profs.set(p.id, p)
+
+      const titleIds = [...new Set([...profs.values()].map(p => p.current_title_id).filter(Boolean))] as string[]
+      const titleMap = new Map<string, string>()
+      if (titleIds.length > 0) {
+        const { data: titleRows } = await sb.from('titles').select('id, name').in('id', titleIds)
+        for (const t of (titleRows ?? []) as Array<{id: string; name: string}>) titleMap.set(t.id, t.name)
+      }
+
       const rests = new Map<string, { display_name: string; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>()
       for (const r of (restaurantsRaw ?? []) as Array<{ id: string; display_name: string; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>) rests.set(r.id, r)
 
@@ -111,6 +121,7 @@ export function useSquareFeed() {
           user_id: r.user_id,
           nickname: prof?.nickname?.trim() || '食鉴用户',
           avatar_url: prof?.avatar_url ?? null,
+          titleName: titleMap.get(prof?.current_title_id ?? '') ?? null,
           content: r.store_comment ?? '',
           tier: restaurantTier,
           tier_label: TIER_LABEL[restaurantTier],

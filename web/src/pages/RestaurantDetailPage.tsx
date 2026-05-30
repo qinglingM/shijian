@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X, Bookmark, BookmarkCheck } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
+import { UserTitleBadge } from '@/components/UserTitleBadge'
 import { lookupExistingRestaurantByPoi } from '@/features/poi-search/usePoiSearch'
 import { fetchExistingPracticeHydration } from '@/features/practice/hydratePracticeDraftFromServer'
 import {
@@ -1044,9 +1045,9 @@ function StoreTab({
                 )}
                 <div className="min-w-0 flex-1 pt-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-sky-700">
-                      {r.nickname}
-                    </span>
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-sky-700">
+                        {r.nickname}<UserTitleBadge name={r.titleName} />
+                      </span>
                     <span
                       className="shrink-0 text-[13px] font-black tracking-tight"
                       style={{ color: tierInk(r.tier) }}
@@ -1079,9 +1080,9 @@ function StoreTab({
                 aria-pressed={r.my_vote === 'youpin'}
                 onClick={(e) => { e.stopPropagation(); onTap('youpin') }}
                 className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
-                  r.my_vote === 'youpin'
-                    ? 'bg-orange-50 text-orange-950 shadow-[inset_0_0_0_2px_rgb(251_146_60)]'
-                    : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-orange-50/60'
+                   r.my_vote === 'youpin'
+                     ? 'bg-emerald-50 text-emerald-950 shadow-[inset_0_0_0_2px_rgb(52_211_153)]'
+                     : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-emerald-50/60'
                 }`}
               >
                 有品
@@ -1094,9 +1095,9 @@ function StoreTab({
                 aria-pressed={r.my_vote === 'yebang'}
                 onClick={(e) => { e.stopPropagation(); onTap('yebang') }}
                 className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
-                  r.my_vote === 'yebang'
-                    ? 'bg-violet-50 text-violet-950 shadow-[inset_0_0_0_2px_rgb(167_139_250)]'
-                    : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-violet-50/55'
+                   r.my_vote === 'yebang'
+                     ? 'bg-amber-50 text-amber-950 shadow-[inset_0_0_0_2px_rgb(217_119_6)]'
+                     : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-amber-50/55'
                 }`}
               >
                 野榜
@@ -1491,7 +1492,7 @@ function DishTabFeed({
                       </p>
                       <div className="mt-1">
                         <span className="text-[11px] font-semibold text-sky-700">
-                          @{r.reviewer_nickname}
+                          @{r.reviewer_nickname}<UserTitleBadge name={r.titleName} />
                         </span>
                       </div>
                       {voteMut.isError && voteMut.variables?.dishReviewId === r.id ? (
@@ -1517,9 +1518,9 @@ function DishTabFeed({
                           aria-pressed={r.my_vote === 'youpin'}
                           onClick={(e) => { e.stopPropagation(); onTap('youpin') }}
                           className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
-                            r.my_vote === 'youpin'
-                              ? 'bg-orange-50 text-orange-950 shadow-[inset_0_0_0_2px_rgb(251_146_60)]'
-                              : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-orange-50/60'
+                              r.my_vote === 'youpin'
+                                ? 'bg-emerald-50 text-emerald-950 shadow-[inset_0_0_0_2px_rgb(52_211_153)]'
+                                : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-emerald-50/60'
                           }`}
                         >
                           有品
@@ -1531,9 +1532,9 @@ function DishTabFeed({
                           aria-pressed={r.my_vote === 'yebang'}
                           onClick={(e) => { e.stopPropagation(); onTap('yebang') }}
                           className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
-                            r.my_vote === 'yebang'
-                              ? 'bg-violet-50 text-violet-950 shadow-[inset_0_0_0_2px_rgb(167_139_250)]'
-                              : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-violet-50/55'
+                              r.my_vote === 'yebang'
+                                ? 'bg-amber-50 text-amber-950 shadow-[inset_0_0_0_2px_rgb(217_119_6)]'
+                                : 'bg-neutral-50 text-neutral-700 ring-1 ring-neutral-200 hover:bg-amber-50/55'
                           }`}
                         >
                           野榜

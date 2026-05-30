@@ -7,7 +7,7 @@ import {
   UserRound,
   UsersRound,
 } from 'lucide-react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { ProfileRow } from '@/lib/db'
 import { useAuthStore } from '@/stores/authStore'
@@ -23,12 +23,6 @@ interface MeActivityItem {
   createdAt: string
 }
 
-interface MeTitleInfo {
-  name: string
-  rarity: string
-  description: string | null
-}
-
 interface MeSummary {
   profile: Pick<
     ProfileRow,
@@ -42,11 +36,10 @@ interface MeSummary {
     | 'phone_verified_at'
     | 'phone_binding_exempt'
     | 'is_profile_public'
-  > | null
+  > & { current_title_id: string | null; title_name: string | null } | null
   practiceCount: number
   markCount: number
   totalMarkCount: number
-  titleInfo: MeTitleInfo | null
   followersCount: number
   followingCount: number
   youpinCount: number
@@ -58,6 +51,7 @@ interface MarkRestaurantRow {
 }
 
 export function MePage() {
+  const navigate = useNavigate()
   const userId = useAuthStore((s) => s.user?.id ?? null)
   const setSession = useAuthStore((s) => s.setSession)
   const [signingOut, setSigningOut] = useState(false)
@@ -72,7 +66,6 @@ export function MePage() {
         profileResult,
         practiceResult,
         markResult,
-        titleResult,
         followersResult,
         followingResult,
         voteResult,
@@ -81,7 +74,7 @@ export function MePage() {
         supabase
           .from('profiles')
           .select(
-            'id, user_code, nickname, avatar_url, bio, created_at, phone, phone_verified_at, phone_binding_exempt, is_profile_public',
+            'id, user_code, nickname, avatar_url, bio, created_at, phone, phone_verified_at, phone_binding_exempt, is_profile_public, current_title_id, title:titles(name)',
           )
           .eq('id', userId!)
           .maybeSingle(),
@@ -94,12 +87,6 @@ export function MePage() {
           .from('marks')
           .select('restaurant_id')
           .eq('user_id', userId!),
-        supabase
-          .from('user_titles')
-          .select('title_id, titles!inner(name, rarity, description)')
-          .eq('user_id', userId!)
-          .limit(1)
-          .maybeSingle(),
         supabase
           .from('user_follows')
           .select('id', { count: 'exact', head: true })
@@ -125,11 +112,6 @@ export function MePage() {
       if (profileResult.error) throw profileResult.error
       if (practiceResult.error) throw practiceResult.error
       if (markResult.error) throw markResult.error
-      if (titleResult.error) throw titleResult.error
-      const titleData = titleResult.data as { title_id: string; titles: { name: string; rarity: string; description: string | null } } | null
-      const titleInfo: MeTitleInfo | null = titleData
-        ? { name: titleData.titles.name, rarity: titleData.titles.rarity, description: titleData.titles.description }
-        : null
       if (followersResult.error) throw followersResult.error
       if (followingResult.error) throw followingResult.error
       if (voteResult.error) throw voteResult.error
@@ -169,12 +151,21 @@ export function MePage() {
         }
       })
 
+      const raw = profileResult.data as Record<string, unknown> | null
+      const profile = raw ? {
+        ...Object.fromEntries(
+          ['id', 'user_code', 'nickname', 'avatar_url', 'bio', 'created_at', 'phone', 'phone_verified_at', 'phone_binding_exempt', 'is_profile_public']
+            .map(k => [k, raw[k] ?? null])
+        ),
+        current_title_id: (raw.current_title_id as string) ?? null,
+        title_name: ((raw as { title?: { name: string } }).title?.name) ?? null,
+      } as MeSummary['profile'] : null
+
       return {
-        profile: profileResult.data as MeSummary['profile'],
+        profile,
         practiceCount: practiceResult.count ?? 0,
         markCount: markedRestaurantIds.filter((restaurantId) => !reviewedMarkedRestaurantIds.has(restaurantId)).length,
         totalMarkCount: markedRestaurantIds.length,
-        titleInfo,
         followersCount: followersResult.count ?? 0,
         followingCount: followingResult.count ?? 0,
         youpinCount: voteResult.count ?? 0,
@@ -268,25 +259,36 @@ export function MePage() {
         </div>
       </section>
 
-      {data?.titleInfo && (
-        <section className="mt-4 overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-purple-700 px-4 py-3 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-full bg-white/20">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">{data.titleInfo.name}</p>
-                <p className="text-[11px] text-white/70">{data.titleInfo.description ?? ''}</p>
-              </div>
+      <section
+        className="mt-4 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-400 to-purple-500 px-4 py-3 shadow-sm active:opacity-80"
+        onClick={() => navigate('/me/titles')}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && navigate('/me/titles')}
+        aria-label="称号管理"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-full bg-white/20">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L4 6v5c0 4.5 3.5 8.8 8 10 4.5-1.2 8-5.5 8-10V6l-8-4z" fill="rgba(255,255,255,0.15)" stroke="white" strokeWidth="1.2" />
+                <path d="M12 7l1.2 2.5 2.8.4-2 2 .5 2.8L12 13.5l-2.5 1.3.5-2.8-2-2 2.8-.4L12 7z" fill="white" />
+              </svg>
             </div>
-            <span className="text-white/40 text-lg leading-none">›</span>
+            <div>
+              {data?.profile?.title_name ? (
+                <>
+                  <p className="text-sm font-semibold text-white">{data.profile.title_name}</p>
+                  <p className="text-[11px] text-white/70">点击管理称号</p>
+                </>
+              ) : (
+                <p className="text-sm font-semibold text-white/90">选择称号</p>
+              )}
+            </div>
           </div>
-        </section>
-      )}
+          <span className="text-white/40 text-lg leading-none">›</span>
+        </div>
+      </section>
 
       <section className="mt-4 rounded-2xl border border-dashed border-neutral-200 px-4 py-3.5">
         <div className="flex items-center justify-between">

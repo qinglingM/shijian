@@ -3,6 +3,7 @@ import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-
 import { Link } from 'react-router-dom'
 import { RefreshCw, Search, PenSquare, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { UserTitleBadge } from '@/components/UserTitleBadge'
 import { TIER_ORDER, TIER_LABEL, TIER_COLOR_VAR, TIER_SOFT_VAR, type Tier, type VoteType } from '@/lib/db'
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
 import { useTodayPracticeCount } from '@/features/square/useTodayPracticeCount'
@@ -65,36 +66,6 @@ export function SquarePage() {
   const [committedQuery, setCommittedQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
-
-  // Pull-to-refresh
-  const [pullState, setPullState] = useState<'idle' | 'pulling' | 'refreshing'>('idle')
-  const [pullDist, setPullDist] = useState(0)
-  const pullStartY = useRef(0)
-  const contentRef = useRef<HTMLDivElement>(null)
-
-  function handlePullStart(e: React.TouchEvent) {
-    if (isLoading || pullState === 'refreshing') return
-    if ((contentRef.current?.scrollTop ?? 0) > 0) return
-    pullStartY.current = e.touches[0].clientY
-    setPullState('pulling')
-  }
-
-  function handlePullMove(e: React.TouchEvent) {
-    if (pullState !== 'pulling') return
-    const dy = e.touches[0].clientY - pullStartY.current
-    if (dy <= 0) { setPullDist(0); setPullState('idle'); return }
-    setPullDist(Math.min(dy * 0.4, 80))
-  }
-
-  function handlePullEnd() {
-    if (pullState !== 'pulling') return
-    if (pullDist > 40) {
-      setPullState('refreshing')
-      queryClient.invalidateQueries({ queryKey: ['square-feed'] })
-    }
-    setPullDist(0)
-    setPullState('idle')
-  }
 
   // Sort state
   const [sortMode, setSortMode] = useState<SortMode>('latest')
@@ -384,23 +355,7 @@ export function SquarePage() {
       </div>
 
       {/* Content */}
-      <section
-        ref={contentRef}
-        onTouchStart={handlePullStart}
-        onTouchMove={handlePullMove}
-        onTouchEnd={handlePullEnd}
-        className="flex-1 overflow-y-auto min-h-0 px-4 pb-6 bg-neutral-50/60 [overscroll-behavior:none]"
-      >
-        {pullDist > 0 && (
-          <div className="flex justify-center pb-2" style={{ height: pullDist, overflow: 'hidden', transition: 'height 0.15s' }}>
-            <div className="flex items-center gap-1.5 text-xs text-neutral-400">
-              <svg className={`size-4 ${pullState === 'refreshing' ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" strokeLinecap="round" />
-              </svg>
-              {pullState === 'refreshing' ? '刷新中…' : pullDist > 40 ? '松手刷新' : '下拉刷新'}
-            </div>
-          </div>
-        )}
+      <section className="flex-1 overflow-y-auto min-h-0 px-4 pb-6 bg-neutral-50/60">
         <div className="flex items-center justify-center gap-1.5 pt-3 pb-2 text-xs text-neutral-500">
           <span>
             今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
@@ -587,7 +542,7 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
                 <PenSquare size={10} />
               )}
             </div>
-            <p className="truncate text-[10px] font-semibold text-sky-700">{item.nickname}</p>
+            <p className="truncate text-[10px] font-semibold text-sky-700">{item.nickname}<UserTitleBadge name={item.titleName} /></p>
           </div>
           <button
             type="button"
@@ -597,11 +552,11 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
             className={cn(
               'shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors disabled:opacity-50',
               liked
-                ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
-                : 'bg-orange-50 text-orange-700 ring-1 ring-orange-100 active:bg-orange-100',
+                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
+                : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 active:bg-emerald-100',
             )}
           >
-            <span className={liked ? '' : 'text-orange-500'}>{item.youpin_count}</span>
+            <span className={liked ? '' : 'text-emerald-600'}>{item.youpin_count}</span>
             有品
           </button>
         </div>

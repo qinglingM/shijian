@@ -11,6 +11,7 @@ import { RestaurantDetailPage } from '@/pages/RestaurantDetailPage'
 import { TierBucketPage } from '@/pages/TierBucketPage'
 import { DishDetailPage } from '@/pages/DishDetailPage'
 import { MePage } from '@/pages/MePage'
+import { MeTitlesPage } from '@/pages/MeTitlesPage'
 import { UserProfilePage } from '@/pages/UserProfilePage'
 import { MarksPage } from '@/pages/MarksPage'
 import { BolePage } from '@/pages/BolePage'
@@ -97,6 +98,7 @@ export function AppRouter() {
         />
         <Route path="/me/marks" element={<MarksPage />} />
         <Route path="/me/bole" element={<BolePage />} />
+        <Route path="/me/titles" element={<RequireAuth><MeTitlesPage /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/map" replace />} />
       </Route>
     </Routes>

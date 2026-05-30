@@ -9,6 +9,7 @@ export interface RestaurantDishReviewItem {
   dish_name: string
   dish_cover_image_url: string | null
   reviewer_nickname: string
+  titleName: string | null
   score: number | null
   comment: string | null
   image_url: string | null
@@ -26,6 +27,7 @@ interface ProfileSel {
   id: string
   nickname: string
   avatar_url: string | null
+  current_title_id: string | null
 }
 
 export function useRestaurantDishReviews(restaurantId: string | null) {
@@ -62,11 +64,18 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
       if (allUserIds.length) {
         const { data: profilesRaw } = await sb
           .from('profiles')
-          .select('id, nickname, avatar_url')
+          .select('id, nickname, avatar_url, current_title_id')
           .in('id', allUserIds)
         for (const p of (profilesRaw ?? []) as ProfileSel[]) {
           profileMap.set(p.id, p)
         }
+      }
+
+      const titleIds = [...new Set([...profileMap.values()].map(p => p.current_title_id).filter(Boolean))] as string[]
+      const titleMap = new Map<string, string>()
+      if (titleIds.length > 0) {
+        const { data: titleRows } = await sb.from('titles').select('id, name').in('id', titleIds)
+        for (const t of (titleRows ?? []) as Array<{id: string; name: string}>) titleMap.set(t.id, t.name)
       }
 
       const { data: drRaw, error: e2 } = await sb
@@ -133,6 +142,7 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
           dish_name: dishName,
           dish_cover_image_url: dishCover,
           reviewer_nickname: profile ? profile.nickname : ANONYMOUS_REVIEWER,
+          titleName: titleMap.get(profile?.current_title_id ?? '') ?? null,
           score: r.score,
           comment: r.comment,
           image_url: r.image_url,
