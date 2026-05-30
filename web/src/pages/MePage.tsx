@@ -316,19 +316,21 @@ export function MePage() {
         )}
       </section>
 
-      <section className="mt-4 rounded-2xl border border-neutral-100">
+      <section className="mt-4 rounded-2xl border border-neutral-100 overflow-hidden">
         <FeatureCard
           to="/me/marks"
           icon={<Bookmark size={18} />}
           title="我的标记"
           desc={`${data?.totalMarkCount ?? 0} 家门店`}
         />
+        <div className="border-b border-neutral-100" />
         <FeatureCard
           to="/me/bole"
           icon={<UsersRound size={18} />}
           title="我的伯乐"
           desc="你作为伯乐被记录的门店"
         />
+        <div className="border-b border-neutral-100" />
         <FeatureCard
           to="/auth?mode=forgot&redirect=/me"
           icon={<KeyRound size={18} />}
@@ -344,14 +346,16 @@ export function MePage() {
               {signOutError}
             </p>
           ) : null}
-          <button
-            type="button"
-            onClick={() => setShowLogoutConfirm(true)}
-            disabled={signingOut}
-            className="w-full rounded-2xl border border-neutral-200 py-3 text-sm text-neutral-600 active:bg-neutral-50 disabled:opacity-50"
-          >
-            {signingOut ? '退出中…' : '退出登录'}
-          </button>
+          <div className="rounded-2xl border border-neutral-100 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              disabled={signingOut}
+              className="w-full py-3 text-sm text-rose-500 active:bg-neutral-50 disabled:opacity-50"
+            >
+              {signingOut ? '退出中…' : '退出登录'}
+            </button>
+          </div>
         </section>
       ) : null}
 
@@ -425,7 +429,7 @@ function FeatureCard({
   desc: string
 }) {
   const content = (
-    <div className="flex items-start gap-3 border-b border-neutral-100 bg-white px-4 py-3 last:border-b-0 active:bg-neutral-50">
+    <div className="flex items-start gap-3 bg-white px-4 py-3 active:bg-neutral-50">
       <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700">
         {icon}
       </span>

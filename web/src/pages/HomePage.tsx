@@ -158,7 +158,7 @@ export function HomePage() {
       <div className="relative bg-neutral-100 pt-[env(safe-area-inset-top)]">
         {/* Header with filters + search + view toggle */}
         <header className="flex items-center justify-between px-4 py-0.5">
-          <h1 className="text-sm font-semibold tracking-tight text-neutral-900">我的食鉴图</h1>
+          <h1 className="text-lg font-semibold tracking-tight text-neutral-900">我的食鉴图</h1>
           <div className="flex items-center gap-1">
             <button
               type="button"

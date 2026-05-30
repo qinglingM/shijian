@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { RefreshCw, Search, PenSquare, ChevronDown } from 'lucide-react'
+import { RefreshCw, Search, PenSquare, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TIER_ORDER, TIER_LABEL, TIER_COLOR_VAR, TIER_SOFT_VAR, type Tier, type VoteType } from '@/lib/db'
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
@@ -65,6 +65,36 @@ export function SquarePage() {
   const [committedQuery, setCommittedQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // Pull-to-refresh
+  const [pullState, setPullState] = useState<'idle' | 'pulling' | 'refreshing'>('idle')
+  const [pullDist, setPullDist] = useState(0)
+  const pullStartY = useRef(0)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  function handlePullStart(e: React.TouchEvent) {
+    if (isLoading || pullState === 'refreshing') return
+    if ((contentRef.current?.scrollTop ?? 0) > 0) return
+    pullStartY.current = e.touches[0].clientY
+    setPullState('pulling')
+  }
+
+  function handlePullMove(e: React.TouchEvent) {
+    if (pullState !== 'pulling') return
+    const dy = e.touches[0].clientY - pullStartY.current
+    if (dy <= 0) { setPullDist(0); setPullState('idle'); return }
+    setPullDist(Math.min(dy * 0.4, 80))
+  }
+
+  function handlePullEnd() {
+    if (pullState !== 'pulling') return
+    if (pullDist > 40) {
+      setPullState('refreshing')
+      queryClient.invalidateQueries({ queryKey: ['square-feed'] })
+    }
+    setPullDist(0)
+    setPullState('idle')
+  }
 
   // Sort state
   const [sortMode, setSortMode] = useState<SortMode>('latest')
@@ -174,11 +204,11 @@ export function SquarePage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white pt-[env(safe-area-inset-top)]">
       {/* Toolbar wrapper (for absolute filter panel) */}
-      <div className="bg-white">
+      <div className="relative bg-white">
         {/* Search + Sort bar */}
         <section className="px-4 py-2">
           <div className="flex items-center gap-2">
-          <div className="flex flex-1 items-center gap-2">
+          <div className="flex flex-1 items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1.5">
             <Search size={15} className="shrink-0 text-neutral-400" />
             <input
               ref={inputRef}
@@ -194,6 +224,16 @@ export function SquarePage() {
               className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
               enterKeyHint="search"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => { setSearchQuery(''); setCommittedQuery(''); inputRef.current?.focus() }}
+                className="flex items-center justify-center size-5 rounded-full text-neutral-400 active:bg-neutral-200"
+                aria-label="清除搜索"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
           <button
             type="button"
@@ -249,7 +289,7 @@ export function SquarePage() {
       {filterOpen && (
         <>
           <div className="fixed inset-0 z-[997]" onClick={() => setFilterOpen(false)} />
-          <div className="fixed top-[calc(env(safe-area-inset-top)+3rem)] left-0 right-0 z-[999] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden" style={{ animation: 'shijian-slide-down 0.2s ease-out' }}>
+          <div className="absolute top-full left-0 right-0 z-[999] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden" style={{ animation: 'shijian-slide-down 0.2s ease-out' }}>
             <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
               {filterTab === 'city' && (
                 <div className="flex" style={{ height: '30dvh' }}>
@@ -344,7 +384,23 @@ export function SquarePage() {
       </div>
 
       {/* Content */}
-      <section className="flex-1 overflow-y-auto min-h-0 px-4 pb-6 bg-neutral-50/60 [overscroll-behavior:none]">
+      <section
+        ref={contentRef}
+        onTouchStart={handlePullStart}
+        onTouchMove={handlePullMove}
+        onTouchEnd={handlePullEnd}
+        className="flex-1 overflow-y-auto min-h-0 px-4 pb-6 bg-neutral-50/60 [overscroll-behavior:none]"
+      >
+        {pullDist > 0 && (
+          <div className="flex justify-center pb-2" style={{ height: pullDist, overflow: 'hidden', transition: 'height 0.15s' }}>
+            <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+              <svg className={`size-4 ${pullState === 'refreshing' ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" strokeLinecap="round" />
+              </svg>
+              {pullState === 'refreshing' ? '刷新中…' : pullDist > 40 ? '松手刷新' : '下拉刷新'}
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-center gap-1.5 pt-3 pb-2 text-xs text-neutral-500">
           <span>
             今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价

@@ -323,6 +323,7 @@ function BottomSheet({
       className="absolute bottom-3 left-3 right-3 z-[402] rounded-2xl bg-white shadow-2xl overflow-hidden"
         style={{ animation: exiting ? 'shijian-slide-down-out 0.22s ease-out forwards' : 'shijian-slide-up 0.22s ease-out' }}
       >
+      <Link to={`/restaurants/${r.id}`} className="block active:opacity-80">
         <div className="flex justify-center pt-2.5 pb-1">
           <div className="w-9 h-1 rounded-full bg-neutral-200" />
         </div>
@@ -384,7 +385,6 @@ function BottomSheet({
                 rowGap: 4,
               }}
             >
-              {/* Avatar: spans 2 rows */}
               <div style={{ gridArea: 'avatar' }} className="flex items-start">
                 {r.top_reviewer_avatar_url ? (
                   <img src={r.top_reviewer_avatar_url} alt="" className="w-[41px] h-[41px] rounded-full object-cover shrink-0" />
@@ -394,17 +394,14 @@ function BottomSheet({
                   </div>
                 )}
               </div>
-              {/* Username */}
               <div style={{ gridArea: 'name' }} className="flex items-center">
                 <p className="truncate text-[11px] font-semibold text-sky-700">
                   {r.top_reviewer_nickname}
                 </p>
               </div>
-              {/* Hot badge */}
               <div style={{ gridArea: 'hot' }} className="flex items-center justify-self-start">
                 <span className="whitespace-nowrap text-[11px] font-semibold text-orange-500">热评</span>
               </div>
-              {/* Meta: date + tier + youpin stacked */}
               <div style={{ gridArea: 'meta' }} className="flex flex-col items-center justify-self-end gap-0.5">
                 {dateStr ? (
                   <span className="text-[11px] text-neutral-400 whitespace-nowrap">{dateStr}</span>
@@ -412,7 +409,6 @@ function BottomSheet({
                 {r.review_tier ? <TierChip tier={r.review_tier} small /> : null}
                 <span className="text-[11px] text-neutral-500 whitespace-nowrap">有品 {r.review_youpin}</span>
               </div>
-              {/* Comment: spans columns 2-3 */}
               <div style={{ gridArea: 'comment' }} className="flex items-start">
                 <p className="flex-1 min-w-0 text-[15px] font-semibold text-neutral-700 leading-relaxed line-clamp-2">
                   {r.top_store_comment}
@@ -421,15 +417,7 @@ function BottomSheet({
             </div>
           </>
         )}
-
-        <div className="px-4 pb-4 pt-1">
-          <Link
-            to={`/restaurants/${r.id}`}
-            className="block w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[13px] font-semibold text-center shadow-sm"
-          >
-            查看店铺详情
-          </Link>
-        </div>
+      </Link>
       </div>
   )
 }
