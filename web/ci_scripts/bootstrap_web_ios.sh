@@ -25,9 +25,13 @@ fi
 
 cd "$REPO_DIR/web"
 
-NODE_VERSION="22.11.0"
+NODE_VERSION="22.12.0"
 NODE_HOME="$REPO_DIR/.ci-node/node"
 export PATH="$NODE_HOME/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+if [ -x "$NODE_HOME/bin/node" ] && [ "$("$NODE_HOME/bin/node" -v)" != "v$NODE_VERSION" ]; then
+  rm -rf "$NODE_HOME"
+fi
 
 if ! command -v node >/dev/null 2>&1; then
   case "$(uname -m)" in
