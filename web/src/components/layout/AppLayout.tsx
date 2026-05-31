@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { cn } from '@/lib/utils'
@@ -45,117 +45,6 @@ const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_
 
 const TAB_ROUTES = new Set(['/map', '/square', '/tier-map', '/me'])
 
-function SwipeBackHandler({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate()
-  const start = useRef({ x: 0, y: 0 })
-  const dragging = useRef(false)
-  const directionLocked = useRef(false)
-  const horizontalSwipe = useRef(false)
-  const navigatingBack = useRef(false)
-  const [slideX, setSlideX] = useState(0)
-  const animFrame = useRef<number>(0)
-  const navigateTimer = useRef<number | undefined>(undefined)
-
-  useEffect(() => {
-    function resetSwipe() {
-      dragging.current = false
-      directionLocked.current = false
-      horizontalSwipe.current = false
-      cancelAnimationFrame(animFrame.current)
-      setSlideX(0)
-    }
-
-    function handleTouchStart(e: TouchEvent) {
-      if (e.touches.length !== 1 || navigatingBack.current) return
-      if (e.touches[0].clientX > 30) return
-      if (!window.history.length || window.history.length <= 1) return
-      dragging.current = true
-      directionLocked.current = false
-      horizontalSwipe.current = false
-      start.current = {
-        x: e.touches[0].clientX,
-        y: e.touches[0].clientY,
-      }
-    }
-
-    function handleTouchMove(e: TouchEvent) {
-      if (!dragging.current || e.touches.length !== 1) return
-      const dx = e.touches[0].clientX - start.current.x
-      const dy = e.touches[0].clientY - start.current.y
-      if (!directionLocked.current && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
-        directionLocked.current = true
-        horizontalSwipe.current = dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.25
-      }
-      if (!horizontalSwipe.current) return
-      cancelAnimationFrame(animFrame.current)
-      animFrame.current = requestAnimationFrame(() => setSlideX(Math.min(Math.max(0, dx) * 0.6, window.innerWidth * 0.45)))
-    }
-
-    function handleTouchEnd(e: TouchEvent) {
-      if (!dragging.current) return
-      const dx = e.changedTouches[0].clientX - start.current.x
-      const shouldNavigateBack = horizontalSwipe.current && dx > 80
-      dragging.current = false
-      directionLocked.current = false
-      horizontalSwipe.current = false
-      cancelAnimationFrame(animFrame.current)
-      if (shouldNavigateBack) {
-        navigatingBack.current = true
-        setSlideX(window.innerWidth)
-        navigateTimer.current = window.setTimeout(() => {
-          setSlideX(0)
-          navigate(-1)
-          navigatingBack.current = false
-        }, 200)
-      } else {
-        setSlideX(0)
-      }
-    }
-
-    window.addEventListener('touchstart', handleTouchStart, { passive: true })
-    window.addEventListener('touchmove', handleTouchMove, { passive: true })
-    window.addEventListener('touchend', handleTouchEnd)
-    window.addEventListener('touchcancel', resetSwipe)
-    return () => {
-      window.removeEventListener('touchstart', handleTouchStart)
-      window.removeEventListener('touchmove', handleTouchMove)
-      window.removeEventListener('touchend', handleTouchEnd)
-      window.removeEventListener('touchcancel', resetSwipe)
-      cancelAnimationFrame(animFrame.current)
-      if (navigateTimer.current !== undefined) {
-        clearTimeout(navigateTimer.current)
-      }
-    }
-  }, [navigate])
-
-  return (
-    <div style={{ position: 'relative' }}>
-      {slideX > 0 && (
-        <div
-          className="fixed inset-0 z-0 flex items-center bg-neutral-100"
-          aria-hidden
-        >
-          <div className="ml-12 flex items-center gap-2 text-neutral-400">
-            <span className="text-lg">←</span>
-            <span className="text-sm">返回</span>
-          </div>
-        </div>
-      )}
-      <div
-        style={{
-          transform: slideX > 0 ? `translateX(${slideX}px)` : undefined,
-          transition: dragging.current ? 'none' : 'transform 0.25s ease-out',
-          position: slideX > 0 ? 'relative' : undefined,
-          zIndex: slideX > 0 ? 1 : undefined,
-          boxShadow: slideX > 0 ? '-4px 0 16px rgb(0 0 0 / 0.08)' : undefined,
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  )
-}
-
 export function AppLayout() {
   const { pathname } = useLocation()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
@@ -191,7 +80,7 @@ export function AppLayout() {
           <div className={pathname === '/tier-map' ? 'flex flex-col flex-1 min-h-0' : 'hidden'}><HomePage /></div>
           <div className={pathname === '/me' ? 'flex flex-col flex-1 min-h-0' : 'hidden'}><MePage /></div>
         </div>
-        {!isTabRoute && <SwipeBackHandler><Outlet /></SwipeBackHandler>}
+        {!isTabRoute && <Outlet />}
       </main>
 
       {!hideTabs && !keyboardOpen && (
@@ -223,7 +112,7 @@ export function AppLayout() {
 
 export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack }: { title: string; backTo?: string; rightSlot?: React.ReactNode; centerTitle?: boolean; onBack?: () => void }) {
   const navigate = useNavigate()
-  const shellClass = 'flex min-h-12 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)] pb-3'
+  const shellClass = 'flex h-[calc(3.5625rem+env(safe-area-inset-top))] shrink-0 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)] pb-3'
   const fixedShellClass = `${shellClass} fixed left-1/2 top-0 z-40 w-full max-w-md -translate-x-1/2 lg:max-w-3xl`
   const btn = (
     <button

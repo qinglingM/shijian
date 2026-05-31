@@ -61,22 +61,6 @@ export function MeSettingsPage() {
           <ChevronRight size={15} className="mt-1 shrink-0 text-neutral-400" />
         </button>
 
-        <div className="border-b border-neutral-100" />
-
-        <button
-          type="button"
-          onClick={() => navigate('/auth?mode=forgot&redirect=/me')}
-          className="flex items-start gap-3 w-full px-4 py-3 active:bg-neutral-50"
-        >
-          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700">
-            <KeyRound size={18} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium leading-5 text-neutral-900">修改密码</p>
-            <p className="mt-0.5 text-[11px] leading-4 text-neutral-500">通过手机验证码修改当前密码</p>
-          </div>
-          <ChevronRight size={15} className="mt-1 shrink-0 text-neutral-400" />
-        </button>
       </section>
 
       {isSupabaseConfigured && userId ? (
