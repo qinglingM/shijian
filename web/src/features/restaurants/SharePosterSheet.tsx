@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 import { QRCodeSVG } from 'qrcode.react'
 import html2canvas from 'html2canvas-pro'
-import { X, Download, Loader2 } from 'lucide-react'
+import { X, Download, Loader2, Share2 } from 'lucide-react'
 import type { Tier } from '@/lib/db'
 import { TIER_LABEL } from '@/lib/db'
 
@@ -31,17 +32,27 @@ const TIER_COLORS: Record<string, string> = {
   boom: '#A11A00',
 }
 
+interface PhotoLibraryPlugin {
+  saveImage(options: { dataUrl: string }): Promise<void>
+}
+
+const PhotoLibrary = registerPlugin<PhotoLibraryPlugin>('PhotoLibrary')
+
 export function SharePosterSheet({ open, onClose, restaurant, review, url }: SharePosterProps) {
   const posterRef = useRef<HTMLDivElement>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [activeAction, setActiveAction] = useState<'share' | 'save' | null>(null)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     document.body.style.overflow = 'hidden'
     setErrorMsg(null)
+    setToastMsg(null)
+    closeButtonRef.current?.focus()
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
       if (e.key === 'Tab' && dialogRef.current) {
@@ -64,47 +75,95 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
     return () => {
       document.body.style.overflow = ''
       window.removeEventListener('keydown', handleKey)
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current)
+        toastTimerRef.current = null
+      }
     }
   }, [open, onClose])
 
   if (!open) return null
 
-  async function handleSaveImage() {
-    if (!posterRef.current || isSaving) return
-    setIsSaving(true)
+  function showToast(message: string) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setToastMsg(message)
+    toastTimerRef.current = setTimeout(() => setToastMsg(null), 2500)
+  }
+
+  async function generatePoster() {
+    if (!posterRef.current) throw new Error('poster element missing')
+
+    const canvas = await html2canvas(posterRef.current, {
+      scale: 3,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#ffffff',
+    })
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((value) => resolve(value), 'image/png')
+    })
+    if (!blob) throw new Error('canvas toBlob failed')
+
+    const file = new File([blob], `食鉴分享-${restaurant.name}.png`, { type: 'image/png' })
+    return { blob, dataUrl: canvas.toDataURL('image/png'), file }
+  }
+
+  function downloadPoster(blob: Blob, filename: string) {
+    const objectUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.download = filename
+    link.href = objectUrl
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
+  }
+
+  async function handleShareImage() {
+    if (activeAction) return
+    setActiveAction('share')
     setErrorMsg(null)
 
     try {
-      const canvas = await html2canvas(posterRef.current, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-      })
-
-      const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((b) => resolve(b), 'image/png')
-      })
-      if (!blob) throw new Error('canvas toBlob failed')
-
-      const file = new File([blob], `食鉴分享-${restaurant.name}.png`, { type: 'image/png' })
+      const { blob, file } = await generatePoster()
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: '食鉴分享' })
       } else {
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.download = file.name
-        link.href = url
-        link.click()
-        URL.revokeObjectURL(url)
+        downloadPoster(blob, file.name)
+        showToast('图片已下载，可手动分享')
       }
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
       console.error('Failed to generate poster:', err)
       setErrorMsg('生成海报失败，请重试')
     } finally {
-      setIsSaving(false)
+      setActiveAction(null)
+    }
+  }
+
+  async function handleSaveImage() {
+    if (activeAction) return
+    setActiveAction('save')
+    setErrorMsg(null)
+
+    try {
+      const { blob, dataUrl, file } = await generatePoster()
+      if (Capacitor.isNativePlatform()) {
+        await PhotoLibrary.saveImage({ dataUrl })
+        showToast('已保存到相册')
+      } else {
+        downloadPoster(blob, file.name)
+        showToast('图片已下载')
+      }
+    } catch (err) {
+      console.error('Failed to save poster:', err)
+      const message = err instanceof Error ? err.message : String(err)
+      setErrorMsg(
+        message.includes('PERMISSION_DENIED') || message.includes('access denied')
+          ? '未获得相册权限，请在系统设置中允许访问相册'
+          : '保存图片失败，请重试'
+      )
+    } finally {
+      setActiveAction(null)
     }
   }
 
@@ -131,7 +190,9 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
           <div className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
             <p className="text-[16px] font-bold text-neutral-900">分享店铺</p>
             <button
+              ref={closeButtonRef}
               type="button"
+              aria-label="关闭分享弹窗"
               onClick={onClose}
               className="flex size-8 items-center justify-center rounded-full bg-neutral-200/50 text-neutral-500 active:bg-neutral-200"
             >
@@ -240,32 +301,50 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
             <p className="mt-4 text-center text-sm font-semibold text-red-500">{errorMsg}</p>
           )}
 
-          {/* Action Button */}
-          <div className="mt-6">
+          </div>
+
+          <div className="grid shrink-0 grid-cols-2 gap-3 border-t border-neutral-200 bg-white px-5 py-4">
             <button
               type="button"
-              onClick={handleSaveImage}
-              disabled={isSaving}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-neutral-900 px-4 py-3.5 text-[15px] font-bold text-white shadow-xl shadow-neutral-900/20 transition-all active:scale-[0.98] disabled:opacity-70"
+              onClick={handleShareImage}
+              disabled={activeAction !== null}
+              className="flex items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-3 py-3 text-[14px] font-bold text-neutral-900 transition-all active:scale-[0.98] disabled:opacity-70"
             >
-              {isSaving ? (
+              {activeAction === 'share' ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
                   生成海报中...
                 </>
               ) : (
                 <>
+                  <Share2 size={18} strokeWidth={2.5} />
+                  分享海报
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveImage}
+              disabled={activeAction !== null}
+              className="flex items-center justify-center gap-2 rounded-full bg-neutral-900 px-3 py-3 text-[14px] font-bold text-white shadow-xl shadow-neutral-900/20 transition-all active:scale-[0.98] disabled:opacity-70"
+            >
+              {activeAction === 'save' ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  保存中...
+                </>
+              ) : (
+                <>
                   <Download size={18} strokeWidth={2.5} />
-                  保存图片发给朋友
+                  保存到相册
                 </>
               )}
             </button>
           </div>
-          </div>
         </div>
-        {saved && (
+        {toastMsg && (
           <div className="fixed bottom-10 left-1/2 z-[200] -translate-x-1/2 rounded-full bg-neutral-900 px-4 py-2 text-sm text-white shadow-lg">
-            已保存到相册
+            {toastMsg}
           </div>
         )}
       </div>

@@ -47,43 +47,84 @@ const TAB_ROUTES = new Set(['/map', '/square', '/tier-map', '/me'])
 
 function SwipeBackHandler({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate()
-  const x = useRef(0)
+  const start = useRef({ x: 0, y: 0 })
   const dragging = useRef(false)
+  const directionLocked = useRef(false)
+  const horizontalSwipe = useRef(false)
+  const navigatingBack = useRef(false)
   const [slideX, setSlideX] = useState(0)
   const animFrame = useRef<number>(0)
+  const navigateTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
+    function resetSwipe() {
+      dragging.current = false
+      directionLocked.current = false
+      horizontalSwipe.current = false
+      cancelAnimationFrame(animFrame.current)
+      setSlideX(0)
+    }
+
     function handleTouchStart(e: TouchEvent) {
+      if (e.touches.length !== 1 || navigatingBack.current) return
       if (e.touches[0].clientX > 30) return
       if (!window.history.length || window.history.length <= 1) return
       dragging.current = true
-      x.current = e.touches[0].clientX
+      directionLocked.current = false
+      horizontalSwipe.current = false
+      start.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      }
     }
+
     function handleTouchMove(e: TouchEvent) {
-      if (!dragging.current) return
-      const dx = Math.max(0, e.touches[0].clientX - x.current)
-      cancelAnimationFrame(animFrame.current!)
-      animFrame.current = requestAnimationFrame(() => setSlideX(Math.min(dx * 0.6, window.innerWidth * 0.45)))
+      if (!dragging.current || e.touches.length !== 1) return
+      const dx = e.touches[0].clientX - start.current.x
+      const dy = e.touches[0].clientY - start.current.y
+      if (!directionLocked.current && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+        directionLocked.current = true
+        horizontalSwipe.current = dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.25
+      }
+      if (!horizontalSwipe.current) return
+      cancelAnimationFrame(animFrame.current)
+      animFrame.current = requestAnimationFrame(() => setSlideX(Math.min(Math.max(0, dx) * 0.6, window.innerWidth * 0.45)))
     }
+
     function handleTouchEnd(e: TouchEvent) {
       if (!dragging.current) return
+      const dx = e.changedTouches[0].clientX - start.current.x
+      const shouldNavigateBack = horizontalSwipe.current && dx > 80
       dragging.current = false
-      const dx = e.changedTouches[0].clientX - x.current
-      cancelAnimationFrame(animFrame.current!)
-      if (dx > 80) {
+      directionLocked.current = false
+      horizontalSwipe.current = false
+      cancelAnimationFrame(animFrame.current)
+      if (shouldNavigateBack) {
+        navigatingBack.current = true
         setSlideX(window.innerWidth)
-        setTimeout(() => navigate(-1), 200)
+        navigateTimer.current = window.setTimeout(() => {
+          setSlideX(0)
+          navigate(-1)
+          navigatingBack.current = false
+        }, 200)
       } else {
         setSlideX(0)
       }
     }
+
     window.addEventListener('touchstart', handleTouchStart, { passive: true })
     window.addEventListener('touchmove', handleTouchMove, { passive: true })
     window.addEventListener('touchend', handleTouchEnd)
+    window.addEventListener('touchcancel', resetSwipe)
     return () => {
       window.removeEventListener('touchstart', handleTouchStart)
       window.removeEventListener('touchmove', handleTouchMove)
       window.removeEventListener('touchend', handleTouchEnd)
+      window.removeEventListener('touchcancel', resetSwipe)
+      cancelAnimationFrame(animFrame.current)
+      if (navigateTimer.current !== undefined) {
+        clearTimeout(navigateTimer.current)
+      }
     }
   }, [navigate])
 
@@ -102,7 +143,7 @@ function SwipeBackHandler({ children }: { children: React.ReactNode }) {
       )}
       <div
         style={{
-          transform: `translateX(${slideX}px)`,
+          transform: slideX > 0 ? `translateX(${slideX}px)` : undefined,
           transition: dragging.current ? 'none' : 'transform 0.25s ease-out',
           position: slideX > 0 ? 'relative' : undefined,
           zIndex: slideX > 0 ? 1 : undefined,
@@ -182,6 +223,8 @@ export function AppLayout() {
 
 export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack }: { title: string; backTo?: string; rightSlot?: React.ReactNode; centerTitle?: boolean; onBack?: () => void }) {
   const navigate = useNavigate()
+  const shellClass = 'flex min-h-12 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)] pb-3'
+  const fixedShellClass = `${shellClass} fixed left-1/2 top-0 z-40 w-full max-w-md -translate-x-1/2 lg:max-w-3xl`
   const btn = (
     <button
       type="button"
@@ -201,23 +244,29 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
   )
   if (centerTitle) {
     return (
-      <header className="sticky top-0 z-10 flex min-h-12 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)] pb-3">
-        <div className="absolute left-4">{btn}</div>
-        <h1 className="flex-1 text-center text-base font-medium">{title}</h1>
-        {rightSlot ? (
-          <div className="absolute right-4 flex shrink-0 items-center gap-1">{rightSlot}</div>
-        ) : null}
-      </header>
+      <>
+        <div className={shellClass} aria-hidden />
+        <header className={fixedShellClass}>
+          <div className="absolute left-4">{btn}</div>
+          <h1 className="flex-1 text-center text-base font-medium">{title}</h1>
+          {rightSlot ? (
+            <div className="absolute right-4 flex shrink-0 items-center gap-1">{rightSlot}</div>
+          ) : null}
+        </header>
+      </>
     )
   }
   return (
-    <header className="sticky top-0 z-10 flex min-h-12 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)] pb-3">
-      {btn}
-      <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
-      {rightSlot ? (
-        <div className="flex shrink-0 items-center gap-1">{rightSlot}</div>
-      ) : null}
-    </header>
+    <>
+      <div className={shellClass} aria-hidden />
+      <header className={fixedShellClass}>
+        {btn}
+        <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
+        {rightSlot ? (
+          <div className="flex shrink-0 items-center gap-1">{rightSlot}</div>
+        ) : null}
+      </header>
+    </>
   )
 }
 
