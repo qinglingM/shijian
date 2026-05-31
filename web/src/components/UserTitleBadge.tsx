@@ -9,7 +9,7 @@ export function UserTitleBadge({ name, rarity }: { name: string | null | undefin
   if (!name) return null
   const gradient = RARITY_GRADIENTS[rarity ?? ''] ?? 'from-neutral-400 to-neutral-500'
   return (
-    <span className={`ml-1 inline-flex items-center rounded-full bg-gradient-to-r ${gradient} px-1.5 py-[1px] text-[8px] font-semibold text-white leading-normal align-middle`}>
+    <span className={`ml-1 shrink-0 inline-flex items-center rounded-full bg-gradient-to-r ${gradient} px-1.5 py-[1px] text-[8px] font-semibold text-white leading-normal align-middle`}>
       {name}
     </span>
   )

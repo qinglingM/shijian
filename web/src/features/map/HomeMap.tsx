@@ -455,10 +455,9 @@ function BottomSheet({
                   </div>
                 )}
               </div>
-              <div style={{ gridArea: 'name' }} className="flex items-center">
-                <p className="truncate text-[11px] font-semibold text-sky-700">
-                  {r.top_reviewer_nickname}<UserTitleBadge name={r.titleName} rarity={r.titleRarity} />
-                </p>
+              <div style={{ gridArea: 'name' }} className="flex items-center gap-0.5 min-w-0">
+                <p className="truncate text-[11px] font-semibold text-sky-700">{r.top_reviewer_nickname}</p>
+                <UserTitleBadge name={r.titleName} rarity={r.titleRarity} />
               </div>
               <div style={{ gridArea: 'hot' }} className="flex items-center justify-self-start">
                 <span className="whitespace-nowrap text-[11px] font-semibold text-orange-500">热评</span>
@@ -653,7 +652,7 @@ export function HomeMap() {
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full overflow-hidden">
       {/* Toolbar + Filter panel */}
       <div className="absolute top-0 left-0 right-0 z-[999]">
         <div className="relative bg-white shadow-sm pt-[env(safe-area-inset-top)]">
@@ -662,7 +661,7 @@ export function HomeMap() {
             onInteract={dismiss}
           />
           {/* Filter buttons: browser-tab style, equal-width */}
-          <div className="flex bg-neutral-50/40">
+          <div className="flex bg-neutral-50/40 z-[998] relative">
           <button
             onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
             className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${

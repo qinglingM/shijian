@@ -3,7 +3,6 @@ import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-
 import { Link } from 'react-router-dom'
 import { RefreshCw, Search, PenSquare, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { UserTitleBadge } from '@/components/UserTitleBadge'
 import { TIER_ORDER, TIER_LABEL, TIER_COLOR_VAR, TIER_SOFT_VAR, type Tier, type VoteType } from '@/lib/db'
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
 import { useTodayPracticeCount } from '@/features/square/useTodayPracticeCount'
@@ -47,6 +46,13 @@ const AMAP_MID_CATEGORIES: { name: string; subs: string[] }[] = [
   { name: '甜品店', subs: [] },
   { name: '餐饮相关场所', subs: [] },
 ]
+
+const RARITY_TEXT: Record<string, string> = {
+  legendary: 'text-amber-800',
+  epic: 'text-indigo-500',
+  rare: 'text-sky-600',
+  common: 'text-emerald-600',
+}
 
 export function SquarePage() {
   const queryClient = useQueryClient()
@@ -542,7 +548,7 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
                 <PenSquare size={10} />
               )}
             </div>
-            <p className="truncate text-[10px] font-semibold text-sky-700">{item.nickname}<UserTitleBadge name={item.titleName} rarity={item.titleRarity} /></p>
+            <p className={`truncate text-[10px] font-semibold ${RARITY_TEXT[item.titleRarity ?? ''] ?? 'text-sky-700'}`}>{item.nickname}</p>
           </div>
           <button
             type="button"
