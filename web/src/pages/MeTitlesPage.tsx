@@ -56,6 +56,10 @@ export function MeTitlesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-title-equipped', userId] })
       queryClient.invalidateQueries({ queryKey: ['me-summary', userId] })
+      queryClient.invalidateQueries({ queryKey: ['square-feed'] })
+      queryClient.invalidateQueries({ queryKey: ['map-restaurants'] })
+      queryClient.invalidateQueries({ queryKey: ['store-reviews'] })
+      queryClient.invalidateQueries({ queryKey: ['restaurant-dish-feed'] })
     },
     onSettled: () => setEquipping(null),
   })
@@ -72,6 +76,10 @@ export function MeTitlesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-title-equipped', userId] })
       queryClient.invalidateQueries({ queryKey: ['me-summary', userId] })
+      queryClient.invalidateQueries({ queryKey: ['square-feed'] })
+      queryClient.invalidateQueries({ queryKey: ['map-restaurants'] })
+      queryClient.invalidateQueries({ queryKey: ['store-reviews'] })
+      queryClient.invalidateQueries({ queryKey: ['restaurant-dish-feed'] })
     },
   })
 

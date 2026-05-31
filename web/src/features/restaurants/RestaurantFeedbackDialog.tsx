@@ -31,6 +31,8 @@ export function RestaurantFeedbackDialog({ open, onClose, restaurantId, restaura
     setContact('')
     setDone(false)
     setError(null)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
       if (e.key === 'Tab' && dialogRef.current) {
@@ -42,7 +44,10 @@ export function RestaurantFeedbackDialog({ open, onClose, restaurantId, restaura
       }
     }
     window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
+    return () => {
+      window.removeEventListener('keydown', handleKey)
+      document.body.style.overflow = prev
+    }
   }, [open, onClose])
 
   if (!open) return null
@@ -65,7 +70,8 @@ export function RestaurantFeedbackDialog({ open, onClose, restaurantId, restaura
       if (err) throw err
       setDone(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : '提交失败，请稍后重试')
+      console.error('feedback submit error', e)
+      setError((e as { message?: string })?.message ?? '提交失败，请稍后重试')
     } finally {
       setSubmitting(false)
     }
@@ -74,7 +80,7 @@ export function RestaurantFeedbackDialog({ open, onClose, restaurantId, restaura
   return (
     <>
       <button type="button" aria-label="关闭" className="fixed inset-0 z-40 cursor-default bg-black/40" onClick={onClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none">
+      <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none" onTouchStart={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
         <div className="pointer-events-auto w-full max-w-sm rounded-2xl bg-white shadow-xl">
           <div className="px-5 pt-5 pb-2">
             <h2 className="text-[17px] font-semibold text-neutral-900">反馈</h2>

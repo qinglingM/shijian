@@ -179,25 +179,102 @@ export function HomePage() {
           </div>
         </header>
 
-        {/* Filter buttons row */}
-        <div className="flex items-center gap-2 px-4 pb-1 z-[998] relative bg-neutral-50/60">
-          <button
-            onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
-            className={`text-[13px] font-semibold transition-colors ${
-              appliedCity ? 'text-blue-600' : 'text-neutral-500'
-            }`}
-          >
-            {appliedCity || '城市'}
-          </button>
-          <span className="text-neutral-300 shrink-0">|</span>
-          <button
-            onClick={() => { setPendingCategory(appliedCategory); setFilterTab('category'); setFilterOpen(true) }}
-            className={`text-[13px] font-semibold transition-colors ${
-              appliedCategory ? 'text-blue-600' : 'text-neutral-500'
-            }`}
-          >
-            {appliedCategory || '种类'}
-          </button>
+        {/* Filter buttons row + panel */}
+        <div className="relative bg-neutral-50/60">
+          <div className="flex items-center gap-2 px-4 pb-1">
+            <button
+              onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
+              className={`text-[13px] font-semibold transition-colors ${
+                appliedCity ? 'text-blue-600' : 'text-neutral-500'
+              }`}
+            >
+              {appliedCity || '城市'}
+            </button>
+            <span className="text-neutral-300 shrink-0">|</span>
+            <button
+              onClick={() => { setPendingCategory(appliedCategory); setFilterTab('category'); setFilterOpen(true) }}
+              className={`text-[13px] font-semibold transition-colors ${
+                appliedCategory ? 'text-blue-600' : 'text-neutral-500'
+              }`}
+            >
+              {appliedCategory || '种类'}
+            </button>
+          </div>
+
+          {/* Filter panel */}
+          {filterOpen && (
+            <>
+              <div className="fixed inset-0 z-[997]" onClick={() => setFilterOpen(false)} />
+              <div
+                className="absolute top-full left-0 right-0 z-[998] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden"
+                style={{ animation: 'shijian-slide-down 0.2s ease-out' }}
+              >
+                <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
+                  {filterTab === 'city' && (
+                    <div className="flex" style={{ height: '30dvh' }}>
+                      <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                        {provinces.map(([pname]) => (
+                          <button key={pname} onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
+                            className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedProvince === pname ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
+                            {pname}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex-1 overflow-y-auto">
+                        {(() => {
+                          const cities = selectedProvince ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? [] : []
+                          return cities.length > 0 ? cities.map((name) => (
+                            <button key={name} onClick={() => setPendingCity(pendingCity === name ? null : name)}
+                              className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                              {name}
+                            </button>
+                          )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                  {filterTab === 'category' && (
+                    <div className="flex" style={{ height: '30dvh' }}>
+                      <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
+                        {categoryGroups.map((g) => (
+                          <button key={g.name} onClick={() => {
+                            if (g.subs.length === 0) {
+                              setPendingCategory(pendingCategory === g.name ? null : g.name)
+                              setSelectedBigCategory(null)
+                            } else if (selectedBigCategory === g.name) {
+                              setSelectedBigCategory(null)
+                              setPendingCategory(null)
+                            } else {
+                              setSelectedBigCategory(g.name)
+                              setPendingCategory(g.name)
+                            }
+                          }}
+                            className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedBigCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
+                            {g.name}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex-1 overflow-y-auto">
+                        {(() => {
+                          const active = categoryGroups.find(g => g.name === selectedBigCategory)
+                          return active && active.subs.length > 0 ? active.subs.map((sub) => (
+                            <button key={sub} onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
+                              className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                              {sub}
+                            </button>
+                          )) : null
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
+                  <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
+                  <button onClick={() => { setAppliedCity(pendingCity); setAppliedCategory(pendingCategory); setFilterOpen(false) }} className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600">确定</button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <p className="px-4 pb-2 text-center text-[12px] text-neutral-500">
@@ -205,81 +282,6 @@ export function HomePage() {
           <span className="font-semibold text-orange-600">{map.total_count}</span>
           {' '}条实践记录
         </p>
-
-        {/* Filter panel */}
-        {filterOpen && (
-          <>
-            <div className="fixed inset-0 z-[997]" onClick={() => setFilterOpen(false)} />
-            <div
-              className="absolute top-full left-0 right-0 z-[998] mx-auto max-w-md bg-white shadow-xl rounded-b-2xl overflow-hidden"
-              style={{ animation: 'shijian-slide-down 0.2s ease-out' }}
-            >
-              <div className="overflow-y-auto" style={{ maxHeight: '45dvh' }}>
-                {filterTab === 'city' && (
-                  <div className="flex" style={{ height: '30dvh' }}>
-                    <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
-                      {provinces.map(([pname]) => (
-                        <button key={pname} onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
-                          className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedProvince === pname ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
-                          {pname}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex-1 overflow-y-auto">
-                      {(() => {
-                        const cities = selectedProvince ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? [] : []
-                        return cities.length > 0 ? cities.map((name) => (
-                          <button key={name} onClick={() => setPendingCity(pendingCity === name ? null : name)}
-                            className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
-                            {name}
-                          </button>
-                        )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
-                      })()}
-                    </div>
-                  </div>
-                )}
-                {filterTab === 'category' && (
-                  <div className="flex" style={{ height: '30dvh' }}>
-                    <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
-                      {categoryGroups.map((g) => (
-                        <button key={g.name} onClick={() => {
-                          if (g.subs.length === 0) {
-                            setPendingCategory(pendingCategory === g.name ? null : g.name)
-                            setSelectedBigCategory(null)
-                          } else if (selectedBigCategory === g.name) {
-                            setSelectedBigCategory(null)
-                            setPendingCategory(null)
-                          } else {
-                            setSelectedBigCategory(g.name)
-                            setPendingCategory(g.name)
-                          }
-                        }}
-                          className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedBigCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
-                          {g.name}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex-1 overflow-y-auto">
-                      {(() => {
-                        const active = categoryGroups.find(g => g.name === selectedBigCategory)
-                        return active && active.subs.length > 0 ? active.subs.map((sub) => (
-                          <button key={sub} onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
-                            className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
-                            {sub}
-                          </button>
-                        )) : null
-                      })()}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
-                <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
-                <button onClick={() => { setAppliedCity(pendingCity); setAppliedCategory(pendingCategory); setFilterOpen(false) }} className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600">确定</button>
-              </div>
-            </div>
-          </>
-        )}
       </div>
 
       <section className="flex flex-1 flex-col">

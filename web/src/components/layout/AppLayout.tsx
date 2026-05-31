@@ -88,8 +88,29 @@ function SwipeBackHandler({ children }: { children: React.ReactNode }) {
   }, [navigate])
 
   return (
-    <div style={{ transform: `translateX(${slideX}px)`, transition: dragging.current ? 'none' : 'transform 0.25s ease-out' }}>
-      {children}
+    <div style={{ position: 'relative' }}>
+      {slideX > 0 && (
+        <div
+          className="fixed inset-0 z-0 flex items-center bg-neutral-100"
+          aria-hidden
+        >
+          <div className="ml-12 flex items-center gap-2 text-neutral-400">
+            <span className="text-lg">←</span>
+            <span className="text-sm">返回</span>
+          </div>
+        </div>
+      )}
+      <div
+        style={{
+          transform: `translateX(${slideX}px)`,
+          transition: dragging.current ? 'none' : 'transform 0.25s ease-out',
+          position: slideX > 0 ? 'relative' : undefined,
+          zIndex: slideX > 0 ? 1 : undefined,
+          boxShadow: slideX > 0 ? '-4px 0 16px rgb(0 0 0 / 0.08)' : undefined,
+        }}
+      >
+        {children}
+      </div>
     </div>
   )
 }
