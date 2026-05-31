@@ -181,7 +181,7 @@ export function SquarePage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white pt-[var(--app-safe-area-inset-top)]">
+    <div className="flex min-h-0 flex-1 flex-col bg-white pt-[env(safe-area-inset-top)]">
       {/* Toolbar wrapper (for absolute filter panel) */}
       <div className="relative bg-white">
         {/* Search + Sort bar */}

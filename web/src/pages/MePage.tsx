@@ -183,7 +183,7 @@ export function MePage() {
   }
 
   return (
-    <div className="bg-white px-5 py-5 pt-[max(var(--app-safe-area-inset-top),1.25rem)] overflow-y-auto">
+    <div className="bg-white px-5 py-5 pt-[max(env(safe-area-inset-top),1.25rem)] overflow-y-auto">
       <h1 className="mb-4 text-lg font-semibold text-neutral-900">个人中心</h1>
       <section className="relative overflow-hidden rounded-3xl border border-orange-200 bg-white p-4 shadow-sm shadow-orange-500/10">
         <div className="pointer-events-none absolute -top-16 -right-12 z-0 size-36 rounded-full border-[18px] border-pink-200/50" />

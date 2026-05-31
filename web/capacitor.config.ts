@@ -5,6 +5,9 @@ const config: CapacitorConfig = {
   appName: '食鉴',
   webDir: 'dist',
   plugins: {
+    App: {
+      disableBackButtonHandler: false,
+    },
     StatusBar: {
       style: 'LIGHT',
       backgroundColor: '#ffffff',

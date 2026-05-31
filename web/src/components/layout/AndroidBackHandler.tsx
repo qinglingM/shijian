@@ -37,6 +37,8 @@ export function useAndroidBackDismiss(open: boolean, onDismiss: () => void) {
 export function AndroidBackHandler() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const pathnameRef = useRef(pathname)
+  pathnameRef.current = pathname
 
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'android') return
@@ -44,14 +46,15 @@ export function AndroidBackHandler() {
     let active = true
     let removeListener: (() => Promise<void>) | undefined
 
-    void App.addListener('backButton', ({ canGoBack }) => {
+    void App.addListener('backButton', () => {
+      const currentPathname = pathnameRef.current
       if (dismissTopLayer()) return
-      if (ROOT_ROUTES.has(pathname)) {
+      if (ROOT_ROUTES.has(currentPathname)) {
         void App.minimizeApp()
-      } else if (canGoBack) {
-        window.history.back()
+      } else if ((window.history.state?.idx ?? 0) > 0) {
+        navigate(-1)
       } else {
-        navigate(fallbackRoute(pathname), { replace: true })
+        navigate(fallbackRoute(currentPathname), { replace: true })
       }
     }).then((handle) => {
       if (active) {
@@ -65,7 +68,7 @@ export function AndroidBackHandler() {
       active = false
       void removeListener?.()
     }
-  }, [navigate, pathname])
+  }, [navigate])
 
   return null
 }
