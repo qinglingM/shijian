@@ -81,8 +81,9 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
       const titleMap = new Map<string, { name: string; rarity: string }>()
       if (titleIds.length > 0) {
         const { data: utRows } = await sb.from('user_titles').select('id, title_id, titles!inner(name, rarity)').in('id', titleIds)
-        for (const ut of (utRows ?? []) as Array<{id: string; titles: {name: string; rarity: string}[]}>) {
-          if (ut.titles?.[0]) titleMap.set(ut.id, { name: ut.titles[0].name, rarity: ut.titles[0].rarity })
+        for (const ut of (utRows ?? []) as unknown as Array<{id: string; titles: {name: string; rarity: string}}>) {
+          const t = ut.titles
+          if (t?.name) titleMap.set(ut.id, { name: t.name, rarity: t.rarity })
         }
       }
 
