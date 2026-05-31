@@ -147,8 +147,8 @@ export function AppLayout() {
         <div className={isTabRoute ? 'contents' : 'hidden'}>
           <div className={pathname === '/map' ? 'h-full' : 'hidden'}><HomeMap /></div>
           <div className={pathname === '/square' ? 'flex flex-col flex-1 min-h-0' : 'hidden'}><SquarePage /></div>
-          <div className={pathname === '/tier-map' ? '' : 'hidden'}><HomePage /></div>
-          <div className={pathname === '/me' ? '' : 'hidden'}><MePage /></div>
+          <div className={pathname === '/tier-map' ? 'flex flex-col flex-1 min-h-0' : 'hidden'}><HomePage /></div>
+          <div className={pathname === '/me' ? 'flex flex-col flex-1 min-h-0' : 'hidden'}><MePage /></div>
         </div>
         {!isTabRoute && <SwipeBackHandler><Outlet /></SwipeBackHandler>}
       </main>

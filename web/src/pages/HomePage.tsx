@@ -154,7 +154,7 @@ export function HomePage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] flex-col">
+    <div className="flex flex-1 flex-col min-h-0">
       <div className="relative bg-neutral-100 pt-[env(safe-area-inset-top)]">
         {/* Header with filters + search + view toggle */}
         <header className="flex items-center justify-between px-4 py-0.5">
@@ -284,8 +284,8 @@ export function HomePage() {
         </p>
       </div>
 
-      <section className="flex flex-1 flex-col">
-        <div className="flex-1">
+      <section className="flex flex-1 flex-col min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0">
           {isLoading && !showingDemo ? (
             <p className="py-12 text-center text-sm text-neutral-400">载入中…</p>
           ) : error && !showingDemo ? (
@@ -321,43 +321,42 @@ function TierListView({ items }: { items: FlatItem[] }) {
     )
   }
   return (
-    <ul className="space-y-2">
-      {items.map((item) => (
-        <li key={item.id}>
-          <Link
-            to={`/restaurants/${item.id}`}
-            className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-3 shadow-sm active:bg-neutral-50"
-          >
-            <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-neutral-100">
-              {item.cover_image_url ? (
-                <img src={item.cover_image_url} alt="" className="size-full object-cover" />
-              ) : (
-                <span className="px-1 text-center text-[10px] font-semibold leading-tight text-neutral-400">
-                  {item.display_name.slice(0, 4)}
-                </span>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-bold text-neutral-950">{item.display_name}</p>
-              {item.practiced_at && (
-                <p className="mt-0.5 text-[11px] text-neutral-400">
-                  {new Date(item.practiced_at).toLocaleDateString('zh-CN', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-              )}
-            </div>
-            <span
-              className="shrink-0 w-[3.5rem] text-center rounded-full px-1.5 py-1 text-[11px] font-semibold leading-none"
-              style={{ background: TIER_COLOR_VAR[item.tier], color: tierTextColor(item.tier) }}
+    <ul className="space-y-2 px-[2.5%] pt-3">
+      {items.map((item) => {
+        const city = item.city_name?.trim() ?? null
+        const category = item.category_name?.trim() ?? item.amap_mid_category?.trim() ?? null
+        const locationLine = [city, category].filter(Boolean).join(' · ')
+        return (
+          <li key={item.id}>
+            <Link
+              to={`/restaurants/${item.id}`}
+              className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-white p-3 shadow-sm active:bg-neutral-50"
             >
-              {TIER_LABEL[item.tier]}
-            </span>
-          </Link>
-        </li>
-      ))}
+              <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-neutral-100">
+                {item.cover_image_url ? (
+                  <img src={item.cover_image_url} alt="" className="size-full object-cover" />
+                ) : (
+                  <span className="px-1 text-center text-[10px] font-semibold leading-tight text-neutral-400">
+                    {item.display_name.slice(0, 4)}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[15px] font-bold text-neutral-950">{item.display_name}</p>
+                {locationLine && (
+                  <p className="mt-0.5 text-[12px] text-neutral-400 truncate">{locationLine}</p>
+                )}
+              </div>
+              <span
+                className="shrink-0 w-[3.5rem] text-center rounded-full px-1.5 py-1 text-[11px] font-semibold leading-none"
+                style={{ background: TIER_COLOR_VAR[item.tier], color: tierTextColor(item.tier) }}
+              >
+                {TIER_LABEL[item.tier]}
+              </span>
+            </Link>
+          </li>
+        )
+      })}
     </ul>
   )
 }

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Award,
@@ -12,9 +11,6 @@ import { Link, Navigate } from 'react-router-dom'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { ProfileRow } from '@/lib/db'
 import { useAuthStore } from '@/stores/authStore'
-
-/** 与 AuthBootstrap 一致，用于退出失败时的提示文案 */
-const FIXTURE_AUTO_LOGIN = import.meta.env.VITE_FIXTURE_AUTO_LOGIN === 'true'
 
 interface MeActivityItem {
   id: string
@@ -53,10 +49,6 @@ interface MarkRestaurantRow {
 
 export function MePage() {
   const userId = useAuthStore((s) => s.user?.id ?? null)
-  const setSession = useAuthStore((s) => s.setSession)
-  const [signingOut, setSigningOut] = useState(false)
-  const [signOutError, setSignOutError] = useState<string | null>(null)
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const { data, isLoading } = useQuery<MeSummary>({
     queryKey: ['me-summary', userId],
     enabled: !!userId,
@@ -190,38 +182,8 @@ export function MePage() {
     return <Navigate to="/auth?redirect=/me" replace />
   }
 
-  async function handleSignOut() {
-    setSignOutError(null)
-    setSigningOut(true)
-    try {
-      const sb = getSupabase()
-      // 默认 global 会先请求服务端注销；请求失败且非 401/403/404 时，库里不会清空本地会话，表现为「点了退出却仍登录」
-      let { error } = await sb.auth.signOut({ scope: 'global' })
-      if (error) {
-        console.warn('[shijian] signOut(global):', error.message)
-        ;({ error } = await sb.auth.signOut({ scope: 'local' }))
-        if (error) console.warn('[shijian] signOut(local):', error.message)
-      }
-
-      const { data: sessionData } = await sb.auth.getSession()
-      if (!sessionData.session) {
-        setSession(null)
-        return
-      }
-
-      const hint =
-        '仍然无法退出多半是：① 与服务器的连接被拦截或服务异常；② 浏览器开了多个本站标签页，另一端又自动登录成功。可先关掉其它标签再试。'
-      const fixtureHint = FIXTURE_AUTO_LOGIN
-        ? ` 若在 .env.local 里开启了「VITE_FIXTURE_AUTO_LOGIN=true」，刷新页面会再次自动用测试账号登录，这不是退出失败——请关掉该选项或删掉 fixture 帐号密码后再试刷新。`
-        : ''
-      setSignOutError(hint + fixtureHint)
-    } finally {
-      setSigningOut(false)
-    }
-  }
-
   return (
-    <div className="bg-white px-5 py-5 pt-[max(env(safe-area-inset-top),1.25rem)]">
+    <div className="bg-white px-5 py-5 pt-[max(env(safe-area-inset-top),1.25rem)] overflow-y-auto">
       <h1 className="mb-4 text-lg font-semibold text-neutral-900">个人中心</h1>
       <section className="relative overflow-hidden rounded-3xl border border-orange-200 bg-white p-4 shadow-sm shadow-orange-500/10">
         <div className="pointer-events-none absolute -top-16 -right-12 z-0 size-36 rounded-full border-[18px] border-pink-200/50" />
@@ -318,66 +280,12 @@ export function MePage() {
         />
         <div className="border-b border-neutral-100" />
         <FeatureCard
-          to="/auth?mode=forgot&redirect=/me"
+          to="/me/settings"
           icon={<KeyRound size={18} />}
-          title="设置密码"
-          desc="用手机验证码重置或设置登录密码"
+          title="登录设置"
+          desc="密码设置与退出登录"
         />
       </section>
-
-      {isSupabaseConfigured && userId ? (
-        <section className="mt-5 pb-2">
-          {signOutError ? (
-            <p className="mb-3 rounded-xl bg-orange-50 px-3 py-2 text-[11px] leading-5 text-orange-950">
-              {signOutError}
-            </p>
-          ) : null}
-          <div className="rounded-2xl border border-neutral-100 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowLogoutConfirm(true)}
-              disabled={signingOut}
-              className="w-full py-3 text-sm text-rose-500 active:bg-neutral-50 disabled:opacity-50"
-            >
-              {signingOut ? '退出中…' : '退出登录'}
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      {showLogoutConfirm ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 pb-28 sm:items-center sm:pb-8">
-          <div
-            role="dialog"
-            aria-labelledby="logout-confirm-title"
-            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
-          >
-            <p id="logout-confirm-title" className="text-base font-medium text-neutral-900">
-              确认退出登录？
-            </p>
-            <p className="mt-2 text-xs leading-5 text-neutral-500">退出后仍可随时使用手机号与密码重新登录。</p>
-            <div className="mt-5 flex gap-3">
-              <button
-                type="button"
-                className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm text-neutral-700"
-                onClick={() => setShowLogoutConfirm(false)}
-              >
-                取消
-              </button>
-              <button
-                type="button"
-                className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-2.5 text-sm font-medium text-white shadow-sm"
-                onClick={() => {
-                  setShowLogoutConfirm(false)
-                  void handleSignOut()
-                }}
-              >
-                退出登录
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   )
 }
