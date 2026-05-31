@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas-pro'
 import { X, Download, Loader2, Share2 } from 'lucide-react'
 import type { Tier } from '@/lib/db'
 import { TIER_LABEL } from '@/lib/db'
+import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 
 export interface SharePosterProps {
   open: boolean
@@ -39,6 +40,7 @@ interface PhotoLibraryPlugin {
 const PhotoLibrary = registerPlugin<PhotoLibraryPlugin>('PhotoLibrary')
 
 export function SharePosterSheet({ open, onClose, restaurant, review, url }: SharePosterProps) {
+  useAndroidBackDismiss(open, onClose)
   const posterRef = useRef<HTMLDivElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)

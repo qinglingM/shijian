@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Cropper, { type Area, type Point } from 'react-easy-crop'
 import { cropImageToBlob } from '@/lib/cropImage'
+import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 
 type ImageCropDialogProps = {
   open: boolean
@@ -21,6 +22,7 @@ export function ImageCropDialog({
   onCancel,
   onConfirm,
 }: ImageCropDialogProps) {
+  useAndroidBackDismiss(open, onCancel)
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
@@ -74,7 +76,7 @@ export function ImageCropDialog({
 
   return (
     <div ref={dialogRef} className="fixed inset-0 z-50 flex flex-col bg-black/80">
-      <div className="flex h-12 shrink-0 items-center justify-center px-4 pt-[env(safe-area-inset-top)] text-white">
+      <div className="flex h-12 shrink-0 items-center justify-center px-4 pt-[var(--app-safe-area-inset-top)] text-white">
         <p className="text-sm font-medium">{title}</p>
       </div>
 

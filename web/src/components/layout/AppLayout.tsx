@@ -112,7 +112,7 @@ export function AppLayout() {
 
 export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack }: { title: string; backTo?: string; rightSlot?: React.ReactNode; centerTitle?: boolean; onBack?: () => void }) {
   const navigate = useNavigate()
-  const shellClass = 'flex h-[calc(3.5625rem+env(safe-area-inset-top))] shrink-0 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)] pb-3'
+  const shellClass = 'flex h-[calc(3.5625rem+var(--app-safe-area-inset-top))] shrink-0 items-center border-b border-neutral-200 bg-white px-4 pt-[var(--app-safe-area-inset-top)] pb-3'
   const fixedShellClass = `${shellClass} fixed left-1/2 top-0 z-40 w-full max-w-md -translate-x-1/2 lg:max-w-3xl`
   const btn = (
     <button

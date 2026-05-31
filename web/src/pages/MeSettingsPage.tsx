@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, KeyRound, LogOut } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
+import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -12,6 +13,7 @@ export function MeSettingsPage() {
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState<string | null>(null)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  useAndroidBackDismiss(showLogoutConfirm, () => setShowLogoutConfirm(false))
 
   async function handleSignOut() {
     setSignOutError(null)

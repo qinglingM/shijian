@@ -13,6 +13,7 @@ import { UserTitleBadge } from '@/components/UserTitleBadge'
 import { TIER_ORDER, TIER_LABEL, type Tier } from '@/lib/db'
 import type { PoiCandidate } from '@/lib/poi'
 import { useCities } from '@/features/city-picker/useCities'
+import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 
 const ChinaCenter: L.LatLngExpression = [35.86, 104.19]
 
@@ -500,6 +501,7 @@ export function HomeMap() {
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false)
+  useAndroidBackDismiss(filterOpen, () => setFilterOpen(false))
   const [filterTab, setFilterTab] = useState<'city' | 'tier' | 'category'>('city')
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
   const [selectedBigCategory, setSelectedBigCategory] = useState<string | null>(null)
@@ -655,7 +657,7 @@ export function HomeMap() {
     <div className="relative h-full w-full overflow-hidden">
       {/* Toolbar + Filter panel */}
       <div className="absolute top-0 left-0 right-0 z-[999] bg-white">
-        <div className="h-[env(safe-area-inset-top)] shrink-0 bg-white" aria-hidden />
+        <div className="h-[var(--app-safe-area-inset-top)] shrink-0 bg-white" aria-hidden />
         <div className="relative bg-white shadow-sm">
           <SearchBar
             onOpenPoi={handleOpenPoi}

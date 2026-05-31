@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
+import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 
 type FeedbackType = 'error_info' | 'duplicate'
 
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function RestaurantFeedbackDialog({ open, onClose, restaurantId, restaurantName }: Props) {
+  useAndroidBackDismiss(open, onClose)
   const [type, setType] = useState<FeedbackType>('error_info')
   const [description, setDescription] = useState('')
   const [contact, setContact] = useState('')

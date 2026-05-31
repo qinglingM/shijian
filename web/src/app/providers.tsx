@@ -5,6 +5,7 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthBootstrap } from '@/app/AuthBootstrap'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { AndroidBackHandler } from '@/components/layout/AndroidBackHandler'
 
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -36,6 +37,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <AndroidBackHandler />
         <AuthBootstrap>
           <ErrorBoundary>{children}</ErrorBoundary>
         </AuthBootstrap>

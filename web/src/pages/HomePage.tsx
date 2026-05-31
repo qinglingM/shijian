@@ -8,6 +8,7 @@ import {
 } from '@/features/tier-map/useTierMap'
 import { TierMap } from '@/features/tier-map/TierMap'
 import { TIER_LABEL, TIER_COLOR_VAR, type Tier } from '@/lib/db'
+import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 
 const AMAP_MID_CATEGORIES: { name: string; subs: string[] }[] = [
   {
@@ -55,6 +56,7 @@ export function HomePage() {
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false)
+  useAndroidBackDismiss(filterOpen, () => setFilterOpen(false))
   const [filterTab, setFilterTab] = useState<'city' | 'category'>('city')
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
   const [selectedBigCategory, setSelectedBigCategory] = useState<string | null>(null)
@@ -155,7 +157,7 @@ export function HomePage() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
-      <div className="relative bg-neutral-100 pt-[env(safe-area-inset-top)]">
+      <div className="relative bg-neutral-100 pt-[var(--app-safe-area-inset-top)]">
         {/* Header with filters + search + view toggle */}
         <header className="flex items-center justify-between px-4 py-0.5">
           <h1 className="text-lg font-semibold tracking-tight text-neutral-900">我的食鉴图</h1>

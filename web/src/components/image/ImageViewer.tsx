@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
+import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 
 export function ImageViewer({ url, onClose }: { url: string; onClose: () => void }) {
+  useAndroidBackDismiss(true, onClose)
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()

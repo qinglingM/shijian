@@ -374,7 +374,7 @@ export function AuthPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md lg:max-w-3xl flex-col bg-white px-6 pb-12 pt-[max(env(safe-area-inset-top),2rem)] sm:pt-[max(env(safe-area-inset-top),4rem)]">
+    <div className="mx-auto flex min-h-screen max-w-md lg:max-w-3xl flex-col bg-white px-6 pb-12 pt-[max(var(--app-safe-area-inset-top),2rem)] sm:pt-[max(var(--app-safe-area-inset-top),4rem)]">
       <div className="relative w-full">
         <button
           type="button"

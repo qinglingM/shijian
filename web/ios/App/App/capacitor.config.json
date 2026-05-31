@@ -2,6 +2,13 @@
 	"appId": "com.zihelee.shijian",
 	"appName": "食鉴",
 	"webDir": "dist",
+	"plugins": {
+		"StatusBar": {
+			"style": "LIGHT",
+			"backgroundColor": "#ffffff",
+			"overlaysWebView": true
+		}
+	},
 	"packageClassList": [
 		"AppPlugin",
 		"HapticsPlugin",

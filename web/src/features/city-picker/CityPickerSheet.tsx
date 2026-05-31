@@ -10,6 +10,7 @@ import { cityPickerChipClass } from '@/features/city-picker/cityPickerChipClass'
 import { cityPickerChipDisplayName, cityPickerSheetLabel } from '@/features/city-picker/cityPickerSheetLabel'
 import { CurrentLocationCitySection } from '@/features/city-picker/CurrentLocationCitySection'
 import { useCityStore } from '@/features/city-picker/cityStore'
+import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 
 function normalize(s: string) {
   return s.trim().toLowerCase()
@@ -36,6 +37,7 @@ export function CityPickerSheet({
   onControlledCityChange?: (cityId: string | null, cityName: string) => void
   onControlledAllChina?: () => void
 }) {
+  useAndroidBackDismiss(open, onClose)
   const isControlled = onControlledCityChange !== undefined || onControlledAllChina !== undefined
   const storeTierMapShowsAllChina = useCityStore((s) => s.tierMapShowsAllChina)
   const storeLocatedCityId = useCityStore((s) => s.locatedCityId)
@@ -169,7 +171,7 @@ export function CityPickerSheet({
         role="dialog"
         aria-modal="true"
         aria-label="选择城市"
-        className="fixed inset-x-0 bottom-0 top-[max(6vh,env(safe-area-inset-top))] z-50 mx-auto flex max-h-[min(94dvh,100svh)] max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl"
+        className="fixed inset-x-0 bottom-0 top-[max(6vh,var(--app-safe-area-inset-top))] z-50 mx-auto flex max-h-[min(94dvh,100svh)] max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 px-4 py-3">
           <div>

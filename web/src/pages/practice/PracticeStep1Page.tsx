@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Search, ChevronDown } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
+import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 import { useCities } from '@/features/city-picker/useCities'
 import { useDebounce } from '@/lib/useDebounce'
 import {
@@ -32,6 +33,7 @@ export function PracticeStep1Page() {
 
   const [keyword, setKeyword] = useState('')
   const [cityFilterOpen, setCityFilterOpen] = useState(false)
+  useAndroidBackDismiss(cityFilterOpen, () => setCityFilterOpen(false))
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
   const debouncedKeyword = useDebounce(keyword, 300)
   const citiesQuery = useCities()

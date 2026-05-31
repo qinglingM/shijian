@@ -10,6 +10,7 @@ import { applyStoreReviewVoteClick, intentAfterVoteTap } from '@/features/restau
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useCities } from '@/features/city-picker/useCities'
+import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 
 type SortMode = 'latest' | 'hot'
 
@@ -78,6 +79,7 @@ export function SquarePage() {
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false)
+  useAndroidBackDismiss(filterOpen, () => setFilterOpen(false))
   const [filterTab, setFilterTab] = useState<'city' | 'tier' | 'category'>('city')
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
   const [selectedBigCategory, setSelectedBigCategory] = useState<string | null>(null)
@@ -179,7 +181,7 @@ export function SquarePage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white pt-[env(safe-area-inset-top)]">
+    <div className="flex min-h-0 flex-1 flex-col bg-white pt-[var(--app-safe-area-inset-top)]">
       {/* Toolbar wrapper (for absolute filter panel) */}
       <div className="relative bg-white">
         {/* Search + Sort bar */}

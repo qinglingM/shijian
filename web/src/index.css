@@ -26,6 +26,9 @@
  * — `--color-tier-*-slot`：同行的无封面店铺格 — 同色，饱和度降为 40%（降低 60%），用 oklch 相对语法。
  */
 :root {
+  --app-safe-area-inset-top: env(safe-area-inset-top);
+  --app-safe-area-inset-bottom: env(safe-area-inset-bottom);
+
   --color-tier-boom: #A11A00;
   --color-tier-hang: #cf5329;
   --color-tier-top: #e39032;

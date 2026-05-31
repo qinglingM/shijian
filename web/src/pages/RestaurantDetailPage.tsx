@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X, Bookmark, BookmarkCheck } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
+import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 import { UserTitleBadge } from '@/components/UserTitleBadge'
 import { lookupExistingRestaurantByPoi } from '@/features/poi-search/usePoiSearch'
 import { fetchExistingPracticeHydration } from '@/features/practice/hydratePracticeDraftFromServer'
@@ -1135,6 +1136,7 @@ function RestaurantDetailHeader({
   poi: import('@/lib/poi').PoiCandidate | null
 }) {
   const [moreOpen, setMoreOpen] = useState(false)
+  useAndroidBackDismiss(moreOpen, () => setMoreOpen(false))
   const [shareOpen, setShareOpen] = useState(false)
   const [feedbackType, setFeedbackType] = useState<'error_info' | 'duplicate' | null>(null)
   const [toastMsg, setToastMsg] = useState('')
