@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
+  Award,
   Bookmark,
   ChevronRight,
   KeyRound,
   UserRound,
   UsersRound,
 } from 'lucide-react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { ProfileRow } from '@/lib/db'
 import { useAuthStore } from '@/stores/authStore'
@@ -51,7 +52,6 @@ interface MarkRestaurantRow {
 }
 
 export function MePage() {
-  const navigate = useNavigate()
   const userId = useAuthStore((s) => s.user?.id ?? null)
   const setSession = useAuthStore((s) => s.setSession)
   const [signingOut, setSigningOut] = useState(false)
@@ -267,37 +267,6 @@ export function MePage() {
         </div>
       </section>
 
-      <section
-        className="mt-4 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-400 to-purple-500 px-4 py-3 shadow-sm active:opacity-80"
-        onClick={() => navigate('/me/titles')}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && navigate('/me/titles')}
-        aria-label="称号管理"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-full bg-white/20">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L4 6v5c0 4.5 3.5 8.8 8 10 4.5-1.2 8-5.5 8-10V6l-8-4z" fill="rgba(255,255,255,0.15)" stroke="white" strokeWidth="1.2" />
-                <path d="M12 7l1.2 2.5 2.8.4-2 2 .5 2.8L12 13.5l-2.5 1.3.5-2.8-2-2 2.8-.4L12 7z" fill="white" />
-              </svg>
-            </div>
-            <div>
-              {data?.profile?.title_name ? (
-                <>
-                  <p className="text-sm font-semibold text-white">{data.profile.title_name}</p>
-                  <p className="text-[11px] text-white/70">点击管理称号</p>
-                </>
-              ) : (
-                <p className="text-sm font-semibold text-white/90">选择称号</p>
-              )}
-            </div>
-          </div>
-          <span className="text-white/40 text-lg leading-none">›</span>
-        </div>
-      </section>
-
       <section className="mt-4 rounded-2xl border border-dashed border-neutral-200 px-4 py-3.5">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-neutral-800">近期动态</p>
@@ -339,6 +308,13 @@ export function MePage() {
           icon={<UsersRound size={18} />}
           title="我的伯乐"
           desc="你作为伯乐被记录的门店"
+        />
+        <div className="border-b border-neutral-100" />
+        <FeatureCard
+          to="/me/titles"
+          icon={<Award size={18} />}
+          title="我的称号"
+          desc={data?.profile?.title_name ?? '点击选择称号'}
         />
         <div className="border-b border-neutral-100" />
         <FeatureCard
