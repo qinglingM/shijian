@@ -7,6 +7,9 @@ export interface MyMarksWantRow {
   display_name: string
   cover_image_url: string | null
   marked_at: string
+  category_label: string | null
+  city_name: string | null
+  district_name: string | null
 }
 
 interface MarksFeedPack {
@@ -32,7 +35,10 @@ export function useMyMarksFeed(userId: string | null) {
             restaurant_id,
             restaurants (
               display_name,
-              cover_image_url
+              cover_image_url,
+              display_category_label,
+              city_name,
+              district_name
             )
           `,
           )
@@ -61,11 +67,16 @@ export function useMyMarksFeed(userId: string | null) {
         if (!prev || prev.localeCompare(t) < 0) practicedAt.set(row.restaurant_id, t)
       }
 
+      interface RestNest {
+        display_name: string
+        cover_image_url: string | null
+        display_category_label: string | null
+        city_name: string | null
+        district_name: string | null
+      }
+
       interface MarkNest {
-        restaurants:
-          | { display_name: string; cover_image_url: string | null }
-          | { display_name: string; cover_image_url: string | null }[]
-          | null
+        restaurants: RestNest | RestNest[] | null
       }
 
       interface MarkSel extends MarkNest {
@@ -85,6 +96,9 @@ export function useMyMarksFeed(userId: string | null) {
           display_name: r?.display_name ?? '未知门店',
           cover_image_url: r?.cover_image_url ?? null,
           marked_at: row.created_at,
+          category_label: r?.display_category_label ?? null,
+          city_name: r?.city_name ?? null,
+          district_name: r?.district_name ?? null,
         }
         if (practicedAt.has(row.restaurant_id)) conquered.push(item)
         else want.push(item)
