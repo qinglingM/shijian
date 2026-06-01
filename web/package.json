@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@alicloud/dypnsapi20170525": "^2.0.0",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.3.4",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.0",
@@ -54,6 +55,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "jimp": "^1.6.1",
     "supabase": "^2.101.0",
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.2",
