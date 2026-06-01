@@ -39,4 +39,12 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 相机与图片选取权限（拍照上传 / 从相册选图） -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Android 13+（API 33+）读取图片媒体库 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Android 12 及以下读取外部存储（API 33+ 自动忽略） -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
 </manifest>
