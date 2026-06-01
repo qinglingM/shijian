@@ -243,7 +243,6 @@ function DishItem({ dish }: { dish: DraftDishReview }) {
             value={dish.name}
             onChange={(e) => updateDish(dish.client_id, { name: e.target.value })}
             onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-            onFocus={(e) => setTimeout(() => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' }), 350)}
             placeholder="菜名（如 麻辣肥牛）"
             maxLength={16}
             className="min-w-0 flex-1 rounded-lg bg-neutral-100 px-2.5 py-1.5 text-sm outline-none"
@@ -270,7 +269,6 @@ function DishItem({ dish }: { dish: DraftDishReview }) {
         value={dish.comment}
         onChange={(e) => updateDish(dish.client_id, { comment: e.target.value })}
         onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-        onFocus={(e) => setTimeout(() => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)}
         placeholder="一句锐评（选填）"
         rows={1}
         className="mt-2 w-full resize-none rounded-lg bg-neutral-50 px-2.5 py-1.5 text-xs leading-5 outline-none"

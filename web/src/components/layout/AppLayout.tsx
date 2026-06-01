@@ -45,14 +45,26 @@ const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_
 
 const TAB_ROUTES = new Set(['/map', '/square', '/tier-map', '/me'])
 
+/** 向上查找元素最近的、真正可滚动的祖先容器 */
+function findScrollParent(el: HTMLElement | null): HTMLElement | null {
+  let p = el?.parentElement ?? null
+  while (p) {
+    const oy = getComputedStyle(p).overflowY
+    if ((oy === 'auto' || oy === 'scroll') && p.scrollHeight > p.clientHeight) return p
+    p = p.parentElement
+  }
+  return null
+}
+
 export function AppLayout() {
   const { pathname } = useLocation()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
-  const mainRef = useRef<HTMLElement>(null)
+  // keyboardDidShow 时记录被滚动的容器，供 keyboardDidHide 复位
+  const scrollerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    // resize: body 让 WebView body 随键盘收缩，输入框自然推到键盘上方
-    try { void Keyboard.setResizeMode({ mode: KeyboardResize.Body }) } catch {}
+    // resize: native 让 iOS 缩小 WebView viewport，键盘收起后由系统恢复，不留底部空白
+    try { void Keyboard.setResizeMode({ mode: KeyboardResize.Native }) } catch {}
 
     const listeners: Array<{ remove: () => void }> = []
     try {
@@ -64,13 +76,35 @@ export function AppLayout() {
         setKeyboardOpen(false)
       }).then((h) => listeners.push(h))
 
-      // 键盘完全收起后，修正可能超出上限的滚动偏移（消除底部空白）
+      // 键盘完全弹出后，把当前聚焦的输入框精确滚到键盘上方。
+      // 自定义滚动容器（main overflow-y-auto）下 iOS 不会自动避让，必须手动处理。
+      Keyboard.addListener('keyboardDidShow', () => {
+        const active = document.activeElement as HTMLElement | null
+        if (!active) return
+        if (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA') return
+        const scroller = findScrollParent(active)
+        if (!scroller) return
+        scrollerRef.current = scroller
+        // rAF 等布局稳定后再测量，确保 rect 与可见视口都是最新值
+        requestAnimationFrame(() => {
+          const rect = active.getBoundingClientRect()
+          // visualViewport.height 才是键盘遮挡后真正可见的高度
+          const visibleH = window.visualViewport?.height ?? window.innerHeight
+          const safeBottom = visibleH - 16
+          if (rect.bottom > safeBottom) {
+            scroller.scrollBy({ top: rect.bottom - safeBottom, behavior: 'smooth' })
+          }
+        })
+      }).then((h) => listeners.push(h))
+
+      // 键盘收起后，若滚动位置超出内容上限则夹回，消除底部空白
       Keyboard.addListener('keyboardDidHide', () => {
-        const el = mainRef.current
-        if (!el) return
-        const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight)
-        if (el.scrollTop > maxScroll) {
-          el.scrollTo({ top: maxScroll, behavior: 'smooth' })
+        const scroller = scrollerRef.current
+        scrollerRef.current = null
+        if (!scroller) return
+        const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight)
+        if (scroller.scrollTop > maxScroll) {
+          scroller.scrollTo({ top: maxScroll, behavior: 'smooth' })
         }
       }).then((h) => listeners.push(h))
     } catch {}
@@ -87,7 +121,6 @@ export function AppLayout() {
   return (
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-white lg:max-w-3xl">
       <main
-        ref={mainRef}
         className={cn(
           'flex flex-col flex-1 min-h-0',
           isTabRoute ? 'overflow-hidden' : 'overflow-y-auto',
