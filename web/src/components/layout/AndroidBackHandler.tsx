@@ -55,13 +55,18 @@ export function AndroidBackHandler() {
       }
     }
 
-    // 监听 Capacitor 硬件返回键 / 系统 back 手势
+    let cleaned = false
     let listenerHandle: { remove: () => void } | null = null
     void App.addListener('backButton', handleBack).then((h) => {
-      listenerHandle = h
+      if (cleaned) {
+        h.remove()
+      } else {
+        listenerHandle = h
+      }
     })
 
     return () => {
+      cleaned = true
       listenerHandle?.remove()
     }
   }, [navigate])
