@@ -29,11 +29,7 @@ NODE_VERSION="22.12.0"
 NODE_HOME="$REPO_DIR/.ci-node/node"
 export PATH="$NODE_HOME/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
-if [ -x "$NODE_HOME/bin/node" ] && [ "$("$NODE_HOME/bin/node" -v)" != "v$NODE_VERSION" ]; then
-  rm -rf "$NODE_HOME"
-fi
-
-if ! command -v node >/dev/null 2>&1; then
+if [ ! -x "$NODE_HOME/bin/node" ] || [ "$("$NODE_HOME/bin/node" -v)" != "v$NODE_VERSION" ]; then
   case "$(uname -m)" in
     arm64) NODE_ARCH="arm64" ;;
     x86_64) NODE_ARCH="x64" ;;
@@ -48,14 +44,14 @@ if ! command -v node >/dev/null 2>&1; then
   NODE_URL="https://nodejs.org/dist/v$NODE_VERSION/$NODE_DIST.tar.xz"
 
   mkdir -p "$REPO_DIR/.ci-node"
-  curl -fsSL "$NODE_URL" -o "$NODE_TARBALL"
+  curl --retry 3 --retry-delay 2 --retry-all-errors -fsSL "$NODE_URL" -o "$NODE_TARBALL"
   rm -rf "$NODE_HOME" "$REPO_DIR/.ci-node/$NODE_DIST"
   tar -xJf "$NODE_TARBALL" -C "$REPO_DIR/.ci-node"
   mv "$REPO_DIR/.ci-node/$NODE_DIST" "$NODE_HOME"
 fi
 
-if ! command -v node >/dev/null 2>&1; then
-  echo "Node.js is still unavailable after bootstrap."
+if [ "$(node -v 2>/dev/null)" != "v$NODE_VERSION" ]; then
+  echo "Node.js v$NODE_VERSION is unavailable after bootstrap."
   exit 1
 fi
 

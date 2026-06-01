@@ -37,6 +37,8 @@ yarn-error.log*
 web/.vite/
 web/.tsbuildinfo
 **/.tsbuildinfo
+.ci-node/
+.ci_web_ios_bootstrapped
 .cursor/
 .claude/worktrees/
 supabase/.temp/
