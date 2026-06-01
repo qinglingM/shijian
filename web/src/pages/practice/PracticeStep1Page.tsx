@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Search, ChevronDown } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
@@ -18,6 +18,8 @@ import { PracticeStep1SloganImage } from './PracticeStep1SloganImage'
 import { poiPracticeKey } from '@/features/poi-search/poiPracticeKey'
 import { useUserLocation } from '@/hooks/useUserLocation'
 import { distanceKm } from '@/lib/geo'
+
+const PAGE_SIZE = 20
 
 export function PracticeStep1Page() {
   const navigate = useNavigate()
@@ -47,9 +49,17 @@ export function PracticeStep1Page() {
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
   }, [cityRows])
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const sentinelRef = useRef<HTMLLIElement>(null)
+
   const userLoc = useUserLocation()
   const searchCityForApi = searchCity.name || undefined
   const { data: rawCandidates = [], isLoading, isFetching } = usePoiSearch(debouncedKeyword, searchCityForApi)
+
+  // 新搜索时重置分页
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [debouncedKeyword, searchCityForApi])
 
   const candidates = useMemo<PoiCandidate[]>(() => {
     if (!userLoc || rawCandidates.length === 0) return rawCandidates
@@ -65,6 +75,29 @@ export function PracticeStep1Page() {
       return da - db
     })
   }, [rawCandidates, userLoc])
+
+  const visibleCandidates = useMemo(
+    () => candidates.slice(0, visibleCount),
+    [candidates, visibleCount],
+  )
+  const hasMore = visibleCount < candidates.length
+
+  const loadMore = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, candidates.length))
+  }, [candidates.length])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) loadMore()
+      },
+      { threshold: 0.1 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, loadMore])
 
   const practicedQ = useCandidatesPracticeStatus(candidates)
   const emptyPracticed = useMemo(() => new Set<string>(), [])
@@ -219,9 +252,14 @@ export function PracticeStep1Page() {
               <p className="text-[12px] font-medium text-neutral-600">
                 找到 <span className="tabular-nums text-orange-700">{candidates.length}</span> 个候选，点击选定后进入写评价
               </p>
+              {candidates.length > PAGE_SIZE && (
+                <p className="text-[11px] text-neutral-400">
+                  已显示 {Math.min(visibleCount, candidates.length)}/{candidates.length}
+                </p>
+              )}
             </div>
             <ul className="space-y-3">
-              {candidates.map((poi) => {
+              {visibleCandidates.map((poi) => {
                 const practicedHere = practicedPoiKeys.has(poiPracticeKey(poi))
                 const region = [poi.city_name, poi.district_name].filter(Boolean).join(' ') || '区域未知'
                 const address = poi.address_text?.trim() || '地址未录入'
@@ -266,12 +304,18 @@ export function PracticeStep1Page() {
                 )
               })}
 
-              <li className="pt-2 pb-6 text-center text-[11px] text-neutral-400">
-                没有找到这家店？{' '}
-                <Link to="/practice/manual" className="text-neutral-700 underline">
-                  手动补充
-                </Link>
-              </li>
+              {hasMore ? (
+                <li ref={sentinelRef} className="py-4 text-center text-[11px] text-neutral-400">
+                  上拉加载更多…
+                </li>
+              ) : (
+                <li className="pt-2 pb-6 text-center text-[11px] text-neutral-400">
+                  没有找到这家店？{' '}
+                  <Link to="/practice/manual" className="text-neutral-700 underline">
+                    手动补充
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
         )}
