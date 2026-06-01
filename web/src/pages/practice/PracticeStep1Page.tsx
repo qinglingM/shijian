@@ -94,9 +94,11 @@ export function PracticeStep1Page() {
         if (viewerId && existingId) {
           const payload = await fetchExistingPracticeHydration(viewerId, existingId)
           // 只有用户尚未开始填写（tier 仍为 null）时才回填历史评价
-          const s = usePracticeDraft.getState()
-          if (s.tier === null && !s.submission_baseline_locked_from_server) {
-            s.applyHydratedPracticeFromServer(payload)
+          if (payload) {
+            const s = usePracticeDraft.getState()
+            if (s.tier === null && !s.submission_baseline_locked_from_server) {
+              s.applyHydratedPracticeFromServer(payload)
+            }
           }
         }
       } catch (e) {

@@ -248,7 +248,6 @@ function SearchBar({
   const tierMapShowsAllChina = useCityStore((s) => s.tierMapShowsAllChina)
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebounce(query, 300)
-  const [focused, setFocused] = useState(false)
   const [openingPoiId, setOpeningPoiId] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const keyword = debouncedQuery.trim()
@@ -266,7 +265,6 @@ function SearchBar({
     try {
       await onOpenPoi(poi)
       setQuery('')
-      setFocused(false)
     } finally {
       setOpeningPoiId(null)
     }
@@ -285,10 +283,9 @@ function SearchBar({
             onInteract()
           }}
           onFocus={() => {
-            setFocused(true)
             onInteract()
           }}
-          onBlur={() => setTimeout(() => setFocused(false), 150)}
+          onBlur={() => {}}
           onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
           placeholder="搜店名、区域、地址"
           className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
