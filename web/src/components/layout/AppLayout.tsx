@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { cn } from '@/lib/utils'
@@ -48,6 +48,7 @@ const TAB_ROUTES = new Set(['/map', '/square', '/tier-map', '/me'])
 export function AppLayout() {
   const { pathname } = useLocation()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
+  const mainRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     // resize: body 让 WebView body 随键盘收缩，输入框自然推到键盘上方
@@ -61,6 +62,16 @@ export function AppLayout() {
 
       Keyboard.addListener('keyboardWillHide', () => {
         setKeyboardOpen(false)
+      }).then((h) => listeners.push(h))
+
+      // 键盘完全收起后，修正可能超出上限的滚动偏移（消除底部空白）
+      Keyboard.addListener('keyboardDidHide', () => {
+        const el = mainRef.current
+        if (!el) return
+        const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight)
+        if (el.scrollTop > maxScroll) {
+          el.scrollTo({ top: maxScroll, behavior: 'smooth' })
+        }
       }).then((h) => listeners.push(h))
     } catch {}
     return () => { listeners.forEach((h) => h.remove()) }
@@ -76,6 +87,7 @@ export function AppLayout() {
   return (
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-white lg:max-w-3xl">
       <main
+        ref={mainRef}
         className={cn(
           'flex flex-col flex-1 min-h-0',
           isTabRoute ? 'overflow-hidden' : 'overflow-y-auto',
