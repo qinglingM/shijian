@@ -274,14 +274,6 @@ function SearchBar({
 
   return (
     <div>
-      {/* 遮罩：点地图区域关闭搜索 */}
-      {showDropdown && (
-        <div
-          className="fixed inset-0 z-[990]"
-          onMouseDown={() => { setQuery(''); inputRef.current?.blur() }}
-          onTouchStart={() => { setQuery(''); inputRef.current?.blur() }}
-        />
-      )}
       <div className="relative z-[995]">
           <div className="flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1.5 mx-4 my-2">
         <Search size={15} className="shrink-0 text-neutral-400" />

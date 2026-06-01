@@ -53,12 +53,19 @@ export function AppLayout() {
   useEffect(() => {
     const listeners: Array<{ remove: () => void }> = []
     try {
-      Keyboard.addListener('keyboardWillShow', () => setKeyboardOpen(true)).then((h) => listeners.push(h))
+      Keyboard.addListener('keyboardWillShow', (info) => {
+        setKeyboardOpen(true)
+        // 动态加 padding-bottom = 键盘高度，使 scrollIntoView 在短页面也能把输入框推到键盘上方
+        const el = mainRef.current
+        if (el) el.style.paddingBottom = `${info.keyboardHeight}px`
+      }).then((h) => listeners.push(h))
+
       Keyboard.addListener('keyboardWillHide', () => {
         setKeyboardOpen(false)
-        // 键盘收起后，把 main 滚动容器滚回底部，消除因 scrollIntoView 留下的多余空白
+        // 还原 padding，稍后把滚动容器拉回底部，消除 scrollIntoView 留下的多余空白
+        const el = mainRef.current
+        if (el) el.style.paddingBottom = ''
         setTimeout(() => {
-          const el = mainRef.current
           if (el && el.scrollHeight > el.clientHeight) {
             el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
           }

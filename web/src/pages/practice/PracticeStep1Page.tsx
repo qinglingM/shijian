@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPin, Search, ChevronDown } from 'lucide-react'
+import { MapPin, Search, ChevronDown, Loader2 } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 import { useCities } from '@/features/city-picker/useCities'
@@ -211,7 +211,14 @@ export function PracticeStep1Page() {
         )}
 
         {candidates.length > 0 && (
-          <div>
+          <div className="relative">
+            {/* 选定餐厅时的全屏遮罩：网络请求期间阻止误触 */}
+            {picking && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/70 backdrop-blur-[2px]">
+                <Loader2 size={22} className="animate-spin text-orange-500" />
+                <p className="text-[12px] font-medium text-neutral-600">正在确认餐厅…</p>
+              </div>
+            )}
             <div className="mb-3 flex items-end justify-between">
               <p className="text-[12px] font-medium text-neutral-600">
                 找到 <span className="tabular-nums text-orange-700">{candidates.length}</span> 个候选，点击选定后进入写评价
