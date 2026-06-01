@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { cn } from '@/lib/utils'
-import { Keyboard } from '@capacitor/keyboard'
+import { Keyboard, KeyboardResize } from '@capacitor/keyboard'
 import { HomePage } from '@/pages/HomePage'
 import { HomeMap } from '@/features/map/HomeMap'
 import { SquarePage } from '@/pages/SquarePage'
@@ -48,28 +48,19 @@ const TAB_ROUTES = new Set(['/map', '/square', '/tier-map', '/me'])
 export function AppLayout() {
   const { pathname } = useLocation()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
-  const mainRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
+    // resize: body 让 WebView body 随键盘收缩，输入框自然推到键盘上方
+    try { void Keyboard.setResizeMode({ mode: KeyboardResize.Body }) } catch {}
+
     const listeners: Array<{ remove: () => void }> = []
     try {
-      Keyboard.addListener('keyboardWillShow', (info) => {
+      Keyboard.addListener('keyboardWillShow', () => {
         setKeyboardOpen(true)
-        // 动态加 padding-bottom = 键盘高度，使 scrollIntoView 在短页面也能把输入框推到键盘上方
-        const el = mainRef.current
-        if (el) el.style.paddingBottom = `${info.keyboardHeight}px`
       }).then((h) => listeners.push(h))
 
       Keyboard.addListener('keyboardWillHide', () => {
         setKeyboardOpen(false)
-        // 还原 padding，稍后把滚动容器拉回底部，消除 scrollIntoView 留下的多余空白
-        const el = mainRef.current
-        if (el) el.style.paddingBottom = ''
-        setTimeout(() => {
-          if (el && el.scrollHeight > el.clientHeight) {
-            el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
-          }
-        }, 150)
       }).then((h) => listeners.push(h))
     } catch {}
     return () => { listeners.forEach((h) => h.remove()) }
@@ -85,7 +76,6 @@ export function AppLayout() {
   return (
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-white lg:max-w-3xl">
       <main
-        ref={mainRef}
         className={cn(
           'flex flex-col flex-1 min-h-0',
           isTabRoute ? 'overflow-hidden' : 'overflow-y-auto',

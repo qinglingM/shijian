@@ -60,6 +60,7 @@ export function AuthPage() {
   const [showForgotPw, setShowForgotPw] = useState(false)
 
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  const [termsShake, setTermsShake] = useState(false)
 
   const [resendSeconds, setResendSeconds] = useState(0)
   // sendingOtp: OTP 发送中（控制内联按钮）；submitting: 主表单提交中
@@ -203,9 +204,19 @@ export function AuthPage() {
     }
   }
 
+  function shakeTerms() {
+    setTermsShake(true)
+    setTimeout(() => setTermsShake(false), 600)
+  }
+
   async function submitLoginOtp(e: React.FormEvent) {
     e.preventDefault()
     setMsg(null)
+    if (!agreedToTerms) {
+      shakeTerms()
+      setMsg('请先阅读并同意隐私政策和用户协议')
+      return
+    }
     if (!e164Locked || !otpToken || otpPurpose !== 'login') {
       setMsg('请先获取短信验证码')
       return
@@ -304,6 +315,11 @@ export function AuthPage() {
   async function submitLoginPhone(e: React.FormEvent) {
     e.preventDefault()
     setMsg(null)
+    if (!agreedToTerms) {
+      shakeTerms()
+      setMsg('请先阅读并同意隐私政策和用户协议')
+      return
+    }
     const e164 = normalizeChinaMobileToE164(mobileInput)
     if (!e164) {
       setMsg('请输入中国大陆 11 位手机号')
@@ -488,12 +504,12 @@ export function AuthPage() {
                     {msg ? <Alert>{msg}</Alert> : null}
                     <button
                       type="submit"
-                      disabled={submitting || !agreedToTerms}
+                      disabled={submitting}
                       className="w-full rounded-2xl bg-orange-500 py-3.5 text-sm font-semibold text-white shadow-sm shadow-orange-500/20 transition-all hover:bg-orange-600 active:scale-[0.98] disabled:opacity-50"
                     >
                       {submitting ? '登录中…' : '登录'}
                     </button>
-                    <TermsCheckbox agreed={agreedToTerms} onChange={setAgreedToTerms} />
+                    <TermsCheckbox agreed={agreedToTerms} onChange={setAgreedToTerms} shake={termsShake} />
                   </div>
                 </form>
               </motion.div>
@@ -541,7 +557,7 @@ export function AuthPage() {
                     >
                       {submitting ? '登录中…' : '登录'}
                     </button>
-                    <TermsCheckbox agreed={agreedToTerms} onChange={setAgreedToTerms} />
+                    <TermsCheckbox agreed={agreedToTerms} onChange={setAgreedToTerms} shake={termsShake} />
                   </div>
                 </form>
               </motion.div>
@@ -833,9 +849,9 @@ function Alert({ children }: { children: ReactNode }) {
   )
 }
 
-function TermsCheckbox({ agreed, onChange }: { agreed: boolean; onChange: (v: boolean) => void }) {
+function TermsCheckbox({ agreed, onChange, shake }: { agreed: boolean; onChange: (v: boolean) => void; shake?: boolean }) {
   return (
-    <div className="flex items-start justify-center gap-2 px-2 pt-2 text-center">
+    <div className={`flex items-start justify-center gap-2 px-2 pt-2 text-center ${shake ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
       <div className="flex h-5 items-center">
         <input
           id="terms-checkbox"
