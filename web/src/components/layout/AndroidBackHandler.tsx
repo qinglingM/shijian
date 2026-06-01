@@ -55,10 +55,14 @@ export function AndroidBackHandler() {
       }
     }
 
-    document.addEventListener('shijianAndroidBack', handleBack)
+    // 监听 Capacitor 硬件返回键 / 系统 back 手势
+    let listenerHandle: { remove: () => void } | null = null
+    void App.addListener('backButton', handleBack).then((h) => {
+      listenerHandle = h
+    })
 
     return () => {
-      document.removeEventListener('shijianAndroidBack', handleBack)
+      listenerHandle?.remove()
     }
   }, [navigate])
 
