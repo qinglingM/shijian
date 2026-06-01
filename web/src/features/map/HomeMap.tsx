@@ -53,12 +53,12 @@ const TIER_HEX: Record<Tier, string> = {
 }
 
 const TIER_TEXT_COLOR: Record<Tier, string> = {
-  boom: '#fff',
-  hang: '#fff',
-  top: '#fff',
-  upper: '#5a4a00',
-  npc: '#6b5a3a',
-  bad: '#999',
+  boom: '#000',
+  hang: '#000',
+  top: '#000',
+  upper: '#000',
+  npc: '#000',
+  bad: '#000',
 }
 
 function createRestaurantIcon(coverImageUrl: string | null, tier: Tier | null, zoom: number): L.DivIcon {
@@ -130,9 +130,12 @@ function SpiderLayer({ centerLat, centerLng, leaves, onSelect }: {
   const items = useMemo(() => {
     const center = map.latLngToContainerPoint(L.latLng(centerLat, centerLng))
     const count = leaves.length
-    const radius = 80
     return leaves.map((r, i) => {
-      const angle = (i / count) * Math.PI * 2 - Math.PI / 2
+      const ring = Math.floor(i / 12)
+      const ringStart = ring * 12
+      const ringCount = Math.min(12, count - ringStart)
+      const radius = 76 + ring * 46
+      const angle = ((i - ringStart) / ringCount) * Math.PI * 2 - Math.PI / 2
       const pos = L.point(center.x + Math.cos(angle) * radius, center.y + Math.sin(angle) * radius)
       const latlng = map.containerPointToLatLng(pos)
       return { restaurant: r, lat: latlng.lat, lng: latlng.lng }
@@ -169,17 +172,7 @@ function SpiderLayer({ centerLat, centerLng, leaves, onSelect }: {
   )
 }
 
-function SpiderZoomResetter({ onZoom }: { onZoom: () => void }) {
-  const map = useMap()
-  useEffect(() => {
-    const handler = () => onZoom()
-    map.on('zoomend', handler)
-    return () => { map.off('zoomend', handler) }
-  }, [map, onZoom])
-  return null
-}
-
-const FALLBACK_CLUSTER = { bg: '#a3a3a3', text: '#fff' }
+const FALLBACK_CLUSTER = { bg: '#a3a3a3', text: '#000' }
 
 function hexToRgba(hex: string, alpha: number): string {
   const h = hex.replace('#', '')
@@ -572,7 +565,7 @@ export function HomeMap() {
     }
     const sc = new Supercluster({
       radius: 60,
-      maxZoom: 16,
+      maxZoom: 18,
       map: (props) => ({
         boom: props.restaurant?.tier === 'boom' ? 1 : 0,
         hang: props.restaurant?.tier === 'hang' ? 1 : 0,
@@ -664,15 +657,14 @@ export function HomeMap() {
   return (
     <div className="relative h-full w-full overflow-hidden">
       {/* Toolbar + Filter panel */}
-      <div className="absolute top-0 left-0 right-0 z-[999] bg-white">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[var(--app-safe-area-inset-top)] bg-white" aria-hidden />
-        <div className="relative bg-white shadow-sm">
+      <div className="absolute top-0 left-0 right-0 z-[999] bg-white pt-[var(--app-safe-area-inset-top)]">
+        <div className="relative bg-white">
           <SearchBar
             onOpenPoi={handleOpenPoi}
             onInteract={dismiss}
           />
           {/* Filter buttons: browser-tab style, equal-width */}
-          <div className="flex bg-neutral-50/40 z-[998] relative">
+          <div className="relative z-[998] flex border-b border-neutral-100 bg-neutral-50/40">
           <button
             onClick={() => { setSelectedProvince(appliedProvince); setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
             className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
@@ -781,14 +773,17 @@ export function HomeMap() {
                     <button
                       key={tier}
                       onClick={() => setPendingTiers((tiers) => tiers.includes(tier) ? tiers.filter((item) => item !== tier) : [...tiers, tier])}
-                      className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${
+                      className={`relative rounded-lg py-3 text-[13px] font-bold leading-none transition-colors ${
                         pendingTiers.includes(tier)
-                          ? 'ring-2 ring-blue-500 ring-offset-2 scale-105'
+                          ? 'shadow-sm ring-1 ring-black/[0.06]'
                           : 'shadow-sm ring-1 ring-black/[0.06]'
                       }`}
                       style={{ background: TIER_HEX[tier], color: TIER_TEXT_COLOR[tier] }}
                     >
                       {TIER_LABEL[tier]}
+                      {pendingTiers.includes(tier) ? (
+                        <span className="absolute inset-x-2 bottom-1 h-0.5 rounded-full bg-blue-500" />
+                      ) : null}
                     </button>
                   ))}
                 </div>
@@ -801,13 +796,8 @@ export function HomeMap() {
                       <button
                         key={g.name}
                         onClick={() => {
-                          if (selectedBigCategory === g.name) {
-                            setSelectedBigCategory(null)
-                            setPendingCategory(null)
-                          } else {
-                            setSelectedBigCategory(g.name)
-                            setPendingCategory(g.name)
-                          }
+                          setSelectedBigCategory(g.name)
+                          setPendingCategory(g.name)
                         }}
                         className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${
                           selectedBigCategory === g.name
@@ -823,17 +813,17 @@ export function HomeMap() {
                     {(() => {
                       const active = categoryGroups.find(g => g.name === selectedBigCategory)
                       return active ? (
-                        active.subs.map((sub) => (
+                        [null, ...active.subs].map((sub) => (
                           <button
-                            key={sub}
-                            onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
+                            key={sub ?? 'all'}
+                            onClick={() => setPendingCategory(sub ?? active.name)}
                             className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${
-                              pendingCategory === sub
+                              pendingCategory === (sub ?? active.name)
                                 ? 'font-semibold text-blue-600'
                                 : 'text-neutral-700'
                             }`}
                           >
-                            {sub}
+                            {sub ?? '不限'}
                           </button>
                         ))
                       ) : (
@@ -921,11 +911,11 @@ export function HomeMap() {
                     setExpandedCluster(null)
                     return
                   }
-                  if (zoom < 15 || f.properties.point_count > 12) {
+                  if (zoom < 18) {
                     map.flyTo([lat, lng], Math.min(zoom + 2, 18), { animate: true, duration: 0.5 })
                     return
                   }
-                  const leaves = sc.getLeaves(clusterId, 12)
+                  const leaves = sc.getLeaves(clusterId, Infinity)
                   const leaveData = leaves
                     .map((leaf) => (leaf.properties as any)?.restaurant as MapRestaurant | undefined)
                     .filter((r): r is MapRestaurant => !!r)
@@ -952,7 +942,6 @@ export function HomeMap() {
             onSelect={(r) => { cancelClose(); setSelected(r) }}
           />
         )}
-        <SpiderZoomResetter onZoom={() => setExpandedCluster(null)} />
       </MapContainer>
 
       {selected && <BottomSheet restaurant={selected} exiting={exiting} />}

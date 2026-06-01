@@ -42,8 +42,8 @@ interface FlatItem extends TierMapItem {
 }
 
 const TIER_TEXT_COLOR: Record<Tier, string> = {
-  boom: '#fff', hang: '#fff', top: '#fff',
-  upper: '#5a4a00', npc: '#6b5a3a', bad: '#999',
+  boom: '#000', hang: '#000', top: '#000',
+  upper: '#000', npc: '#000', bad: '#000',
 }
 function tierTextColor(tier: Tier): string { return TIER_TEXT_COLOR[tier] }
 
@@ -240,16 +240,8 @@ export function HomePage() {
                       <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
                         {categoryGroups.map((g) => (
                           <button key={g.name} onClick={() => {
-                            if (g.subs.length === 0) {
-                              setPendingCategory(pendingCategory === g.name ? null : g.name)
-                              setSelectedBigCategory(null)
-                            } else if (selectedBigCategory === g.name) {
-                              setSelectedBigCategory(null)
-                              setPendingCategory(null)
-                            } else {
-                              setSelectedBigCategory(g.name)
-                              setPendingCategory(g.name)
-                            }
+                            setSelectedBigCategory(g.name)
+                            setPendingCategory(g.name)
                           }}
                             className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${selectedBigCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
                             {g.name}
@@ -259,10 +251,10 @@ export function HomePage() {
                       <div className="flex-1 overflow-y-auto">
                         {(() => {
                           const active = categoryGroups.find(g => g.name === selectedBigCategory)
-                          return active && active.subs.length > 0 ? active.subs.map((sub) => (
-                            <button key={sub} onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
-                              className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
-                              {sub}
+                          return active ? [null, ...active.subs].map((sub) => (
+                            <button key={sub ?? 'all'} onClick={() => setPendingCategory(sub ?? active.name)}
+                              className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${pendingCategory === (sub ?? active.name) ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                              {sub ?? '不限'}
                             </button>
                           )) : null
                         })()}
@@ -350,7 +342,7 @@ function TierListView({ items }: { items: FlatItem[] }) {
                 )}
               </div>
               <span
-                className="shrink-0 w-[3.5rem] text-center rounded-full px-1.5 py-1 text-[11px] font-semibold leading-none"
+                className="shrink-0 w-[3.75rem] rounded-full px-2 py-1.5 text-center text-[11px] font-bold leading-none"
                 style={{ background: TIER_COLOR_VAR[item.tier], color: tierTextColor(item.tier) }}
               >
                 {TIER_LABEL[item.tier]}

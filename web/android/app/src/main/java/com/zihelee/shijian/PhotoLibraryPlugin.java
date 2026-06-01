@@ -1,8 +1,10 @@
 package com.zihelee.shijian;
 
 import android.Manifest;
+import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -15,6 +17,7 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
+import androidx.core.content.FileProvider;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -36,6 +39,40 @@ public class PhotoLibraryPlugin extends Plugin {
         }
 
         saveImageToLibrary(call);
+    }
+
+    @PluginMethod
+    public void shareImage(PluginCall call) {
+        byte[] imageData;
+        try {
+            imageData = decodeDataUrl(call.getString("dataUrl"));
+        } catch (IllegalArgumentException error) {
+            call.reject("Invalid image data", "INVALID_IMAGE", error);
+            return;
+        }
+
+        try {
+            File directory = new File(getContext().getCacheDir(), "shared-posters");
+            if (!directory.exists() && !directory.mkdirs()) {
+                throw new IOException("Unable to create shared poster directory");
+            }
+
+            File file = new File(directory, createFilename());
+            try (OutputStream output = new FileOutputStream(file)) {
+                output.write(imageData);
+            }
+
+            Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", file);
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("image/png");
+            share.putExtra(Intent.EXTRA_STREAM, uri);
+            share.setClipData(ClipData.newUri(getContext().getContentResolver(), "ShiJian poster", uri));
+            share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            getActivity().startActivity(Intent.createChooser(share, "分享海报"));
+            call.resolve();
+        } catch (IOException | RuntimeException error) {
+            call.reject("Unable to share image", "SHARE_FAILED", error);
+        }
     }
 
     @PermissionCallback

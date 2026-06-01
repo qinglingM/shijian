@@ -15,12 +15,12 @@ import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 type SortMode = 'latest' | 'hot'
 
 const TIER_TEXT_COLOR: Record<Tier, string> = {
-  boom: '#fff',
-  hang: '#fff',
-  top: '#fff',
-  upper: '#5a4a00',
-  npc: '#6b5a3a',
-  bad: '#999',
+  boom: '#000',
+  hang: '#000',
+  top: '#000',
+  upper: '#000',
+  npc: '#000',
+  bad: '#000',
 }
 
 function removeBracketContent(name: string): string {
@@ -340,9 +340,12 @@ export function SquarePage() {
                 <div className="grid grid-cols-3 gap-3 px-4 py-5">
                   {TIER_ORDER.map((tier) => (
                     <button key={tier} onClick={() => setPendingTiers((tiers) => tiers.includes(tier) ? tiers.filter((item) => item !== tier) : [...tiers, tier])}
-                      className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${pendingTiers.includes(tier) ? 'ring-2 ring-blue-500 ring-offset-2 scale-105' : 'shadow-sm ring-1 ring-black/[0.06]'}`}
+                      className="relative rounded-lg py-3 text-[13px] font-bold leading-none shadow-sm ring-1 ring-black/[0.06] transition-colors"
                       style={{ background: TIER_COLOR_VAR[tier], color: TIER_TEXT_COLOR[tier] }}>
                       {TIER_LABEL[tier]}
+                      {pendingTiers.includes(tier) ? (
+                        <span className="absolute inset-x-2 bottom-1 h-0.5 rounded-full bg-blue-500" />
+                      ) : null}
                     </button>
                   ))}
                 </div>
@@ -352,11 +355,7 @@ export function SquarePage() {
                   <div className="w-[140px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
                     {categoryGroups.map((g) => (
                       <button key={g.name} onClick={() => {
-                        if (selectedBigCategory === g.name) {
-                          setSelectedBigCategory(null); setPendingCategory(null)
-                        } else {
-                          setSelectedBigCategory(g.name); setPendingCategory(g.name)
-                        }
+                        setSelectedBigCategory(g.name); setPendingCategory(g.name)
                       }}
                         className={`w-full px-3 py-1.5 text-left text-[13px] transition-colors ${selectedBigCategory === g.name ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}>
                         {g.name}
@@ -366,10 +365,10 @@ export function SquarePage() {
                   <div className="flex-1 overflow-y-auto">
                     {(() => {
                       const active = categoryGroups.find(g => g.name === selectedBigCategory)
-                      return active ? active.subs.map((sub) => (
-                        <button key={sub} onClick={() => setPendingCategory(pendingCategory === sub ? null : sub)}
-                          className={`w-full px-4 py-1.5 text-left text-[13px] transition-colors ${pendingCategory === sub ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
-                          {sub}
+                      return active ? [null, ...active.subs].map((sub) => (
+                        <button key={sub ?? 'all'} onClick={() => setPendingCategory(sub ?? active.name)}
+                          className={`w-full px-4 py-1.5 text-left text-[13px] transition-colors ${pendingCategory === (sub ?? active.name) ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
+                          {sub ?? '不限'}
                         </button>
                       )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择大类</p>
                     })()}
@@ -602,11 +601,11 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
             className={cn(
               'shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors disabled:opacity-50',
               liked
-                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/25'
-                : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 active:bg-emerald-100',
+                ? 'bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500 active:bg-emerald-100'
+                : 'bg-white text-neutral-600 ring-1 ring-neutral-200 active:bg-neutral-50',
             )}
           >
-            <span className={liked ? '' : 'text-emerald-600'}>{item.youpin_count}</span>
+            <span className={liked ? 'text-emerald-700' : ''}>{item.youpin_count}</span>
             有品
           </button>
         </div>

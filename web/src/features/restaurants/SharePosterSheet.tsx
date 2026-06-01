@@ -35,6 +35,7 @@ const TIER_COLORS: Record<string, string> = {
 
 interface PhotoLibraryPlugin {
   saveImage(options: { dataUrl: string }): Promise<void>
+  shareImage(options: { dataUrl: string }): Promise<void>
 }
 
 const PhotoLibrary = registerPlugin<PhotoLibraryPlugin>('PhotoLibrary')
@@ -143,8 +144,13 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
     setErrorMsg(null)
 
     try {
-      const { blob, file } = await generatePoster()
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      const { blob, dataUrl, file } = await generatePoster()
+      if (Capacitor.getPlatform() === 'android') {
+        if (!Capacitor.isPluginAvailable('PhotoLibrary')) {
+          throw { code: 'PLUGIN_UNAVAILABLE', message: 'PhotoLibrary plugin is unavailable' }
+        }
+        await PhotoLibrary.shareImage({ dataUrl })
+      } else if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: '食鉴分享' })
       } else {
         downloadPoster(blob, file.name)
@@ -153,7 +159,7 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
       console.error('Failed to generate poster:', err)
-      setErrorMsg('生成海报失败，请重试')
+      setErrorMsg(Capacitor.getPlatform() === 'android' ? nativeSaveErrorMessage(err) : '生成海报失败，请重试')
     } finally {
       setActiveAction(null)
     }
