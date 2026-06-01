@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPin, Search, ChevronDown, Loader2 } from 'lucide-react'
+import { MapPin, Search, ChevronDown } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 import { useCities } from '@/features/city-picker/useCities'
@@ -22,7 +22,6 @@ import { distanceKm } from '@/lib/geo'
 export function PracticeStep1Page() {
   const navigate = useNavigate()
   const setPoi = usePracticeDraft((s) => s.setPoi)
-  const applyHydrated = usePracticeDraft((s) => s.applyHydratedPracticeFromServer)
   const resetDraft = usePracticeDraft((s) => s.reset)
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
   const [searchCity, setSearchCity] = useState<{ id: string | null; name: string }>({ id: null, name: '' })
@@ -48,7 +47,6 @@ export function PracticeStep1Page() {
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
   }, [cityRows])
-  const [picking, setPicking] = useState<string | null>(null)
   const userLoc = useUserLocation()
   const searchCityForApi = searchCity.name || undefined
   const { data: rawCandidates = [], isLoading, isFetching } = usePoiSearch(debouncedKeyword, searchCityForApi)
@@ -76,32 +74,35 @@ export function PracticeStep1Page() {
   const showNoResults =
     !showInitialHint && !isLoading && !isFetching && candidates.length === 0
 
-  async function selectPoi(poi: PoiCandidate) {
-    setPicking(poi.poi_id)
-    try {
-      const existingId = await lookupExistingRestaurantByPoi(
-        poi.poi_source,
-        poi.poi_id,
-      )
-      let existingPracticePayload = null
-      if (viewerId && existingId) {
-        try {
-          existingPracticePayload = await fetchExistingPracticeHydration(
-            viewerId,
-            existingId,
-          )
-        } catch (e) {
-          console.warn('[shijian] hydrate practice draft failed:', e)
+  function selectPoi(poi: PoiCandidate) {
+    // 先用 POI 基础信息立即跳转，消除点击到进入 step2 的卡顿
+    setPoi(poi, null, false)
+    navigate('/practice/step2')
+
+    // 后台静默补全：查询已有餐厅 id 和历史评价，完成后 patch 到 draft
+    const capturedPracticedPoiKeys = practicedPoiKeys
+    void (async () => {
+      try {
+        const existingId = await lookupExistingRestaurantByPoi(
+          poi.poi_source,
+          poi.poi_id,
+        )
+        const willReplace =
+          !!existingId && capturedPracticedPoiKeys.has(poiPracticeKey(poi))
+        usePracticeDraft.getState().patchExistingRestaurant(existingId, willReplace)
+
+        if (viewerId && existingId) {
+          const payload = await fetchExistingPracticeHydration(viewerId, existingId)
+          // 只有用户尚未开始填写（tier 仍为 null）时才回填历史评价
+          const s = usePracticeDraft.getState()
+          if (s.tier === null && !s.submission_baseline_locked_from_server) {
+            s.applyHydratedPracticeFromServer(payload)
+          }
         }
+      } catch (e) {
+        console.warn('[shijian] background poi lookup failed:', e)
       }
-      const willReplace =
-        !!existingPracticePayload || practicedPoiKeys.has(poiPracticeKey(poi))
-      setPoi(poi, existingId, willReplace)
-      if (existingPracticePayload) applyHydrated(existingPracticePayload)
-      navigate('/practice/step2')
-    } finally {
-      setPicking(null)
-    }
+    })()
   }
 
   function shortenCityName(name: string | null): string {
@@ -211,14 +212,7 @@ export function PracticeStep1Page() {
         )}
 
         {candidates.length > 0 && (
-          <div className="relative">
-            {/* 选定餐厅时的全屏遮罩：网络请求期间阻止误触 */}
-            {picking && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/70 backdrop-blur-[2px]">
-                <Loader2 size={22} className="animate-spin text-orange-500" />
-                <p className="text-[12px] font-medium text-neutral-600">正在确认餐厅…</p>
-              </div>
-            )}
+          <div>
             <div className="mb-3 flex items-end justify-between">
               <p className="text-[12px] font-medium text-neutral-600">
                 找到 <span className="tabular-nums text-orange-700">{candidates.length}</span> 个候选，点击选定后进入写评价
@@ -233,7 +227,6 @@ export function PracticeStep1Page() {
                   <li key={poi.poi_id}>
                     <button
                       type="button"
-                      disabled={picking === poi.poi_id}
                       onClick={() => selectPoi(poi)}
                       className="w-full rounded-2xl border border-neutral-100 bg-white p-3 text-left shadow-sm active:bg-neutral-50 disabled:opacity-50"
                     >

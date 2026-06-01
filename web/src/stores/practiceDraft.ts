@@ -88,6 +88,11 @@ interface PracticeDraftState {
     existingRestaurantId: string | null,
     willReplaceExistingPractice?: boolean,
   ) => void
+  /** 导航后台查询完成时，仅补写 existing_restaurant_id，不重置其他字段 */
+  patchExistingRestaurant: (
+    existingRestaurantId: string | null,
+    willReplaceExistingPractice: boolean,
+  ) => void
   setExistingRestaurant: (
     restaurant: {
       id: string
@@ -185,6 +190,12 @@ export const usePracticeDraft = create<PracticeDraftState>()(
           submission_baseline: null,
           submission_baseline_locked_from_server: false,
           returnTo: null,
+        }),
+      patchExistingRestaurant: (existingRestaurantId, willReplaceExistingPractice) =>
+        set({
+          existing_restaurant_id: existingRestaurantId,
+          will_replace_existing_practice:
+            !!existingRestaurantId && !!willReplaceExistingPractice,
         }),
       setExistingRestaurant: (restaurant, willReplaceExistingPractice = false) =>
         set({
