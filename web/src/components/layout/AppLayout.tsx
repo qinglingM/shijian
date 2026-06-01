@@ -126,7 +126,10 @@ export function AppLayout() {
       <main
         ref={mainRef}
         className={cn(
-          'flex flex-col flex-1 min-h-0',
+          // relative：作为绝对定位后代的包含块。否则 sr-only 的隐藏 file input
+          // 等 position:absolute 元素会以 ICB(html) 为包含块，按其静态位置撑高
+          // document.scrollHeight，使整个页面可向下滚出大片空白（菜品越多越长）。
+          'relative flex flex-col flex-1 min-h-0',
           isTabRoute ? 'overflow-hidden' : 'overflow-y-auto',
           hideTabs && 'pb-[max(1rem,env(safe-area-inset-bottom))]',
         )}
