@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { cn } from '@/lib/utils'
@@ -48,12 +48,22 @@ const TAB_ROUTES = new Set(['/map', '/square', '/tier-map', '/me'])
 export function AppLayout() {
   const { pathname } = useLocation()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
+  const mainRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     const listeners: Array<{ remove: () => void }> = []
     try {
       Keyboard.addListener('keyboardWillShow', () => setKeyboardOpen(true)).then((h) => listeners.push(h))
-      Keyboard.addListener('keyboardWillHide', () => setKeyboardOpen(false)).then((h) => listeners.push(h))
+      Keyboard.addListener('keyboardWillHide', () => {
+        setKeyboardOpen(false)
+        // 键盘收起后，把 main 滚动容器滚回底部，消除因 scrollIntoView 留下的多余空白
+        setTimeout(() => {
+          const el = mainRef.current
+          if (el && el.scrollHeight > el.clientHeight) {
+            el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+          }
+        }, 150)
+      }).then((h) => listeners.push(h))
     } catch {}
     return () => { listeners.forEach((h) => h.remove()) }
   }, [])
@@ -68,6 +78,7 @@ export function AppLayout() {
   return (
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-white lg:max-w-3xl">
       <main
+        ref={mainRef}
         className={cn(
           'flex flex-col flex-1 min-h-0',
           isTabRoute ? 'overflow-hidden' : 'overflow-y-auto',

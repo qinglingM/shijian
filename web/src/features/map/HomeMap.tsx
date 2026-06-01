@@ -257,7 +257,8 @@ function SearchBar({
     tierMapShowsAllChina ? undefined : cityName,
   )
 
-  const showDropdown = focused && keyword.length > 0
+  // 下拉可见性与 focused 解耦：只要有关键词就显示，Enter 收起键盘但结果留着
+  const showDropdown = keyword.length > 0
   const hasResults = results.length > 0
 
   async function handlePickPoi(poi: PoiCandidate) {
@@ -273,6 +274,15 @@ function SearchBar({
 
   return (
     <div>
+      {/* 遮罩：点地图区域关闭搜索 */}
+      {showDropdown && (
+        <div
+          className="fixed inset-0 z-[990]"
+          onMouseDown={() => { setQuery(''); inputRef.current?.blur() }}
+          onTouchStart={() => { setQuery(''); inputRef.current?.blur() }}
+        />
+      )}
+      <div className="relative z-[995]">
           <div className="flex items-center gap-1.5 rounded-full bg-neutral-100 px-3 py-1.5 mx-4 my-2">
         <Search size={15} className="shrink-0 text-neutral-400" />
         <input
@@ -287,15 +297,7 @@ function SearchBar({
             onInteract()
           }}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              if (results.length > 0) {
-                void handlePickPoi(results[0])
-              } else {
-                e.currentTarget.blur()
-              }
-            }
-          }}
+          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
           placeholder="搜店名、区域、地址"
           className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
         />
@@ -352,6 +354,7 @@ function SearchBar({
           )}
         </div>
       )}
+      </div>
     </div>
   )
 }

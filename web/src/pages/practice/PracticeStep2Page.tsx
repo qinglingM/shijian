@@ -560,6 +560,7 @@ export function PracticeStep2Page() {
             onChange={(e) => draft.setStoreComment(e.target.value)}
 
             onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+            onFocus={(e) => setTimeout(() => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' }), 350)}
 
             placeholder={
 
