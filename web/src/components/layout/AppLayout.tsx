@@ -83,14 +83,14 @@ export function AppLayout() {
       Keyboard.addListener('keyboardWillShow', (info) => {
         setKeyboardOpen(true)
         const kbH = info?.keyboardHeight ?? 0
+        // iOS 切换输入框会重复触发 willShow，先无条件还原，避免 padding 叠加污染
+        restorePadding()
         if (kbH <= 0) return
         const active = document.activeElement as HTMLElement | null
         if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) return
         const scroller = findScrollParent(active) ?? mainRef.current
         if (!scroller) return
-        // 切换输入框时先还原上一个容器
-        if (scrollerRef.current && scrollerRef.current !== scroller) restorePadding()
-        // 在原始（含安全区）padding 基础上叠加键盘高度，腾出可滚空间
+        // 还原后读取的是干净的原始 padding，叠加键盘高度腾出可滚空间
         const basePad = getComputedStyle(scroller).paddingBottom
         prevPadRef.current = scroller.style.paddingBottom
         scrollerRef.current = scroller
