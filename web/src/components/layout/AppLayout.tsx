@@ -79,6 +79,18 @@ export function AppLayout() {
       scrollerRef.current = null
     }
 
+    // 点击/触摸输入框以外的任意位置，主动 blur 收起键盘（iOS WebView 默认不会自动收）。
+    // capture 阶段先于目标自身处理，blur 不会阻断后续 click/导航。点到另一表单控件
+    // 时跳过，避免“收起再弹起”的闪烁。
+    function dismissKeyboardOnOutsideTap(e: PointerEvent) {
+      const active = document.activeElement as HTMLElement | null
+      if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) return
+      const target = e.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, label, [contenteditable]')) return
+      active.blur()
+    }
+    document.addEventListener('pointerdown', dismissKeyboardOnOutsideTap, true)
+
     try {
       Keyboard.addListener('keyboardWillShow', (info) => {
         setKeyboardOpen(true)
@@ -111,7 +123,10 @@ export function AppLayout() {
         restorePadding()
       }).then((h) => listeners.push(h))
     } catch {}
-    return () => { listeners.forEach((h) => h.remove()) }
+    return () => {
+      listeners.forEach((h) => h.remove())
+      document.removeEventListener('pointerdown', dismissKeyboardOnOutsideTap, true)
+    }
   }, [])
 
   const hideTabs =
