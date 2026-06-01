@@ -21,10 +21,12 @@ export function useCandidatesPracticeStatus(candidates: PoiCandidate[]) {
     enabled: !!userId && candidates.length > 0,
     staleTime: 30_000,
     gcTime: 0,
-    queryFn: async (): Promise<Set<string>> => {
-      if (!userId || candidates.length === 0) return new Set()
+    // 返回 string[] 而非 Set：React Query 缓存会被 JSON 持久化到 localStorage，
+    // Set 经 JSON.stringify 会变成 {}，重启 App 恢复后调用 .has 会崩溃。数组可安全序列化。
+    queryFn: async (): Promise<string[]> => {
+      if (!userId || candidates.length === 0) return []
 
-      const poiKeysPracticed = new Set<string>()
+      const poiKeysPracticed: string[] = []
       const poiToRestaurant = new Map<string, string>()
 
       const source = candidates[0].poi_source
@@ -59,7 +61,7 @@ export function useCandidatesPracticeStatus(candidates: PoiCandidate[]) {
       const practicedRids = new Set((prRows ?? []).map((p) => p.restaurant_id as string))
 
       for (const [pKey, rid] of poiToRestaurant) {
-        if (practicedRids.has(rid)) poiKeysPracticed.add(pKey)
+        if (practicedRids.has(rid)) poiKeysPracticed.push(pKey)
       }
 
       return poiKeysPracticed

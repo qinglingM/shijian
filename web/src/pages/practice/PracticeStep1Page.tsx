@@ -99,8 +99,11 @@ export function PracticeStep1Page() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const practicedQ = useCandidatesPracticeStatus(candidates)
-  const emptyPracticed = useMemo(() => new Set<string>(), [])
-  const practicedPoiKeys = practicedQ.data ?? emptyPracticed
+  // data 为 string[]，转成 Set 供 .has 查询。Array.isArray 兜底旧版持久化缓存里残留的非数组数据。
+  const practicedPoiKeys = useMemo(
+    () => new Set(Array.isArray(practicedQ.data) ? practicedQ.data : []),
+    [practicedQ.data],
+  )
 
   const showInitialHint = keyword.trim() === ''
   const showNoResults =
