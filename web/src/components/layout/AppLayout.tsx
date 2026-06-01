@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { cn } from '@/lib/utils'
-import { Keyboard, KeyboardResize } from '@capacitor/keyboard'
+import { Keyboard } from '@capacitor/keyboard'
 import { HomePage } from '@/pages/HomePage'
 import { HomeMap } from '@/features/map/HomeMap'
 import { SquarePage } from '@/pages/SquarePage'
@@ -45,12 +45,16 @@ const PRACTICE_HEX_CLIP = `polygon(${PRACTICE_STEP_CLIP_A}% 0%, ${PRACTICE_STEP_
 
 const TAB_ROUTES = new Set(['/map', '/square', '/tier-map', '/me'])
 
-/** 向上查找元素最近的、真正可滚动的祖先容器 */
+/**
+ * 向上查找最近的、声明为可滚动的祖先容器（按 overflow 样式判定）。
+ * 不要求当前 scrollHeight>clientHeight：resize:none 下页面正好铺满整屏、
+ * 暂时无可滚内容，需先给容器加 padding 再滚，故不能用可滚状态作为判据。
+ */
 function findScrollParent(el: HTMLElement | null): HTMLElement | null {
   let p = el?.parentElement ?? null
   while (p) {
     const oy = getComputedStyle(p).overflowY
-    if ((oy === 'auto' || oy === 'scroll') && p.scrollHeight > p.clientHeight) return p
+    if (oy === 'auto' || oy === 'scroll') return p
     p = p.parentElement
   }
   return null
@@ -59,53 +63,52 @@ function findScrollParent(el: HTMLElement | null): HTMLElement | null {
 export function AppLayout() {
   const { pathname } = useLocation()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
-  // keyboardDidShow 时记录被滚动的容器，供 keyboardDidHide 复位
+  const mainRef = useRef<HTMLElement | null>(null)
+  // 键盘弹起时被加 padding 的滚动容器，及其原始 inline paddingBottom，供收起时还原
   const scrollerRef = useRef<HTMLElement | null>(null)
+  const prevPadRef = useRef('')
 
   useEffect(() => {
-    // resize: native 让 iOS 缩小 WebView viewport，键盘收起后由系统恢复，不留底部空白
-    try { void Keyboard.setResizeMode({ mode: KeyboardResize.Native }) } catch {}
-
+    // resize:none —— WebView 永不缩放，键盘纯浮在内容上方，不会产生白边/视口跳动。
+    // 由我们手动给滚动容器加 padding 腾出空间，并把聚焦输入框滚到键盘上方。
     const listeners: Array<{ remove: () => void }> = []
+
+    function restorePadding() {
+      const scroller = scrollerRef.current
+      if (scroller) scroller.style.paddingBottom = prevPadRef.current
+      scrollerRef.current = null
+    }
+
     try {
-      Keyboard.addListener('keyboardWillShow', () => {
+      Keyboard.addListener('keyboardWillShow', (info) => {
         setKeyboardOpen(true)
-      }).then((h) => listeners.push(h))
-
-      Keyboard.addListener('keyboardWillHide', () => {
-        setKeyboardOpen(false)
-      }).then((h) => listeners.push(h))
-
-      // 键盘完全弹出后，把当前聚焦的输入框精确滚到键盘上方。
-      // 自定义滚动容器（main overflow-y-auto）下 iOS 不会自动避让，必须手动处理。
-      Keyboard.addListener('keyboardDidShow', () => {
+        const kbH = info?.keyboardHeight ?? 0
+        if (kbH <= 0) return
         const active = document.activeElement as HTMLElement | null
-        if (!active) return
-        if (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA') return
-        const scroller = findScrollParent(active)
+        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) return
+        const scroller = findScrollParent(active) ?? mainRef.current
         if (!scroller) return
+        // 切换输入框时先还原上一个容器
+        if (scrollerRef.current && scrollerRef.current !== scroller) restorePadding()
+        // 在原始（含安全区）padding 基础上叠加键盘高度，腾出可滚空间
+        const basePad = getComputedStyle(scroller).paddingBottom
+        prevPadRef.current = scroller.style.paddingBottom
         scrollerRef.current = scroller
-        // rAF 等布局稳定后再测量，确保 rect 与可见视口都是最新值
+        scroller.style.paddingBottom = `calc(${basePad} + ${kbH}px)`
+        // rAF 等 padding 生效后再测量并滚动
         requestAnimationFrame(() => {
           const rect = active.getBoundingClientRect()
-          // visualViewport.height 才是键盘遮挡后真正可见的高度
-          const visibleH = window.visualViewport?.height ?? window.innerHeight
-          const safeBottom = visibleH - 16
+          // resize:none 下 innerHeight 仍是整屏高，减去键盘高即可见区底边
+          const safeBottom = window.innerHeight - kbH - 16
           if (rect.bottom > safeBottom) {
             scroller.scrollBy({ top: rect.bottom - safeBottom, behavior: 'smooth' })
           }
         })
       }).then((h) => listeners.push(h))
 
-      // 键盘收起后，若滚动位置超出内容上限则夹回，消除底部空白
-      Keyboard.addListener('keyboardDidHide', () => {
-        const scroller = scrollerRef.current
-        scrollerRef.current = null
-        if (!scroller) return
-        const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight)
-        if (scroller.scrollTop > maxScroll) {
-          scroller.scrollTo({ top: maxScroll, behavior: 'smooth' })
-        }
+      Keyboard.addListener('keyboardWillHide', () => {
+        setKeyboardOpen(false)
+        restorePadding()
       }).then((h) => listeners.push(h))
     } catch {}
     return () => { listeners.forEach((h) => h.remove()) }
@@ -121,6 +124,7 @@ export function AppLayout() {
   return (
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-white lg:max-w-3xl">
       <main
+        ref={mainRef}
         className={cn(
           'flex flex-col flex-1 min-h-0',
           isTabRoute ? 'overflow-hidden' : 'overflow-y-auto',
