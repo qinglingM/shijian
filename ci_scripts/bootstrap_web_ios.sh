@@ -27,6 +27,7 @@ cd "$REPO_DIR/web"
 
 NODE_VERSION="22.12.0"
 NODE_HOME="$REPO_DIR/.ci-node/node"
+export CI=true
 export PATH="$NODE_HOME/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 if [ ! -x "$NODE_HOME/bin/node" ] || [ "$("$NODE_HOME/bin/node" -v)" != "v$NODE_VERSION" ]; then
@@ -60,10 +61,33 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 127
 fi
 
-PNPM="npx -y pnpm@10.17.0"
+retry_command() {
+  attempts=1
+  max_attempts=5
 
-$PNPM install --frozen-lockfile
-$PNPM build
-$PNPM exec cap sync ios
+  until "$@"; do
+    if [ "$attempts" -ge "$max_attempts" ]; then
+      echo "Command failed after $attempts attempts: $*"
+      return 1
+    fi
+
+    delay=$((attempts * 5))
+    echo "Command failed. Retrying in ${delay}s: $*"
+    sleep "$delay"
+    attempts=$((attempts + 1))
+  done
+}
+
+PNPM_HOME="$REPO_DIR/.ci-tools"
+PNPM="$PNPM_HOME/node_modules/.bin/pnpm"
+
+if [ ! -x "$PNPM" ] || [ "$("$PNPM" --version)" != "10.17.0" ]; then
+  rm -rf "$PNPM_HOME"
+  retry_command npm install --prefix "$PNPM_HOME" --no-save --no-audit --no-fund pnpm@10.17.0
+fi
+
+retry_command "$PNPM" install --frozen-lockfile
+"$PNPM" build
+"$PNPM" exec cap sync ios
 
 touch "$MARKER"

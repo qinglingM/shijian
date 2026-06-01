@@ -38,6 +38,7 @@ web/.vite/
 web/.tsbuildinfo
 **/.tsbuildinfo
 .ci-node/
+.ci-tools/
 .ci_web_ios_bootstrapped
 .cursor/
 .claude/worktrees/
