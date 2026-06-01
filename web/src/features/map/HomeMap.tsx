@@ -287,7 +287,15 @@ function SearchBar({
             onInteract()
           }}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
-          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              if (results.length > 0) {
+                void handlePickPoi(results[0])
+              } else {
+                e.currentTarget.blur()
+              }
+            }
+          }}
           placeholder="搜店名、区域、地址"
           className="flex-1 bg-transparent text-[13px] text-neutral-700 placeholder:text-neutral-400 outline-none"
         />
