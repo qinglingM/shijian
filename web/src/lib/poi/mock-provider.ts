@@ -2,6 +2,7 @@ import type {
   PoiCandidate,
   PoiProvider,
   PoiSearchParams,
+  PoiSearchResult,
 } from '@/lib/poi/types'
 
 /** 占位图便于不接高德时也验证封面链路（稳定 seed） */
@@ -148,18 +149,49 @@ const MOCK_BEIJING: PoiCandidate[] = [
   },
 ]
 
+/** 批量生成测试 POI，便于在 mock 下验证翻页/上拉加载（关键字含「测试」即命中 45 条） */
+const MOCK_PAGED: PoiCandidate[] = Array.from({ length: 45 }, (_, i) => {
+  const n = i + 1
+  return {
+    poi_source: 'amap',
+    poi_id: `mock_paged_${String(n).padStart(3, '0')}`,
+    poi_name: `测试餐厅 ${n} 号店`,
+    address_text: `北京市海淀区测试路 ${n} 号`,
+    latitude: 39.9 + i * 0.001,
+    longitude: 116.3 + i * 0.001,
+    province_name: '北京市',
+    city_name: '北京市',
+    district_name: '海淀区',
+    category: 'chinese',
+    cover_image_url: n % 5 === 0 ? null : mockCover(`mock-paged-${n}`),
+    amap_type_code: '050118',
+    amap_mid_category: '中餐厅',
+    amap_small_category: '特色/地方风味餐厅',
+    display_label: '测试',
+  }
+})
+
+const MOCK_ALL: PoiCandidate[] = [...MOCK_BEIJING, ...MOCK_PAGED]
+
 export class MockPoiProvider implements PoiProvider {
   readonly source = 'amap' as const
 
-  async search({ keyword, signal: _signal }: PoiSearchParams): Promise<PoiCandidate[]> {
+  async search({
+    keyword,
+    signal: _signal,
+    page = 1,
+    pageSize = 20,
+  }: PoiSearchParams): Promise<PoiSearchResult> {
     await new Promise((r) => setTimeout(r, 250))
-    if (!keyword.trim()) return []
+    if (!keyword.trim()) return { items: [], total: 0 }
     const kw = keyword.trim().toLowerCase()
-    return MOCK_BEIJING.filter(
+    const matched = MOCK_ALL.filter(
       (p) =>
         p.poi_name.toLowerCase().includes(kw) ||
         (p.address_text ?? '').toLowerCase().includes(kw) ||
         (p.district_name ?? '').toLowerCase().includes(kw),
     )
+    const start = (page - 1) * pageSize
+    return { items: matched.slice(start, start + pageSize), total: matched.length }
   }
 }

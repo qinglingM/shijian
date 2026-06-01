@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { getPoiProvider, type PoiCandidate } from '@/lib/poi'
 import { getSupabase } from '@/lib/supabase'
+
+export const POI_PAGE_SIZE = 20
 
 export function usePoiSearch(keyword: string, city?: string, enabled = true) {
   const trimmed = keyword.trim()
@@ -11,7 +13,39 @@ export function usePoiSearch(keyword: string, city?: string, enabled = true) {
     gcTime: 0,
     queryFn: async ({ signal }) => {
       const provider = getPoiProvider()
-      return provider.search({ keyword: trimmed, city, signal })
+      const { items } = await provider.search({ keyword: trimmed, city, signal })
+      return items
+    },
+  })
+}
+
+/**
+ * 分页搜索：每页 POI_PAGE_SIZE 条，上拉加载下一页。
+ * 排序策略「每页各自由近及远」由调用方对每页 items 单独排序后再拼接，
+ * 故此处保持服务端返回顺序，不跨页重排。
+ */
+export function usePoiSearchInfinite(keyword: string, city?: string, enabled = true) {
+  const trimmed = keyword.trim()
+  return useInfiniteQuery({
+    queryKey: ['poi-search-infinite', trimmed, city ?? ''],
+    enabled: enabled && trimmed.length >= 1,
+    staleTime: 60_000,
+    gcTime: 0,
+    initialPageParam: 1,
+    queryFn: async ({ pageParam, signal }) => {
+      const provider = getPoiProvider()
+      return provider.search({
+        keyword: trimmed,
+        city,
+        signal,
+        page: pageParam,
+        pageSize: POI_PAGE_SIZE,
+      })
+    },
+    getNextPageParam: (_lastPage, allPages) => {
+      const loaded = allPages.reduce((sum, p) => sum + p.items.length, 0)
+      const total = allPages[0]?.total ?? 0
+      return loaded < total ? allPages.length + 1 : undefined
     },
   })
 }

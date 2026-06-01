@@ -31,9 +31,19 @@ export interface PoiSearchParams {
   keyword: string
   city?: string
   signal?: AbortSignal
+  /** 1-based 页码，默认 1 */
+  page?: number
+  /** 每页条数，默认 20 */
+  pageSize?: number
+}
+
+export interface PoiSearchResult {
+  items: PoiCandidate[]
+  /** 命中总数（高德 count），用于判断是否还有下一页 */
+  total: number
 }
 
 export interface PoiProvider {
   readonly source: PoiSource
-  search(params: PoiSearchParams): Promise<PoiCandidate[]>
+  search(params: PoiSearchParams): Promise<PoiSearchResult>
 }

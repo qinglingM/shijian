@@ -1,5 +1,5 @@
 import { AMAP_KEY } from '@/lib/env'
-import type { PoiCandidate, PoiProvider, PoiSearchParams } from '@/lib/poi/types'
+import type { PoiCandidate, PoiProvider, PoiSearchParams, PoiSearchResult } from '@/lib/poi/types'
 
 type AmapPoiRaw = {
   id?: string
@@ -17,6 +17,7 @@ type AmapPoiRaw = {
 interface AmapTextResponse {
   status: string
   info?: string
+  count?: string
   pois?: AmapPoiRaw[]
 }
 
@@ -72,15 +73,16 @@ export class AmapPoiProvider implements PoiProvider {
     this.apiKey = apiKey
   }
 
-  async search({ keyword, city, signal }: PoiSearchParams): Promise<PoiCandidate[]> {
+  async search({ keyword, city, signal, page = 1, pageSize = 20 }: PoiSearchParams): Promise<PoiSearchResult> {
     const kw = keyword.trim()
-    if (!kw) return []
+    if (!kw) return { items: [], total: 0 }
 
     const params = new URLSearchParams({
       key: this.apiKey,
       keywords: kw,
       types: '050000',
-      offset: '20',
+      offset: String(pageSize),
+      page: String(page),
       extensions: 'all',
     })
     if (city?.trim()) {
@@ -105,7 +107,7 @@ export class AmapPoiProvider implements PoiProvider {
       throw new Error(`高德 POI：${json.info ?? '返回异常'}`)
     }
 
-    return json.pois
+    const items: PoiCandidate[] = json.pois
       .filter((r) => {
         if (!r.id || !r.name) return false
         const t = typeof r.type === 'string' ? r.type.trim() : ''
@@ -138,6 +140,8 @@ export class AmapPoiProvider implements PoiProvider {
           display_label: null,
         }
       })
+
+    return { items, total: Number(json.count) || 0 }
   }
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Search, ChevronDown } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
@@ -7,7 +7,7 @@ import { useCities } from '@/features/city-picker/useCities'
 import { useDebounce } from '@/lib/useDebounce'
 import {
   lookupExistingRestaurantByPoi,
-  usePoiSearch,
+  usePoiSearchInfinite,
 } from '@/features/poi-search/usePoiSearch'
 import { useCandidatesPracticeStatus } from '@/features/poi-search/useCandidatesPracticeStatus'
 import { fetchExistingPracticeHydration } from '@/features/practice/hydratePracticeDraftFromServer'
@@ -49,55 +49,54 @@ export function PracticeStep1Page() {
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
   }, [cityRows])
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const sentinelRef = useRef<HTMLLIElement>(null)
 
   const userLoc = useUserLocation()
   const searchCityForApi = searchCity.name || undefined
-  const { data: rawCandidates = [], isLoading, isFetching } = usePoiSearch(debouncedKeyword, searchCityForApi)
+  const {
+    data: searchData,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = usePoiSearchInfinite(debouncedKeyword, searchCityForApi)
 
-  // 新搜索时重置分页
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
-  }, [debouncedKeyword, searchCityForApi])
-
+  // 每页各自由近及远排序，再按加载顺序拼接——不跨页重排
   const candidates = useMemo<PoiCandidate[]>(() => {
-    if (!userLoc || rawCandidates.length === 0) return rawCandidates
-    return [...rawCandidates].sort((a, b) => {
-      const da =
-        a.latitude != null && a.longitude != null
-          ? distanceKm(userLoc.lat, userLoc.lng, a.latitude, a.longitude)
-          : Infinity
-      const db =
-        b.latitude != null && b.longitude != null
-          ? distanceKm(userLoc.lat, userLoc.lng, b.latitude, b.longitude)
-          : Infinity
-      return da - db
-    })
-  }, [rawCandidates, userLoc])
+    const pages = searchData?.pages ?? []
+    const sortByDistance = (items: PoiCandidate[]) => {
+      if (!userLoc) return items
+      return [...items].sort((a, b) => {
+        const da =
+          a.latitude != null && a.longitude != null
+            ? distanceKm(userLoc.lat, userLoc.lng, a.latitude, a.longitude)
+            : Infinity
+        const db =
+          b.latitude != null && b.longitude != null
+            ? distanceKm(userLoc.lat, userLoc.lng, b.latitude, b.longitude)
+            : Infinity
+        return da - db
+      })
+    }
+    return pages.flatMap((p) => sortByDistance(p.items))
+  }, [searchData, userLoc])
 
-  const visibleCandidates = useMemo(
-    () => candidates.slice(0, visibleCount),
-    [candidates, visibleCount],
-  )
-  const hasMore = visibleCount < candidates.length
-
-  const loadMore = useCallback(() => {
-    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, candidates.length))
-  }, [candidates.length])
+  const total = searchData?.pages[0]?.total ?? 0
 
   useEffect(() => {
     const el = sentinelRef.current
     if (!el) return
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore) loadMore()
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          void fetchNextPage()
+        }
       },
       { threshold: 0.1 },
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [hasMore, loadMore])
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const practicedQ = useCandidatesPracticeStatus(candidates)
   const emptyPracticed = useMemo(() => new Set<string>(), [])
@@ -105,7 +104,7 @@ export function PracticeStep1Page() {
 
   const showInitialHint = keyword.trim() === ''
   const showNoResults =
-    !showInitialHint && !isLoading && !isFetching && candidates.length === 0
+    !showInitialHint && !isLoading && !isFetchingNextPage && candidates.length === 0
 
   function selectPoi(poi: PoiCandidate) {
     // 先用 POI 基础信息立即跳转，消除点击到进入 step2 的卡顿
@@ -212,7 +211,7 @@ export function PracticeStep1Page() {
         </div>
 
         <div className="mx-auto mt-3 flex max-w-[22rem] items-center justify-end gap-2 text-[11px] text-neutral-500 sm:max-w-none">
-          {(isLoading || isFetching) && !showInitialHint && (
+          {isLoading && !showInitialHint && (
             <span className="shrink-0 font-medium text-neutral-700">搜寻中…</span>
           )}
         </div>
@@ -236,7 +235,7 @@ export function PracticeStep1Page() {
           </div>
         ) : null}
 
-        {(isLoading || isFetching) && !showInitialHint && (
+        {isLoading && !showInitialHint && (
           <div className="rounded-[1.5rem] border border-orange-100 bg-gradient-to-b from-orange-50/70 to-white px-4 py-8 text-center shadow-sm">
             <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-full bg-white text-orange-600 shadow-inner ring-1 ring-orange-100">
               <Search size={20} className="animate-pulse" />
@@ -250,16 +249,16 @@ export function PracticeStep1Page() {
           <div>
             <div className="mb-3 flex items-end justify-between">
               <p className="text-[12px] font-medium text-neutral-600">
-                找到 <span className="tabular-nums text-orange-700">{candidates.length}</span> 个候选，点击选定后进入写评价
+                找到 <span className="tabular-nums text-orange-700">{total}</span> 个候选，点击选定后进入写评价
               </p>
-              {candidates.length > PAGE_SIZE && (
+              {total > PAGE_SIZE && (
                 <p className="text-[11px] text-neutral-400">
-                  已显示 {Math.min(visibleCount, candidates.length)}/{candidates.length}
+                  已显示 {candidates.length}/{total}
                 </p>
               )}
             </div>
             <ul className="space-y-3">
-              {visibleCandidates.map((poi) => {
+              {candidates.map((poi) => {
                 const practicedHere = practicedPoiKeys.has(poiPracticeKey(poi))
                 const region = [poi.city_name, poi.district_name].filter(Boolean).join(' ') || '区域未知'
                 const address = poi.address_text?.trim() || '地址未录入'
@@ -304,9 +303,9 @@ export function PracticeStep1Page() {
                 )
               })}
 
-              {hasMore ? (
+              {hasNextPage ? (
                 <li ref={sentinelRef} className="py-4 text-center text-[11px] text-neutral-400">
-                  上拉加载更多…
+                  {isFetchingNextPage ? '加载中…' : '上拉加载更多…'}
                 </li>
               ) : (
                 <li className="pt-2 pb-6 text-center text-[11px] text-neutral-400">
