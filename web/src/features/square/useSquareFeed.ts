@@ -19,6 +19,7 @@ export interface SquareFeedItem {
   my_vote: VoteType | null
   restaurant_id: string
   restaurant_name: string
+  province_name: string | null
   city_name: string | null
   category_label: string | null
   amap_mid_category: string | null
@@ -69,7 +70,7 @@ export function useSquareFeed() {
       const [{ data: profsRaw, error: profErr }, { data: restaurantsRaw, error: restErr }, { data: votesRaw, error: voteErr }, { data: allTiersRaw }] = await Promise.all([
         sb.from('profiles').select('id,nickname,avatar_url,current_title_id').in('id', uids),
         rids.length
-          ?           sb.from('restaurants').select('id,display_name,city_name,display_category_label,amap_mid_category,amap_small_category').in('id', rids)
+          ?           sb.from('restaurants').select('id,display_name,province_name,city_name,display_category_label,amap_mid_category,amap_small_category').in('id', rids)
           : Promise.resolve({ data: [], error: null } as const),
         sb.from('review_votes').select('target_id,vote_type,user_id').eq('target_type', 'store_review').in('target_id', prs.map((p) => p.id)),
         sb.from('practice_records').select('restaurant_id, tier').in('restaurant_id', rids).eq('is_active', true),
@@ -91,8 +92,8 @@ export function useSquareFeed() {
         }
       }
 
-      const rests = new Map<string, { display_name: string; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>()
-      for (const r of (restaurantsRaw ?? []) as Array<{ id: string; display_name: string; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>) rests.set(r.id, r)
+      const rests = new Map<string, { display_name: string; province_name: string | null; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>()
+      for (const r of (restaurantsRaw ?? []) as Array<{ id: string; display_name: string; province_name: string | null; city_name: string | null; display_category_label: string | null; amap_mid_category: string | null; amap_small_category: string | null }>) rests.set(r.id, r)
 
       const allTiers = (allTiersRaw ?? []) as Array<{ restaurant_id: string; tier: string }>
       const avgTierByRestaurant = new Map<string, Tier>()
@@ -135,6 +136,7 @@ export function useSquareFeed() {
           my_vote: mine.get(r.id) ?? null,
           restaurant_id: r.restaurant_id,
           restaurant_name: rest?.display_name || '未知门店',
+          province_name: rest?.province_name ?? null,
           city_name: rest?.city_name ?? null,
           category_label: rest?.display_category_label ?? null,
           amap_mid_category: rest?.amap_mid_category ?? null,

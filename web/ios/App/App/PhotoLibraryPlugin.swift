@@ -1,6 +1,5 @@
 import Capacitor
 import Photos
-import UIKit
 
 @objc(PhotoLibraryPlugin)
 class PhotoLibraryPlugin: CAPPlugin, CAPBridgedPlugin {
@@ -14,8 +13,7 @@ class PhotoLibraryPlugin: CAPPlugin, CAPBridgedPlugin {
         guard
             let dataUrl = call.getString("dataUrl"),
             let separator = dataUrl.firstIndex(of: ","),
-            let imageData = Data(base64Encoded: String(dataUrl[dataUrl.index(after: separator)...])),
-            let image = UIImage(data: imageData)
+            let imageData = Data(base64Encoded: String(dataUrl[dataUrl.index(after: separator)...]))
         else {
             call.reject("Invalid image data", "INVALID_IMAGE")
             return
@@ -23,7 +21,7 @@ class PhotoLibraryPlugin: CAPPlugin, CAPBridgedPlugin {
 
         let saveImage = {
             PHPhotoLibrary.shared().performChanges({
-                PHAssetChangeRequest.creationRequestForAsset(from: image)
+                PHAssetCreationRequest.forAsset().addResource(with: .photo, data: imageData, options: nil)
             }) { success, error in
                 DispatchQueue.main.async {
                     if success {

@@ -92,6 +92,7 @@ export function AppLayout() {
                 <li key={to}>
                   <NavLink
                     to={to}
+                    replace
                     className={cn(
                       'flex items-center justify-center py-2.5 text-sm',
                       `text-base ${active ? 'font-semibold text-orange-500' : 'text-neutral-400'}`,
@@ -120,7 +121,7 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
       onClick={() => {
         if (onBack) {
           onBack()
-        } else if (window.history.length > 1) {
+        } else if ((window.history.state?.idx ?? 0) > 0) {
           navigate(-1)
         } else {
           navigate(backTo, { replace: true })

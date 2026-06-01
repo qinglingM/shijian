@@ -7,6 +7,7 @@ export interface MapRestaurant {
   display_name: string
   latitude: number
   longitude: number
+  province_name: string | null
   city_name: string | null
   district_name: string | null
   cover_image_url: string | null
@@ -32,6 +33,7 @@ interface RestaurantRow {
   display_name: string
   latitude: number
   longitude: number
+  province_name: string | null
   city_name: string | null
   district_name: string | null
   cover_image_url: string | null
@@ -73,7 +75,7 @@ export function useMapRestaurants() {
 
       const { data: raws, error: e1 } = await sb
         .from('restaurants')
-        .select('id, display_name, latitude, longitude, city_name, district_name, cover_image_url, address_text, display_category_label, amap_mid_category, amap_small_category, categories(name)')
+        .select('id, display_name, latitude, longitude, province_name, city_name, district_name, cover_image_url, address_text, display_category_label, amap_mid_category, amap_small_category, categories(name)')
         .eq('status', 'active')
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
@@ -130,6 +132,7 @@ export function useMapRestaurants() {
           display_name: r.display_name,
           latitude: r.latitude,
           longitude: r.longitude,
+          province_name: r.province_name,
           city_name: r.city_name,
           district_name: r.district_name,
           cover_image_url: r.cover_image_url,
@@ -229,6 +232,7 @@ export function useMapRestaurants() {
           display_name: r.display_name,
           latitude: r.latitude,
           longitude: r.longitude,
+          province_name: r.province_name,
           city_name: r.city_name,
           district_name: r.district_name,
           cover_image_url: r.cover_image_url,

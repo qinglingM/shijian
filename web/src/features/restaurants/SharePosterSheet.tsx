@@ -39,6 +39,23 @@ interface PhotoLibraryPlugin {
 
 const PhotoLibrary = registerPlugin<PhotoLibraryPlugin>('PhotoLibrary')
 
+function nativeSaveErrorMessage(err: unknown): string {
+  const error = err as { code?: string; message?: string }
+  const code = error?.code ?? ''
+  const message = error?.message ?? String(err)
+
+  if (code === 'PERMISSION_DENIED' || message.includes('access denied')) {
+    return '未获得相册权限，请在系统设置中允许访问相册'
+  }
+  if (code === 'PLUGIN_UNAVAILABLE' || code === 'UNIMPLEMENTED') {
+    return '当前安装包未包含相册保存功能，请更新应用后重试'
+  }
+  if (code === 'INVALID_IMAGE') {
+    return '海报图片生成异常，请重新打开分享页面后重试'
+  }
+  return '保存图片失败，请重试'
+}
+
 export function SharePosterSheet({ open, onClose, restaurant, review, url }: SharePosterProps) {
   useAndroidBackDismiss(open, onClose)
   const posterRef = useRef<HTMLDivElement>(null)
@@ -150,6 +167,9 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
     try {
       const { blob, dataUrl, file } = await generatePoster()
       if (Capacitor.isNativePlatform()) {
+        if (!Capacitor.isPluginAvailable('PhotoLibrary')) {
+          throw { code: 'PLUGIN_UNAVAILABLE', message: 'PhotoLibrary plugin is unavailable' }
+        }
         await PhotoLibrary.saveImage({ dataUrl })
         showToast('已保存到相册')
       } else {
@@ -158,12 +178,7 @@ export function SharePosterSheet({ open, onClose, restaurant, review, url }: Sha
       }
     } catch (err) {
       console.error('Failed to save poster:', err)
-      const message = err instanceof Error ? err.message : String(err)
-      setErrorMsg(
-        message.includes('PERMISSION_DENIED') || message.includes('access denied')
-          ? '未获得相册权限，请在系统设置中允许访问相册'
-          : '保存图片失败，请重试'
-      )
+      setErrorMsg(nativeSaveErrorMessage(err))
     } finally {
       setActiveAction(null)
     }

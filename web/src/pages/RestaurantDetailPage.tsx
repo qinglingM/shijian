@@ -44,6 +44,9 @@ import { usePracticeDraft } from '@/stores/practiceDraft'
 import type { PoiCandidate, PoiSource } from '@/lib/poi/types'
 
 type TabKey = 'store' | 'dish'
+type RestaurantDetailLocationState = {
+  poi?: PoiCandidate
+}
 
 const POI_SOURCES = new Set<PoiSource>(['amap', 'manual', 'tencent', 'baidu', 'apple'])
 
@@ -73,19 +76,12 @@ function compactDate(dateLike: string, digits: 'yyyyMMdd' | 'yyMMdd') {
 export function RestaurantDetailPage() {
   const location = useLocation()
   const { id: rawId, source: poiSource, poiId } = useParams()
-  const poiState = location.state as { poi?: PoiCandidate } | null
+  const poiState = location.state as RestaurantDetailLocationState | null
   const poi = poiState?.poi ?? null
   const routePoiSource = isPoiSource(poiSource) ? poiSource : null
   const isPoiRoute = Boolean(routePoiSource && poiId)
   const id = rawId ?? (isPoiRoute ? `poi:${routePoiSource}:${poiId}` : null)
-  const [tab, setTab] = useState<TabKey>('store')
-
-  useEffect(() => {
-    if (sessionStorage.getItem('sj:returnToDishTab') === '1') {
-      sessionStorage.removeItem('sj:returnToDishTab')
-      setTab('dish')
-    }
-  }, [])
+  const tab: TabKey = new URLSearchParams(location.search).get('tab') === 'dish' ? 'dish' : 'store'
 
   const demoMeta = id ? lookupDemoRestaurant(id) : null
   const isDemo = !!demoMeta
@@ -101,6 +97,20 @@ export function RestaurantDetailPage() {
   const setExistingRestaurantDraft = usePracticeDraft((s) => s.setExistingRestaurant)
   const setReturnTo = usePracticeDraft((s) => s.setReturnTo)
   const applyHydratedDraft = usePracticeDraft((s) => s.applyHydratedPracticeFromServer)
+
+  function selectTab(nextTab: TabKey) {
+    const params = new URLSearchParams(location.search)
+    if (nextTab === 'dish') {
+      params.set('tab', 'dish')
+    } else {
+      params.delete('tab')
+    }
+    const search = params.toString()
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, {
+      replace: true,
+      state: poiState,
+    })
+  }
 
   const myPracticeQ = useQuery({
     queryKey: ['my-practice-check', isUuid ? id : null, viewerId],
@@ -635,7 +645,7 @@ export function RestaurantDetailPage() {
               <button
                 key={key}
                 type="button"
-                onClick={() => setTab(key)}
+                onClick={() => selectTab(key)}
                 className={`flex-1 rounded-full py-2 text-[13px] font-semibold transition-colors ${
                   tab === key
                     ? 'bg-white text-neutral-900 shadow-sm ring-1 ring-orange-100'

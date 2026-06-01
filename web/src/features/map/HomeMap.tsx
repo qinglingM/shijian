@@ -506,11 +506,12 @@ export function HomeMap() {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
   const [selectedBigCategory, setSelectedBigCategory] = useState<string | null>(null)
 
+  const [appliedProvince, setAppliedProvince] = useState<string | null>(null)
   const [appliedCity, setAppliedCity] = useState<string | null>(null)
-  const [appliedTier, setAppliedTier] = useState<Tier | null>(null)
+  const [appliedTiers, setAppliedTiers] = useState<Tier[]>([])
   const [appliedCategory, setAppliedCategory] = useState<string | null>(null)
   const [pendingCity, setPendingCity] = useState<string | null>(null)
-  const [pendingTier, setPendingTier] = useState<Tier | null>(null)
+  const [pendingTiers, setPendingTiers] = useState<Tier[]>([])
   const [pendingCategory, setPendingCategory] = useState<string | null>(null)
 
   // Cities data for province → city drill-down
@@ -524,6 +525,10 @@ export function HomeMap() {
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
   }, [allCities])
+  const appliedProvinceCities = useMemo(
+    () => new Set(provinces.find(([name]) => name === appliedProvince)?.[1] ?? []),
+    [appliedProvince, provinces],
+  )
 
   const categoryGroups = useMemo(() => AMAP_MID_CATEGORIES, [])
 
@@ -531,7 +536,10 @@ export function HomeMap() {
     () => {
       let filtered = restaurants
       if (appliedCity) filtered = filtered.filter(r => r.city_name === appliedCity)
-      if (appliedTier) filtered = filtered.filter(r => r.tier === appliedTier)
+      else if (appliedProvince) {
+        filtered = filtered.filter(r => r.province_name === appliedProvince || (!!r.city_name && appliedProvinceCities.has(r.city_name)))
+      }
+      if (appliedTiers.length > 0) filtered = filtered.filter(r => r.tier !== null && appliedTiers.includes(r.tier))
       if (appliedCategory) {
         // Match against both mid_category and small_category
         filtered = filtered.filter(r => 
@@ -541,7 +549,7 @@ export function HomeMap() {
       }
       return filtered
     },
-    [restaurants, appliedCity, appliedTier, appliedCategory],
+    [restaurants, appliedProvince, appliedProvinceCities, appliedCity, appliedTiers, appliedCategory],
   )
 
   const clusters = useMemo(() => {
@@ -644,8 +652,8 @@ export function HomeMap() {
   function handleReset() {
     setSelectedProvince(null)
     setSelectedBigCategory(null)
-    if (filterTab === 'city') { setPendingCity(null); setAppliedCity(null) }
-    if (filterTab === 'tier') { setPendingTier(null); setAppliedTier(null) }
+    if (filterTab === 'city') { setPendingCity(null); setAppliedProvince(null); setAppliedCity(null) }
+    if (filterTab === 'tier') { setPendingTiers([]); setAppliedTiers([]) }
     if (filterTab === 'category') { setPendingCategory(null); setAppliedCategory(null) }
   }
 
@@ -657,7 +665,7 @@ export function HomeMap() {
     <div className="relative h-full w-full overflow-hidden">
       {/* Toolbar + Filter panel */}
       <div className="absolute top-0 left-0 right-0 z-[999] bg-white">
-        <div className="h-[var(--app-safe-area-inset-top)] shrink-0 bg-white" aria-hidden />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[var(--app-safe-area-inset-top)] bg-white" aria-hidden />
         <div className="relative bg-white shadow-sm">
           <SearchBar
             onOpenPoi={handleOpenPoi}
@@ -666,33 +674,33 @@ export function HomeMap() {
           {/* Filter buttons: browser-tab style, equal-width */}
           <div className="flex bg-neutral-50/40 z-[998] relative">
           <button
-            onClick={() => { setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
+            onClick={() => { setSelectedProvince(appliedProvince); setPendingCity(appliedCity); setFilterTab('city'); setFilterOpen(true) }}
             className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'city' && filterOpen
                 ? 'text-blue-600'
-                : appliedCity
+                : appliedProvince
                   ? 'text-blue-600'
                   : 'text-neutral-600'
             }`}
           >
-            {appliedCity || '城市'}
-            {(filterTab === 'city' && filterOpen) || appliedCity ? (
+            {appliedCity || appliedProvince || '城市'}
+            {(filterTab === 'city' && filterOpen) || appliedProvince ? (
               <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
             ) : null}
           </button>
           <div className="w-px bg-neutral-100" />
           <button
-            onClick={() => { setPendingTier(appliedTier); setFilterTab('tier'); setFilterOpen(true) }}
+            onClick={() => { setPendingTiers(appliedTiers); setFilterTab('tier'); setFilterOpen(true) }}
             className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
               filterTab === 'tier' && filterOpen
                 ? 'text-blue-600'
-                : appliedTier
+                : appliedTiers.length > 0
                   ? 'text-blue-600'
                   : 'text-neutral-600'
             }`}
           >
-            {appliedTier ? TIER_LABEL[appliedTier] : '等级'}
-            {(filterTab === 'tier' && filterOpen) || appliedTier ? (
+            {appliedTiers.length === 1 ? TIER_LABEL[appliedTiers[0]] : appliedTiers.length > 1 ? `已选${appliedTiers.length}级` : '等级'}
+            {(filterTab === 'tier' && filterOpen) || appliedTiers.length > 0 ? (
               <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
             ) : null}
           </button>
@@ -729,7 +737,7 @@ export function HomeMap() {
                     {provinces.map(([pname]) => (
                       <button
                         key={pname}
-                        onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
+                        onClick={() => { setSelectedProvince(pname); setPendingCity(null) }}
                         className={`w-full px-3 py-2.5 text-left text-[13px] transition-colors ${
                           selectedProvince === pname
                             ? 'bg-white font-semibold text-blue-600'
@@ -745,18 +753,18 @@ export function HomeMap() {
                       const cities = selectedProvince
                         ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? []
                         : []
-                      return cities.length > 0 ? (
-                        cities.map((name) => (
+                      return selectedProvince ? (
+                        [null, ...cities].map((name) => (
                           <button
-                            key={name}
-                            onClick={() => setPendingCity(pendingCity === name ? null : name)}
+                            key={name ?? 'all'}
+                            onClick={() => setPendingCity(name)}
                             className={`w-full px-4 py-2.5 text-left text-[13px] transition-colors ${
                               pendingCity === name
                                 ? 'font-semibold text-blue-600'
                                 : 'text-neutral-700'
                             }`}
                           >
-                            {name}
+                            {name ?? '不限'}
                           </button>
                         ))
                       ) : (
@@ -772,9 +780,9 @@ export function HomeMap() {
                   {TIER_ORDER.map((tier) => (
                     <button
                       key={tier}
-                      onClick={() => setPendingTier(pendingTier === tier ? null : tier)}
+                      onClick={() => setPendingTiers((tiers) => tiers.includes(tier) ? tiers.filter((item) => item !== tier) : [...tiers, tier])}
                       className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${
-                        pendingTier === tier
+                        pendingTiers.includes(tier)
                           ? 'ring-2 ring-blue-500 ring-offset-2 scale-105'
                           : 'shadow-sm ring-1 ring-black/[0.06]'
                       }`}
@@ -841,13 +849,8 @@ export function HomeMap() {
             <div className="border-t border-neutral-100 px-4 py-3 flex gap-3">
               <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
               <button
-                onClick={() => { setAppliedCity(pendingCity); setAppliedTier(pendingTier); setAppliedCategory(pendingCategory); setFilterOpen(false) }}
-                disabled={filterTab === 'city' && !!selectedProvince && !pendingCity}
-                className={`flex-1 rounded-xl py-3 text-[14px] font-semibold text-white shadow-sm ${
-                  filterTab === 'city' && selectedProvince && !pendingCity
-                    ? 'bg-blue-300 cursor-not-allowed'
-                    : 'bg-blue-500 active:bg-blue-600'
-                }`}
+                onClick={() => { setAppliedProvince(selectedProvince); setAppliedCity(selectedProvince ? pendingCity : null); setAppliedTiers(pendingTiers); setAppliedCategory(pendingCategory); setFilterOpen(false) }}
+                className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600"
               >
                 确定
               </button>

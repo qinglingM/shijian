@@ -63,6 +63,7 @@ export function SquarePage() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    isRefetching,
   } = useSquareFeed()
   const feed = useMemo(() => infiniteData?.pages.flat() ?? [], [infiniteData])
   const { data: todayCount = 0 } = useTodayPracticeCount()
@@ -73,6 +74,9 @@ export function SquarePage() {
   const [committedQuery, setCommittedQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLElement>(null)
+  const pullStartYRef = useRef<number | null>(null)
+  const [pullDistance, setPullDistance] = useState(0)
 
   // Sort state
   const [sortMode, setSortMode] = useState<SortMode>('latest')
@@ -84,12 +88,13 @@ export function SquarePage() {
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null)
   const [selectedBigCategory, setSelectedBigCategory] = useState<string | null>(null)
 
+  const [appliedProvince, setAppliedProvince] = useState<string | null>(null)
   const [appliedCity, setAppliedCity] = useState<string | null>(null)
-  const [appliedTier, setAppliedTier] = useState<Tier | null>(null)
+  const [appliedTiers, setAppliedTiers] = useState<Tier[]>([])
   const [appliedCategory, setAppliedCategory] = useState<string | null>(null)
 
   const [pendingCity, setPendingCity] = useState<string | null>(null)
-  const [pendingTier, setPendingTier] = useState<Tier | null>(null)
+  const [pendingTiers, setPendingTiers] = useState<Tier[]>([])
   const [pendingCategory, setPendingCategory] = useState<string | null>(null)
 
   // Cities data for province → city drill-down
@@ -102,6 +107,10 @@ export function SquarePage() {
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
   }, [allCities])
+  const appliedProvinceCities = useMemo(
+    () => new Set(provinces.find(([name]) => name === appliedProvince)?.[1] ?? []),
+    [appliedProvince, provinces],
+  )
 
   // Categories data (static Amap mid categories)
   const categoryGroups = useMemo(() => AMAP_MID_CATEGORIES, [])
@@ -140,8 +149,11 @@ export function SquarePage() {
 
     // City
     if (appliedCity) items = items.filter(item => item.city_name === appliedCity)
+    else if (appliedProvince) {
+      items = items.filter(item => item.province_name === appliedProvince || (!!item.city_name && appliedProvinceCities.has(item.city_name)))
+    }
     // Tier
-    if (appliedTier) items = items.filter(item => item.tier === appliedTier)
+    if (appliedTiers.length > 0) items = items.filter(item => appliedTiers.includes(item.tier))
     // Category
     if (appliedCategory) {
       items = items.filter(r => 
@@ -164,7 +176,7 @@ export function SquarePage() {
     }
 
     return items
-  }, [feed, committedQuery, appliedCity, appliedTier, appliedCategory, sortMode])
+  }, [feed, committedQuery, appliedProvince, appliedProvinceCities, appliedCity, appliedTiers, appliedCategory, sortMode])
 
   const columns = useMemo(() => splitIntoMasonryColumns(filteredFeed), [filteredFeed])
 
@@ -175,9 +187,37 @@ export function SquarePage() {
   function handleReset() {
     setSelectedProvince(null)
     setSelectedBigCategory(null)
-    if (filterTab === 'city') { setPendingCity(null); setAppliedCity(null) }
-    if (filterTab === 'tier') { setPendingTier(null); setAppliedTier(null) }
+    if (filterTab === 'city') { setPendingCity(null); setAppliedProvince(null); setAppliedCity(null) }
+    if (filterTab === 'tier') { setPendingTiers([]); setAppliedTiers([]) }
     if (filterTab === 'category') { setPendingCategory(null); setAppliedCategory(null) }
+  }
+
+  async function refreshFeed() {
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ['square-feed'] }),
+      queryClient.refetchQueries({ queryKey: ['today-practice-count'] }),
+    ])
+  }
+
+  function handleTouchStart(e: React.TouchEvent<HTMLElement>) {
+    if (contentRef.current?.scrollTop !== 0 || isRefetching) return
+    pullStartYRef.current = e.touches[0]?.clientY ?? null
+  }
+
+  function handleTouchMove(e: React.TouchEvent<HTMLElement>) {
+    if (pullStartYRef.current === null || contentRef.current?.scrollTop !== 0) return
+    const distance = (e.touches[0]?.clientY ?? pullStartYRef.current) - pullStartYRef.current
+    if (distance <= 0) {
+      setPullDistance(0)
+      return
+    }
+    setPullDistance(Math.min(72, distance * 0.45))
+  }
+
+  function handleTouchEnd() {
+    if (pullDistance >= 48 && !isRefetching) void refreshFeed()
+    pullStartYRef.current = null
+    setPullDistance(0)
   }
 
   return (
@@ -228,25 +268,25 @@ export function SquarePage() {
       {/* Filter bar */}
       <div className="flex px-4 z-[998] relative bg-neutral-50/40">
         <button
-          onClick={() => { setPendingCity(appliedCity); const t = 'city'; setFilterTab(t); setFilterOpen(true) }}
+          onClick={() => { setSelectedProvince(appliedProvince); setPendingCity(appliedCity); const t = 'city'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
-            (filterTab === 'city' && filterOpen) || appliedCity ? 'text-blue-600' : 'text-neutral-600'
+            (filterTab === 'city' && filterOpen) || appliedProvince ? 'text-blue-600' : 'text-neutral-600'
           }`}
         >
-          {appliedCity || '城市'}
-          {(filterTab === 'city' && filterOpen) || appliedCity ? (
+          {appliedCity || appliedProvince || '城市'}
+          {(filterTab === 'city' && filterOpen) || appliedProvince ? (
             <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
           ) : null}
         </button>
         <div className="w-px bg-neutral-200 shrink-0" />
         <button
-          onClick={() => { setPendingTier(appliedTier); const t = 'tier'; setFilterTab(t); setFilterOpen(true) }}
+          onClick={() => { setPendingTiers(appliedTiers); const t = 'tier'; setFilterTab(t); setFilterOpen(true) }}
           className={`flex-1 py-1.5 text-[13px] font-medium transition-colors relative ${
-            (filterTab === 'tier' && filterOpen) || appliedTier ? 'text-blue-600' : 'text-neutral-600'
+            (filterTab === 'tier' && filterOpen) || appliedTiers.length > 0 ? 'text-blue-600' : 'text-neutral-600'
           }`}
         >
-          {appliedTier ? TIER_LABEL[appliedTier] : '等级'}
-          {(filterTab === 'tier' && filterOpen) || appliedTier ? (
+          {appliedTiers.length === 1 ? TIER_LABEL[appliedTiers[0]] : appliedTiers.length > 1 ? `已选${appliedTiers.length}级` : '等级'}
+          {(filterTab === 'tier' && filterOpen) || appliedTiers.length > 0 ? (
             <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-blue-500 rounded-full" />
           ) : null}
         </button>
@@ -276,7 +316,7 @@ export function SquarePage() {
                     {provinces.map(([pname]) => (
                       <button
                         key={pname}
-                        onClick={() => setSelectedProvince(selectedProvince === pname ? null : pname)}
+                        onClick={() => { setSelectedProvince(pname); setPendingCity(null) }}
                         className={`w-full px-3 py-1.5 text-left text-[13px] transition-colors ${selectedProvince === pname ? 'bg-white font-semibold text-blue-600' : 'text-neutral-700 hover:bg-white/80'}`}
                       >
                         {pname}
@@ -286,10 +326,10 @@ export function SquarePage() {
                   <div className="flex-1 overflow-y-auto">
                     {(() => {
                       const cities = selectedProvince ? provinces.find(([p]) => p === selectedProvince)?.[1] ?? [] : []
-                      return cities.length > 0 ? cities.map((name) => (
-                        <button key={name} onClick={() => setPendingCity(pendingCity === name ? null : name)}
+                      return selectedProvince ? [null, ...cities].map((name) => (
+                        <button key={name ?? 'all'} onClick={() => setPendingCity(name)}
                           className={`w-full px-4 py-1.5 text-left text-[13px] transition-colors ${pendingCity === name ? 'font-semibold text-blue-600' : 'text-neutral-700'}`}>
-                          {name}
+                          {name ?? '不限'}
                         </button>
                       )) : <p className="px-4 py-6 text-center text-[12px] text-neutral-400">请先选择省份</p>
                     })()}
@@ -299,8 +339,8 @@ export function SquarePage() {
               {filterTab === 'tier' && (
                 <div className="grid grid-cols-3 gap-3 px-4 py-5">
                   {TIER_ORDER.map((tier) => (
-                    <button key={tier} onClick={() => setPendingTier(pendingTier === tier ? null : tier)}
-                      className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${pendingTier === tier ? 'ring-2 ring-blue-500 ring-offset-2 scale-105' : 'shadow-sm ring-1 ring-black/[0.06]'}`}
+                    <button key={tier} onClick={() => setPendingTiers((tiers) => tiers.includes(tier) ? tiers.filter((item) => item !== tier) : [...tiers, tier])}
+                      className={`rounded-lg py-3 text-[13px] font-bold leading-none transition-all ${pendingTiers.includes(tier) ? 'ring-2 ring-blue-500 ring-offset-2 scale-105' : 'shadow-sm ring-1 ring-black/[0.06]'}`}
                       style={{ background: TIER_COLOR_VAR[tier], color: TIER_TEXT_COLOR[tier] }}>
                       {TIER_LABEL[tier]}
                     </button>
@@ -341,17 +381,13 @@ export function SquarePage() {
               <button onClick={handleReset} className="flex-1 rounded-xl border border-neutral-200 bg-white py-3 text-[14px] font-semibold text-neutral-600 shadow-sm active:bg-neutral-50">重置</button>
               <button
                 onClick={() => {
-                  setAppliedCity(pendingCity)
-                  setAppliedTier(pendingTier)
+                  setAppliedProvince(selectedProvince)
+                  setAppliedCity(selectedProvince ? pendingCity : null)
+                  setAppliedTiers(pendingTiers)
                   setAppliedCategory(pendingCategory)
                   setFilterOpen(false)
                 }}
-                disabled={filterTab === 'city' && !!selectedProvince && !pendingCity}
-                className={`flex-1 rounded-xl py-3 text-[14px] font-semibold text-white shadow-sm ${
-                  filterTab === 'city' && selectedProvince && !pendingCity
-                    ? 'bg-blue-300 cursor-not-allowed'
-                    : 'bg-blue-500 active:bg-blue-600'
-                }`}
+                className="flex-1 rounded-xl bg-blue-500 py-3 text-[14px] font-semibold text-white shadow-sm active:bg-blue-600"
               >
                 确定
               </button>
@@ -363,19 +399,25 @@ export function SquarePage() {
       </div>
 
       {/* Content */}
-      <section className="flex-1 overflow-y-auto min-h-0 h-0 px-4 pb-6 bg-neutral-50/60">
+      <section
+        ref={contentRef}
+        className="flex-1 overflow-y-auto min-h-0 h-0 px-4 pb-6 bg-neutral-50/60 overscroll-y-contain"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+      >
+        <div
+          className="flex items-center justify-center overflow-hidden text-xs text-neutral-400 transition-[height]"
+          style={{ height: pullDistance || isRefetching ? Math.max(pullDistance, 28) : 0 }}
+        >
+          <RefreshCw size={13} className={isRefetching ? 'animate-spin' : ''} />
+          <span className="ml-1">{isRefetching ? '刷新中…' : pullDistance >= 48 ? '松开刷新' : '下拉刷新'}</span>
+        </div>
         <div className="flex items-center justify-center gap-1.5 pt-3 pb-2 text-xs text-neutral-500">
           <span>
             今日新增 <span className="font-semibold text-orange-600 tabular-nums">{todayCount}</span> 条餐厅评价
           </span>
-          <button
-            type="button"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ['square-feed'] })}
-            className="flex items-center justify-center size-6 rounded-full text-neutral-400 active:bg-neutral-200"
-            aria-label="刷新"
-          >
-            <RefreshCw size={13} />
-          </button>
         </div>
         {isLoading ? (
           <p className="py-14 text-center text-sm text-neutral-400">载入广场内容…</p>
@@ -550,7 +592,7 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
                 <PenSquare size={10} />
               )}
             </div>
-            <p className={`truncate text-[10px] font-semibold ${RARITY_TEXT[item.titleRarity ?? ''] ?? 'text-sky-700'}`}>{item.nickname}</p>
+            <p className={`truncate text-[10px] font-semibold ${item.titleName ? RARITY_TEXT[item.titleRarity ?? ''] ?? 'text-neutral-900' : 'text-neutral-900'}`}>{item.nickname}</p>
           </div>
           <button
             type="button"

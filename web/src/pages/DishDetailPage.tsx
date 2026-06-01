@@ -140,13 +140,10 @@ export function DishDetailPage() {
   return (
     <>
       <BackHeader
-  title="菜品详情"
-  centerTitle
-  onBack={() => {
-    sessionStorage.setItem('sj:returnToDishTab', '1')
-    navigate(-1)
-  }}
-/>
+        title="菜品详情"
+        centerTitle
+        onBack={() => navigate(-1)}
+      />
       <div className="min-h-[calc(100vh-3rem)] bg-white pb-10">
         <div className="relative h-[12rem] w-full bg-neutral-100">
           {bestCoverUrl ? (

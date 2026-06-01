@@ -43,10 +43,7 @@ export function AndroidBackHandler() {
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'android') return
 
-    let active = true
-    let removeListener: (() => Promise<void>) | undefined
-
-    void App.addListener('backButton', () => {
+    function handleBack() {
       const currentPathname = pathnameRef.current
       if (dismissTopLayer()) return
       if (ROOT_ROUTES.has(currentPathname)) {
@@ -56,17 +53,12 @@ export function AndroidBackHandler() {
       } else {
         navigate(fallbackRoute(currentPathname), { replace: true })
       }
-    }).then((handle) => {
-      if (active) {
-        removeListener = () => handle.remove()
-      } else {
-        void handle.remove()
-      }
-    })
+    }
+
+    document.addEventListener('shijianAndroidBack', handleBack)
 
     return () => {
-      active = false
-      void removeListener?.()
+      document.removeEventListener('shijianAndroidBack', handleBack)
     }
   }, [navigate])
 

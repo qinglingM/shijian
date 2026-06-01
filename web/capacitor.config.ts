@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   plugins: {
     App: {
-      disableBackButtonHandler: false,
+      disableBackButtonHandler: true,
     },
     StatusBar: {
       style: 'LIGHT',
