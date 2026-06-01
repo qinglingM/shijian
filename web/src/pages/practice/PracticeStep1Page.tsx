@@ -131,8 +131,8 @@ export function PracticeStep1Page() {
 
             {cityFilterOpen && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setCityFilterOpen(false)} />
-                <div className="absolute top-full left-0 mt-1 z-20 w-72 rounded-xl bg-white shadow-xl ring-1 ring-black/[0.06] overflow-hidden">
+                <div className="fixed inset-0 z-30" onClick={() => setCityFilterOpen(false)} />
+                <div className="absolute top-full left-0 mt-1 z-40 w-72 rounded-xl bg-white shadow-xl ring-1 ring-black/[0.06] overflow-hidden">
                   <div className="flex" style={{ height: '30dvh' }}>
                     <div className="w-[120px] shrink-0 overflow-y-auto border-r border-neutral-100 bg-neutral-50/50">
                       {provinces.map(([pname]) => (
