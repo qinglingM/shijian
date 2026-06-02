@@ -3,7 +3,8 @@ import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-const ROOT_ROUTES = new Set(['/map', '/square', '/tier-map', '/me'])
+import { isRootTab, resolveParentRoute } from '@/components/layout/backNavigation'
+
 const dismissers = new Map<symbol, () => void>()
 
 function dismissTopLayer() {
@@ -11,13 +12,6 @@ function dismissTopLayer() {
   if (!dismiss) return false
   dismiss()
   return true
-}
-
-function fallbackRoute(pathname: string) {
-  if (pathname.startsWith('/me/')) return '/me'
-  if (pathname.startsWith('/square/')) return '/square'
-  if (pathname.startsWith('/search') || pathname.startsWith('/tiers/')) return '/tier-map'
-  return '/map'
 }
 
 export function useAndroidBackDismiss(open: boolean, onDismiss: () => void) {
@@ -45,14 +39,24 @@ export function AndroidBackHandler() {
 
     function handleBack() {
       const currentPathname = pathnameRef.current
+
+      // 1. 优先关闭最上层弹层
       if (dismissTopLayer()) return
-      if (ROOT_ROUTES.has(currentPathname)) {
+
+      // 2. /map 是根："返回"= 最小化 App 到后台（不是关闭）
+      if (currentPathname === '/map') {
         void App.minimizeApp()
-      } else if ((window.history.state?.idx ?? 0) > 0) {
-        navigate(-1)
-      } else {
-        navigate(fallbackRoute(currentPathname), { replace: true })
+        return
       }
+
+      // 3. 其他一级 Tab：回 /map（不直接退出 App）
+      if (isRootTab(currentPathname)) {
+        navigate('/map', { replace: true })
+        return
+      }
+
+      // 4. 其他页面：按路由表回父级，不依赖 WebView 历史栈
+      navigate(resolveParentRoute(currentPathname), { replace: true })
     }
 
     let cleaned = false

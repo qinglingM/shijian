@@ -11,6 +11,7 @@ import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useCities } from '@/features/city-picker/useCities'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
+import { useRequireLogin } from '@/features/auth/useRequireLogin'
 
 type SortMode = 'latest' | 'hot'
 
@@ -476,6 +477,7 @@ function estimateCardHeight(item: SquareFeedItem) {
 function SquareCard({ item }: { item: SquareFeedItem }) {
   const queryClient = useQueryClient()
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
+  const requireLogin = useRequireLogin()
   const voteMut = useMutation({
     mutationFn: async (next: VoteType | null) => {
       if (!isSupabaseConfigured) throw new Error('暂无可用后端')
@@ -540,10 +542,7 @@ function SquareCard({ item }: { item: SquareFeedItem }) {
 
   function toggleYoupin() {
     if (voteMut.isPending) return
-    if (!viewerId) {
-      window.alert('请先登录后再参与有品投票')
-      return
-    }
+    if (!requireLogin()) return
     voteMut.mutate(intentAfterVoteTap(item.my_vote, 'youpin'))
   }
 

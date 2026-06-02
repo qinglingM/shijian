@@ -11,6 +11,7 @@ import {
 } from '@/lib/passwordPolicy'
 import { EmailAuthPanel } from '@/features/auth/EmailAuthPanel'
 import { callAliyunSmsOtp } from '@/features/auth/aliyunSmsOtp'
+import { isRegisteredUser } from '@/features/auth/useRequireLogin'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -95,11 +96,12 @@ export function AuthPage() {
     if (!isSupabaseConfigured) return
     if (!user) return
 
-    const isAnonymousUser = (user as { is_anonymous?: boolean }).is_anonymous === true
-    if (authMode === 'forgot' && isAnonymousUser) {
+    if (authMode === 'forgot' && user.is_anonymous === true) {
       void getSupabase().auth.signOut({ scope: 'local' })
       return
     }
+
+    if (!isRegisteredUser(user)) return
 
     // 已登录用户可以进入忘记密码流程来设置/重置密码
     if (authMode === 'forgot') return
@@ -392,22 +394,14 @@ export function AuthPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-md lg:max-w-3xl flex-col bg-white px-6 pb-12" style={{ paddingTop: 'max(var(--safe-top), 2rem)' }}>
       <div className="relative w-full">
-        <button
-          type="button"
-          onClick={() => {
-            const redirect = params.get('redirect')
-            const mode = params.get('mode')
-            if (mode === 'forgot' && redirect) {
-              navigate(redirect, { replace: true })
-            } else {
-              navigate(-1)
-            }
-          }}
+        <Link
+          to="/map"
+          replace
           className="absolute -left-3 -top-2 p-2 text-neutral-400 transition-colors hover:text-neutral-800"
           aria-label="关闭"
         >
           <ChevronLeft size={28} />
-        </button>
+        </Link>
         <header className="mb-10 pt-10 text-center">
           <h1 className="text-[28px] font-bold tracking-tight text-neutral-900">{headerTitle(phase, authMode)}</h1>
           <p className="mt-2 text-[15px] text-neutral-500">{subtitle(surface, phase, authMode)}</p>

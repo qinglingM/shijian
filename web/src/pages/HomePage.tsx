@@ -9,6 +9,7 @@ import {
 import { TierMap } from '@/features/tier-map/TierMap'
 import { TIER_LABEL, TIER_COLOR_VAR, type Tier } from '@/lib/db'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
+import { useRequireLogin } from '@/features/auth/useRequireLogin'
 
 const AMAP_MID_CATEGORIES: { name: string; subs: string[] }[] = [
   {
@@ -49,7 +50,8 @@ function tierTextColor(tier: Tier): string { return TIER_TEXT_COLOR[tier] }
 
 export function HomePage() {
   const navigate = useNavigate()
-  const { map, showingDemo, isLoading, error } = useDisplayedTierMap()
+  const requireLogin = useRequireLogin()
+  const { map, isLoading, error } = useDisplayedTierMap()
   const { data: allCities = [] } = useCities()
 
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
@@ -122,7 +124,7 @@ export function HomePage() {
   }, [filteredRestaurants])
 
   const visibleMap = useMemo(() => {
-    let buckets = map.buckets.map(b => {
+    const buckets = map.buckets.map(b => {
       let rest = b.restaurants
       if (appliedCity) rest = rest.filter(r => r.city_name === appliedCity)
       if (appliedCategory) {
@@ -280,9 +282,9 @@ export function HomePage() {
 
       <section className="flex flex-1 flex-col min-h-0">
         <div className="flex-1 overflow-y-auto min-h-0">
-          {isLoading && !showingDemo ? (
+          {isLoading ? (
             <p className="py-12 text-center text-sm text-neutral-400">载入中…</p>
-          ) : error && !showingDemo ? (
+          ) : error ? (
             <p className="py-12 text-center text-sm text-rose-400">
               加载失败，请检查网络后刷新页面
             </p>
@@ -294,12 +296,16 @@ export function HomePage() {
         </div>
 
         {viewMode === 'grid' && (
-          <Link
-            to="/practice/step1"
+          <button
+            type="button"
+            onClick={() => {
+              if (!requireLogin()) return
+              navigate('/practice/step1')
+            }}
             className="fixed bottom-24 left-1/2 z-50 w-[calc(100%-3rem)] max-w-md -translate-x-1/2 flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-orange-600/25 active:opacity-90"
           >
             开始食鉴
-          </Link>
+          </button>
         )}
       </section>
 

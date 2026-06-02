@@ -7,10 +7,6 @@ import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 import { UserTitleBadge } from '@/components/UserTitleBadge'
 import { lookupExistingRestaurantByPoi } from '@/features/poi-search/usePoiSearch'
 import { fetchExistingPracticeHydration } from '@/features/practice/hydratePracticeDraftFromServer'
-import {
-  getDemoStoreReviews,
-  lookupDemoRestaurant,
-} from '@/features/restaurants/demoRestaurantMeta'
 
 import {
   useRestaurant,
@@ -20,7 +16,6 @@ import {
 import { SharePosterSheet, type SharePosterProps } from '@/features/restaurants/SharePosterSheet'
 import { RestaurantFeedbackDialog } from '@/features/restaurants/RestaurantFeedbackDialog'
 import {
-  applyStoreReviewVoteClick,
   intentAfterVoteTap,
 } from '@/features/restaurants/storeReviewVotes'
 import {
@@ -40,6 +35,7 @@ import { useInsertMarkMutation, useDeleteMarkMutation, useMarkPoiMutation } from
 import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, averageTierFloor, type Tier } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useRequireLogin } from '@/features/auth/useRequireLogin'
 import { usePracticeDraft } from '@/stores/practiceDraft'
 import type { PoiCandidate, PoiSource } from '@/lib/poi/types'
 
@@ -83,15 +79,14 @@ export function RestaurantDetailPage() {
   const id = rawId ?? (isPoiRoute ? `poi:${routePoiSource}:${poiId}` : null)
   const tab: TabKey = new URLSearchParams(location.search).get('tab') === 'dish' ? 'dish' : 'store'
 
-  const demoMeta = id ? lookupDemoRestaurant(id) : null
-  const isDemo = !!demoMeta
   const isUuid = id ? isRestaurantUuid(id) : false
 
   const governanceRid =
-    id && isUuid && !isDemo && isSupabaseConfigured ? id : null
+    id && isUuid && isSupabaseConfigured ? id : null
   const boleQ = useRestaurantBole(governanceRid)
   const guidanceQ = useRestaurantGuidanceSummary(governanceRid)
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
+  const requireLogin = useRequireLogin()
   const navigate = useNavigate()
   const setPoiDraft = usePracticeDraft((s) => s.setPoi)
   const setExistingRestaurantDraft = usePracticeDraft((s) => s.setExistingRestaurant)
@@ -135,16 +130,10 @@ export function RestaurantDetailPage() {
   const dishRQ = useRestaurantDishReviews(isUuid ? id : null)
 
 
-  const storeReviewsDemo = useMemo(
-    () => (isDemo && id && demoMeta ? getDemoStoreReviews(id, demoMeta.tier) : []),
-    [isDemo, id, demoMeta],
-  )
-  const detailKnown = Boolean(isDemo || (isUuid && restaurantQ.data))
-  const emptyReviews = !isDemo && isPoiRoute
+  const detailKnown = Boolean(isUuid && restaurantQ.data)
+  const emptyReviews = isPoiRoute
 
-  const storeList = isDemo
-    ? storeReviewsDemo
-    : (storeRQ.data ?? []).filter(Boolean)
+  const storeList = (storeRQ.data ?? []).filter(Boolean)
 
   const bestReview = useMemo(() => {
     if (!storeList.length) return null
@@ -162,15 +151,13 @@ export function RestaurantDetailPage() {
   }, [storeList, viewerId])
 
   const shareCoverUrl = useMemo(() => {
-    const rawCoverUrl = isDemo && demoMeta
-      ? demoMeta.cover_image_url
-      : isUuid && restaurantQ.data
+    const rawCoverUrl = isUuid && restaurantQ.data
       ? restaurantQ.data.cover_image_url
       : poi
       ? poi.cover_image_url ?? null
       : null;
       
-    const dishFeedRaw = isDemo ? [] : (dishRQ.data ?? []);
+    const dishFeedRaw = dishRQ.data ?? [];
 
     let bestUrl = rawCoverUrl;
 
@@ -197,29 +184,22 @@ export function RestaurantDetailPage() {
     }
     
     return bestUrl;
-  }, [isDemo, demoMeta, isUuid, restaurantQ.data, poi, dishRQ.data])
+  }, [isUuid, restaurantQ.data, poi, dishRQ.data])
 
   const awaitingBackend =
     isUuid &&
-    !isDemo &&
     isSupabaseConfigured &&
     restaurantQ.isPending &&
     !restaurantQ.data
 
-  const notConfigured = isUuid && !isDemo && !isPoiRoute && !isSupabaseConfigured
+  const notConfigured = isUuid && !isPoiRoute && !isSupabaseConfigured
 
   let title = '店铺详情'
   let coverUrl: string | null = null
   let cityDistrictText: string | null = null
   let addressText: string | null = null
   let categoryText: string | null = null
-  if (isDemo && demoMeta) {
-    title = demoMeta.display_name
-    coverUrl = demoMeta.cover_image_url
-    cityDistrictText = [demoMeta.city_name, demoMeta.district_name].filter(Boolean).join(' ') || null
-    addressText = demoMeta.address_detail || null
-    categoryText = demoMeta.category_name
-  } else if (isUuid && restaurantQ.data) {
+  if (isUuid && restaurantQ.data) {
     title = restaurantQ.data.display_name
     coverUrl = restaurantQ.data.cover_image_url
     cityDistrictText = restaurantCityDistrictLine(restaurantQ.data)
@@ -245,7 +225,7 @@ export function RestaurantDetailPage() {
   }
 
 
-  const dishFeed: RestaurantDishReviewItem[] = isDemo ? [] : (dishRQ.data ?? [])
+  const dishFeed: RestaurantDishReviewItem[] = dishRQ.data ?? []
 
   const fallbackPoi =
     !poi && isPoiRoute && routePoiSource && poiId
@@ -306,7 +286,7 @@ export function RestaurantDetailPage() {
 
   if (!id) return <Navigate to="/" replace />
 
-  if (!isDemo && !isUuid && !isPoiRoute) {
+  if (!isUuid && !isPoiRoute) {
     return (
       <>
         <BackHeader title="店铺详情" />
@@ -341,15 +321,14 @@ export function RestaurantDetailPage() {
   }
 
   const dominantPublicTier = dominantTierFromReviewList(storeList)
-  const headerTierShown =
-    dominantPublicTier ?? (isDemo && demoMeta ? demoMeta.tier : null)
+  const headerTierShown = dominantPublicTier
   const headerTierFallback = emptyReviews ? null : headerTierShown
-  const storeTierLoading = Boolean(isUuid && !isDemo && storeRQ.isPending)
+  const storeTierLoading = Boolean(isUuid && storeRQ.isPending)
 
   const uuidNotFound =
-    isUuid && !isDemo && restaurantQ.isFetched && restaurantQ.data === null && !restaurantQ.isPending
+    isUuid && restaurantQ.isFetched && restaurantQ.data === null && !restaurantQ.isPending
 
-  if (!isDemo && isUuid && restaurantQ.isError) {
+  if (isUuid && restaurantQ.isError) {
     return (
       <>
         <BackHeader title="餐厅详情" />
@@ -376,10 +355,7 @@ export function RestaurantDetailPage() {
   }
 
   async function beginPracticeFromDetail() {
-    if (isDemo) {
-      navigate('/practice/step1')
-      return
-    }
+    if (!requireLogin()) return
 
     const practicePoi = poi ?? fallbackPoi
     const targetRestaurantId =
@@ -511,12 +487,9 @@ export function RestaurantDetailPage() {
                       {categoryText ? (
                         <p className="mt-0.5 text-[12px] font-semibold text-neutral-700">{categoryText}</p>
                       ) : null}
-                      {isDemo && demoMeta && demoMeta.address_detail ? (
-                        <p className="pt-0.5 text-[12px] leading-snug text-neutral-500">{demoMeta.address_detail}</p>
-                      ) : null}
                       {addressText || cityDistrictText ? (
                         <p className="pt-0.5 text-[12px] leading-snug text-neutral-500">{[cityDistrictText, addressText].filter(Boolean).join(' · ')}</p>
-                      ) : isUuid && !isDemo ? (
+                      ) : isUuid ? (
                         <p className="pt-0.5 text-[12px] text-neutral-400">暂未录入城市与地址</p>
                       ) : null}
                     </div>
@@ -532,9 +505,6 @@ export function RestaurantDetailPage() {
                 </div>
               </div>
 
-              {isDemo ? (
-                <p className="text-[11px] text-neutral-400">示例数据 · 仅供界面预览</p>
-              ) : null}
             </div>
           </section>
         ) : null}
@@ -662,17 +632,15 @@ export function RestaurantDetailPage() {
         <div className="mt-4 px-4">
           {tab === 'store' ? (
             <StoreTab
-              demo={isDemo}
               restaurantId={isUuid ? id ?? null : null}
-              loading={Boolean(isUuid && !isDemo && storeRQ.isPending)}
+              loading={Boolean(isUuid && storeRQ.isPending)}
               reviews={storeList}
               emptyReviews={emptyReviews}
             />
           ) : (
             <DishTabFeed
               restaurantId={isUuid ? id ?? null : null}
-              isDemo={isDemo}
-              dishFeedPending={Boolean(isUuid && !isDemo && dishRQ.isPending)}
+              dishFeedPending={Boolean(isUuid && dishRQ.isPending)}
               dishReviews={dishFeed}
             />
           )}
@@ -829,30 +797,20 @@ function formatBoleText(bole: RestaurantBoleView) {
 function StoreTab({
   reviews,
   loading,
-  demo,
   restaurantId,
   emptyReviews,
 }: {
   reviews: StoreReviewItem[]
   loading: boolean
-  demo?: boolean
   restaurantId: string | null
   emptyReviews?: boolean
 }) {
   const user = useAuthStore((s) => s.user)
-  const voteMut = useStoreReviewVoteMutation(!demo ? restaurantId : null)
-  const [demoVotes, setDemoVotes] = useState<
-    Record<string, { y: number; b: number; m: 'youpin' | 'yebang' | null }>
-  >({})
+  const requireLogin = useRequireLogin()
+  const voteMut = useStoreReviewVoteMutation(restaurantId)
   const storeSortRef = useRef<string[]>([])
 
-  const displayReviews = useMemo(() => {
-    return reviews.map((r) => {
-      const o = demoVotes[r.id]
-      if (!o) return r
-      return { ...r, youpin_count: o.y, yebang_count: o.b, my_vote: o.m }
-    })
-  }, [reviews, demoVotes])
+  const displayReviews = reviews
 
   const [tierFilter, setTierFilter] = useState<Tier | 'all'>('all')
   const [sortMode, setSortMode] = useState<'latest' | 'compound'>('latest')
@@ -882,11 +840,9 @@ function StoreTab({
     return (
       <div className="space-y-3">
         <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm text-neutral-500">
-          {demo
-            ? '本条示例暂只挂载少量店评。'
-            : emptyReviews
-              ? '这里还没有人完成首评。'
-              : '还没有用户匿名发布这间店的食鉴档位或店铺锐评。'}
+          {emptyReviews
+            ? '这里还没有人完成首评。'
+            : '还没有用户匿名发布这间店的食鉴档位或店铺锐评。'}
         </p>
         {emptyReviews ? (
           <p className="text-center text-[12px] leading-6 text-neutral-500">
@@ -1006,29 +962,14 @@ function StoreTab({
           voteMut.isPending && voteMut.variables?.practiceRecordId === r.id
 
         function onTap(which: 'youpin' | 'yebang') {
-          if (demo) {
-            setDemoVotes((prev) => {
-              const o = prev[r.id]
-              const baseY = o?.y ?? r.youpin_count
-              const baseB = o?.b ?? r.yebang_count
-              const mine =
-                o?.m ?? r.my_vote ?? null
-              const n = applyStoreReviewVoteClick(baseY, baseB, mine, which)
-              return { ...prev, [r.id]: { y: n.youpin, b: n.yebang, m: n.mine } }
-            })
-            return
-          }
-          if (!user) {
-            window.alert('请先登录后再参与有品 / 野榜投票')
-            return
-          }
+          if (!requireLogin()) return
           const base = reviews.find((x) => x.id === r.id)
           if (!base) return
           const next = intentAfterVoteTap(base.my_vote, which)
           voteMut.mutate({ practiceRecordId: r.id, next })
         }
 
-        const guestBlocked = !demo && !user
+        const guestBlocked = !user
         const busy = votingThis
 
         return (
@@ -1087,8 +1028,8 @@ function StoreTab({
               <div className="relative flex shrink-0 items-center gap-2 translate-y-0.5">
               <button
                 type="button"
-                disabled={busy || guestBlocked}
-                title={guestBlocked ? '请先登录' : '觉得这条店评中肯、有参考价值'}
+                disabled={busy}
+                title={guestBlocked ? '登录后参与有品投票' : '觉得这条店评中肯、有参考价值'}
                 aria-pressed={r.my_vote === 'youpin'}
                 onClick={(e) => { e.stopPropagation(); onTap('youpin') }}
                 className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
@@ -1102,8 +1043,8 @@ function StoreTab({
               </button>
               <button
                 type="button"
-                disabled={busy || guestBlocked}
-                title={guestBlocked ? '请先登录' : '觉得这条店评离谱、参考价值低'}
+                disabled={busy}
+                title={guestBlocked ? '登录后参与野榜投票' : '觉得这条店评离谱、参考价值低'}
                 aria-pressed={r.my_vote === 'yebang'}
                 onClick={(e) => { e.stopPropagation(); onTap('yebang') }}
                 className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
@@ -1118,8 +1059,7 @@ function StoreTab({
               </div>
             </div>
             {voteMut.isError &&
-            voteMut.variables?.practiceRecordId === r.id &&
-            !demo ? (
+            voteMut.variables?.practiceRecordId === r.id ? (
               <p className="relative z-[1] px-3 pb-2 text-[10px] text-rose-600">
                 {(voteMut.error as Error)?.message ?? '投票失败'}
               </p>
@@ -1154,6 +1094,7 @@ function RestaurantDetailHeader({
   const navigate = useNavigate()
   
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
+  const requireLogin = useRequireLogin()
   const markStatusQ = useRestaurantMarkStatus(viewerId, restaurantId)
   const status = markStatusQ.data ?? 'fresh'
   
@@ -1178,14 +1119,11 @@ function RestaurantDetailHeader({
   }
 
   function handleMarkClick() {
-    if (!viewerId) {
-      showToast('请先登录后才能标记想去')
-      return
-    }
+    if (!requireLogin()) return
     
     // Demo 数据无 restaurantId 且无真实 POI，不支持标记
     if (!restaurantId && !poi) {
-      showToast('示例数据无法加入标记清单。')
+      showToast('当前门店暂时无法加入标记清单。')
       return
     }
     
@@ -1327,17 +1265,15 @@ const SORT_OPTIONS = [
 function DishTabFeed({
   restaurantId,
   dishReviews,
-  isDemo,
   dishFeedPending,
 }: {
   restaurantId: string | null
   dishReviews: RestaurantDishReviewItem[]
-  isDemo: boolean
   dishFeedPending: boolean
 }) {
   const navigate = useNavigate()
-  const user = useAuthStore((s) => s.user)
-  const voteMut = useDishReviewVoteMutation(!isDemo ? restaurantId : null)
+  const requireLogin = useRequireLogin()
+  const voteMut = useDishReviewVoteMutation(restaurantId)
   const [sort, setSort] = useState<'hot' | 'score'>('hot')
   const dishSortRef = useRef<string[]>([])
   const topReviewRef = useRef<Record<string, string>>({})
@@ -1409,16 +1345,6 @@ function DishTabFeed({
     return entries
   }, [dishReviews, sort])
 
-  if (isDemo) {
-    return (
-      <p className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm leading-6 text-neutral-500">
-        示例模式下没有后端菜品实体。
-        <br />
-        完成提交食鉴或使用真实 UUID 后即可查看收录菜品与匿名菜评。
-      </p>
-    )
-  }
-
   const busy = dishFeedPending
   if (busy) {
     return <p className="py-14 text-center text-sm text-neutral-400">载入菜评与菜品列表…</p>
@@ -1455,13 +1381,8 @@ function DishTabFeed({
               const r = entry.topReview
               const votingThis =
                 voteMut.isPending && voteMut.variables?.dishReviewId === r.id
-              const guestBlocked = !user
-
               function onTap(which: 'youpin' | 'yebang') {
-                if (!user) {
-                  window.alert('请先登录后再参与有品 / 野榜投票')
-                  return
-                }
+                if (!requireLogin()) return
                 const next = intentAfterVoteTap(r.my_vote, which)
                 voteMut.mutate({ dishReviewId: r.id, dishId: r.dish_id, next })
               }
@@ -1527,7 +1448,7 @@ function DishTabFeed({
                       <div className="mt-auto flex items-center gap-1">
                         <button
                           type="button"
-                          disabled={votingThis || guestBlocked}
+                          disabled={votingThis}
                           aria-pressed={r.my_vote === 'youpin'}
                           onClick={(e) => { e.stopPropagation(); onTap('youpin') }}
                           className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
@@ -1541,7 +1462,7 @@ function DishTabFeed({
                         </button>
                         <button
                           type="button"
-                          disabled={votingThis || guestBlocked}
+                          disabled={votingThis}
                           aria-pressed={r.my_vote === 'yebang'}
                           onClick={(e) => { e.stopPropagation(); onTap('yebang') }}
                           className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${

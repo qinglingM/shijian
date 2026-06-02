@@ -7,6 +7,7 @@ import { HomePage } from '@/pages/HomePage'
 import { HomeMap } from '@/features/map/HomeMap'
 import { SquarePage } from '@/pages/SquarePage'
 import { MePage } from '@/pages/MePage'
+import { resolveParentRoute } from '@/components/layout/backNavigation'
 
 const TABS = [
   {
@@ -122,7 +123,9 @@ export function AppLayout() {
         setKeyboardOpen(false)
         restorePadding()
       }).then((h) => listeners.push(h))
-    } catch {}
+    } catch {
+      // Browser previews may not expose the native keyboard plugin.
+    }
     return () => {
       listeners.forEach((h) => h.remove())
       document.removeEventListener('pointerdown', dismissKeyboardOnOutsideTap, true)
@@ -135,6 +138,10 @@ export function AppLayout() {
     pathname.startsWith('/practice')
 
   const isTabRoute = TAB_ROUTES.has(pathname)
+
+  useEffect(() => {
+    if (!isTabRoute) mainRef.current?.scrollTo({ top: 0 })
+  }, [isTabRoute, pathname])
 
   return (
     <div className="mx-auto flex h-dvh max-w-md flex-col bg-white lg:max-w-3xl">
@@ -186,22 +193,23 @@ export function AppLayout() {
   )
 }
 
-export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack }: { title: string; backTo?: string; rightSlot?: React.ReactNode; centerTitle?: boolean; onBack?: () => void }) {
+export function BackHeader({ title, backTo, rightSlot, centerTitle, onBack }: { title: string; backTo?: string; rightSlot?: React.ReactNode; centerTitle?: boolean; onBack?: () => void }) {
   const navigate = useNavigate()
-  const shellClass = 'flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3'
-  const shellStyle = { height: 'calc(3.5625rem + var(--safe-top))', paddingTop: 'var(--safe-top)' }
-  const fixedShellClass = `${shellClass} fixed left-1/2 top-0 z-40 w-full max-w-md -translate-x-1/2 lg:max-w-3xl`
+  const { pathname } = useLocation()
+  const shellClass = 'sticky top-0 z-40 flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3'
+  const shellStyle = { minHeight: 'calc(3.5625rem + var(--safe-top))', paddingTop: 'var(--safe-top)' }
   const btn = (
     <button
       type="button"
       onClick={() => {
         if (onBack) {
           onBack()
-        } else if ((window.history.state?.idx ?? 0) > 0) {
-          navigate(-1)
-        } else {
-          navigate(backTo, { replace: true })
+          return
         }
+        // 显式 backTo > 路由解析器。统一不再依赖 WebView 历史栈，
+        // 避免 deep link / 栈底情况下 navigate(-1) 退出 App。
+        const target = backTo ?? resolveParentRoute(pathname)
+        navigate(target, { replace: true })
       }}
       className="flex items-center justify-center min-w-[44px] min-h-[44px] -ml-1 text-sm text-neutral-500 active:bg-neutral-100 rounded-lg"
     >
@@ -210,29 +218,23 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
   )
   if (centerTitle) {
     return (
-      <>
-        <div className={shellClass} style={shellStyle} aria-hidden />
-        <header className={fixedShellClass} style={shellStyle}>
-          <div className="absolute left-4">{btn}</div>
-          <h1 className="flex-1 text-center text-base font-medium">{title}</h1>
-          {rightSlot ? (
-            <div className="absolute right-4 flex shrink-0 items-center gap-1">{rightSlot}</div>
-          ) : null}
-        </header>
-      </>
+      <header className={shellClass} style={shellStyle}>
+        <div className="absolute left-4">{btn}</div>
+        <h1 className="flex-1 text-center text-base font-medium">{title}</h1>
+        {rightSlot ? (
+          <div className="absolute right-4 flex shrink-0 items-center gap-1">{rightSlot}</div>
+        ) : null}
+      </header>
     )
   }
   return (
-    <>
-      <div className={shellClass} style={shellStyle} aria-hidden />
-      <header className={fixedShellClass} style={shellStyle}>
-        {btn}
-        <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
-        {rightSlot ? (
-          <div className="flex shrink-0 items-center gap-1">{rightSlot}</div>
-        ) : null}
-      </header>
-    </>
+    <header className={shellClass} style={shellStyle}>
+      {btn}
+      <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
+      {rightSlot ? (
+        <div className="flex shrink-0 items-center gap-1">{rightSlot}</div>
+      ) : null}
+    </header>
   )
 }
 

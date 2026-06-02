@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { useDishDetail } from '@/features/dishes/useDishDetail'
 import { useDishReviewsByDish } from '@/features/dishes/useDishReviewsByDish'
@@ -8,6 +8,7 @@ import { useDishReviewVoteMutation } from '@/features/restaurants/useDishReviewV
 import { intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useRequireLogin } from '@/features/auth/useRequireLogin'
 const dateFmt = new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'medium',
 })
@@ -21,7 +22,6 @@ function isLikelyReviewImage(url: string | null) {
 
 export function DishDetailPage() {
   const { id: rawId } = useParams()
-  const navigate = useNavigate()
   const id = rawId ?? null
 
   const isUuid = Boolean(id && isRestaurantUuid(id))
@@ -30,6 +30,7 @@ export function DishDetailPage() {
   const reviewsQ = useDishReviewsByDish(isUuid ? id : null)
   const restaurantQ = useRestaurant(dish?.restaurant_id ?? null)
   const user = useAuthStore((s) => s.user)
+  const requireLogin = useRequireLogin()
   const voteMut = useDishReviewVoteMutation(dish?.restaurant_id ?? null)
 
   const [sort, setSort] = useState<'latest' | 'hot' | 'score'>('hot')
@@ -142,7 +143,7 @@ export function DishDetailPage() {
       <BackHeader
         title="菜品详情"
         centerTitle
-        onBack={() => navigate(-1)}
+        backTo={dish.restaurant_id ? `/restaurants/${dish.restaurant_id}` : undefined}
       />
       <div className="min-h-[calc(100vh-3rem)] bg-white pb-10">
         <div className="relative h-[12rem] w-full bg-neutral-100">
@@ -215,13 +216,8 @@ export function DishDetailPage() {
                 {sortedReviews.map((rv) => {
                 const votingThis =
                   voteMut.isPending && voteMut.variables?.dishReviewId === rv.id
-                const guestBlocked = !user
-
                 function onTap(which: 'youpin' | 'yebang') {
-                  if (!user) {
-                    window.alert('请先登录后再参与有品 / 野榜投票')
-                    return
-                  }
+                  if (!requireLogin()) return
                   const next = intentAfterVoteTap(rv.my_vote, which)
                   voteMut.mutate({ dishReviewId: rv.id, dishId: id!, next })
                 }
@@ -264,8 +260,8 @@ export function DishDetailPage() {
                     <div className="mt-1 flex items-center justify-end gap-1.5">
                       <button
                         type="button"
-                        disabled={votingThis || guestBlocked}
-                        title={guestBlocked ? '请先登录' : '觉得这条菜评中肯、有参考价值'}
+                        disabled={votingThis}
+                        title={!user ? '登录后参与有品投票' : '觉得这条菜评中肯、有参考价值'}
                         aria-pressed={rv.my_vote === 'youpin'}
                         onClick={() => onTap('youpin')}
                         className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${
@@ -279,8 +275,8 @@ export function DishDetailPage() {
                       </button>
                       <button
                         type="button"
-                        disabled={votingThis || guestBlocked}
-                        title={guestBlocked ? '请先登录' : '觉得这条菜评离谱、参考价值低'}
+                        disabled={votingThis}
+                        title={!user ? '登录后参与野榜投票' : '觉得这条菜评离谱、参考价值低'}
                         aria-pressed={rv.my_vote === 'yebang'}
                         onClick={() => onTap('yebang')}
                         className={`inline-flex min-w-12 items-center justify-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold transition-colors disabled:opacity-50 ${

@@ -7,10 +7,11 @@ import {
   UserRound,
   UsersRound,
 } from 'lucide-react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { ProfileRow } from '@/lib/db'
 import { useAuthStore } from '@/stores/authStore'
+import { isRegisteredUser } from '@/features/auth/useRequireLogin'
 
 interface MeActivityItem {
   id: string
@@ -48,7 +49,9 @@ interface MarkRestaurantRow {
 }
 
 export function MePage() {
-  const userId = useAuthStore((s) => s.user?.id ?? null)
+  const { pathname } = useLocation()
+  const user = useAuthStore((s) => s.user)
+  const userId = isRegisteredUser(user) ? user.id : null
   const { data, isLoading } = useQuery<MeSummary>({
     queryKey: ['me-summary', userId],
     enabled: !!userId,
@@ -178,7 +181,7 @@ export function MePage() {
   const nickname = profile?.nickname || '食鉴用户'
   const userCode = profile?.user_code || 'SJ000000'
 
-  if (isSupabaseConfigured && !userId) {
+  if (pathname === '/me' && isSupabaseConfigured && !userId) {
     return <Navigate to="/auth?redirect=/me" replace />
   }
 

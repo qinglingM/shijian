@@ -34,7 +34,7 @@ export function AppRouter() {
         <Route path="/" element={<Navigate to="/map" replace />} />
         <Route path="/tier-map" element={<HomePage />} />
         <Route path="/playground/share" element={<SharePlaygroundPage />} />
-        <Route path="/search" element={<SearchRestaurantsPage />} />
+        <Route path="/search" element={<RequireAuth><SearchRestaurantsPage /></RequireAuth>} />
         <Route path="/map" element={<HomeMap />} />
         <Route path="/square" element={<SquarePage />} />
         <Route path="/square/post/:id" element={<PostDetailPage />} />

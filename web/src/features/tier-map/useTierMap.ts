@@ -5,16 +5,12 @@ import { useAuthStore } from '@/stores/authStore'
 import { useSimulatedPractices, type SimulatedPracticeRecord } from '@/stores/simulatedPractices'
 import { TIER_ORDER, averageTierFloor, type Tier } from '@/lib/db'
 import { useCityStore } from '@/features/city-picker/cityStore'
-import {
-  type TierMapDemoStore,
-  useTierMapDemoStore,
-} from '@/features/tier-map/tierMapDemoStore'
 
 export interface TierMapItem {
   id: string
   display_name: string
   cover_image_url: string | null
-  /** 美食分类（与数据库 categories.id 对齐；示例数据可使用 demo-* 占位） */
+  /** 美食分类（与数据库 categories.id 对齐） */
   category_id: string | null
   category_name: string | null
   city_id: string | null
@@ -23,7 +19,7 @@ export interface TierMapItem {
   longitude: number | null
   amap_mid_category: string | null
   amap_small_category: string | null
-  /** practice_records.created_at；模拟/示例数据为 null */
+  /** practice_records.created_at；模拟数据为 null */
   practiced_at: string | null
 }
 
@@ -93,190 +89,6 @@ export function applyTierMapCityScope(
   const total_count = buckets.reduce((s, b) => s + b.restaurants.length, 0)
   return { buckets, total_count }
 }
-
-/** demo 示例用分类 id（与种子里的名称对应，仅占位不参与后端） */
-const DC = {
-  huoguo: 'demo-cat-huoguo',
-  skewer: 'demo-cat-shaokao',
-  fanguan: 'demo-cat-fanguan',
-  yintian: 'demo-cat-yintian',
-  fenmian: 'demo-cat-fenmian',
-  xiaochi: 'demo-cat-xiaochi',
-  jianchan: 'demo-cat-jianchan',
-} as const
-
-/** 仅用「餐厅列表」描述示例档，数量由列表长度推导，避免字段不一致 */
-const MOCK_REST_BY_TIER: Record<Tier, TierMapItem[]> = {
-  boom: [
-    {
-      id: 'demo-1',
-      display_name: '海底捞·紫竹桥',
-      cover_image_url: null,
-      category_id: DC.huoguo,
-      category_name: '火锅',
-      city_id: null,
-      city_name: null,
-      latitude: 39.9612,
-      longitude: 116.3084,
-      amap_mid_category: null,
-      amap_small_category: null,
-      practiced_at: null,
-    },
-    {
-      id: 'demo-2',
-      display_name: '丰茂烤串',
-      cover_image_url: null,
-      category_id: DC.skewer,
-      category_name: '烧烤',
-      city_id: null,
-      city_name: null,
-      latitude: 39.9371,
-      longitude: 116.3262,
-      amap_mid_category: null,
-      amap_small_category: null,
-      practiced_at: null,
-    },
-    {
-      id: 'demo-3',
-      display_name: '南京大牌档',
-      cover_image_url: null,
-      category_id: DC.fanguan,
-      category_name: '饭馆',
-      city_id: null,
-      city_name: null,
-      latitude: 39.9042,
-      longitude: 116.4074,
-      amap_mid_category: null,
-      amap_small_category: null,
-      practiced_at: null,
-    },
-  ],
-  hang: [
-    {
-      id: 'demo-4',
-      display_name: '局气·三里屯',
-      cover_image_url: null,
-      category_id: DC.fanguan,
-      category_name: '饭馆',
-      city_id: null,
-      city_name: null,
-      latitude: 39.9336,
-      longitude: 116.4474,
-      amap_mid_category: null,
-      amap_small_category: null,
-      practiced_at: null,
-    },
-    {
-      id: 'demo-5',
-      display_name: '喜茶',
-      cover_image_url: null,
-      category_id: DC.yintian,
-      category_name: '饮甜',
-      city_id: null,
-      city_name: null,
-      latitude: 39.9192,
-      longitude: 116.3982,
-      amap_mid_category: null,
-      amap_small_category: null,
-      practiced_at: null,
-    },
-  ],
-  top: [
-    {
-      id: 'demo-6',
-      display_name: '味千拉面',
-      cover_image_url: null,
-      category_id: DC.fenmian,
-      category_name: '粉面',
-      city_id: null,
-      city_name: null,
-      latitude: 39.9891,
-      longitude: 116.3185,
-      amap_mid_category: null,
-      amap_small_category: null,
-      practiced_at: null,
-    },
-  ],
-  upper: [
-    {
-      id: 'demo-7',
-      display_name: '隆福寺小吃',
-      cover_image_url: null,
-      category_id: DC.xiaochi,
-      category_name: '小吃',
-      city_id: null,
-      city_name: null,
-      latitude: 39.9242,
-      longitude: 116.4124,
-      amap_mid_category: null,
-      amap_small_category: null,
-      practiced_at: null,
-    },
-    {
-      id: 'demo-8',
-      display_name: '南门涮肉',
-      cover_image_url: null,
-      category_id: DC.huoguo,
-      category_name: '火锅',
-      city_id: null,
-      city_name: null,
-      latitude: 39.9394,
-      longitude: 116.4032,
-      amap_mid_category: null,
-      amap_small_category: null,
-      practiced_at: null,
-    },
-    {
-      id: 'demo-9',
-      display_name: '蓝蛙',
-      cover_image_url: null,
-      category_id: DC.jianchan,
-      category_name: '简餐',
-      city_id: null,
-      city_name: null,
-      latitude: 39.9102,
-      longitude: 116.4552,
-      amap_mid_category: null,
-      amap_small_category: null,
-      practiced_at: null,
-    },
-    {
-      id: 'demo-10',
-      display_name: '一坐一忘',
-      cover_image_url: null,
-      category_id: DC.fanguan,
-      category_name: '饭馆',
-      city_id: null,
-      city_name: null,
-      latitude: 39.9055,
-      longitude: 116.4432,
-      amap_mid_category: null,
-      amap_small_category: null,
-      practiced_at: null,
-    },
-  ],
-  npc: [],
-  bad: [],
-}
-
-function bucketsFromRestaurantLists(restByTier: Record<Tier, TierMapItem[]>): TierBucket[] {
-  return TIER_ORDER.map((tier) => {
-    const restaurants = restByTier[tier] ?? []
-    return {
-      tier,
-      count: restaurants.length,
-      restaurants,
-    }
-  })
-}
-
-export const MOCK_TIER_MAP: TierMapResult = (() => {
-  const buckets = bucketsFromRestaurantLists(MOCK_REST_BY_TIER)
-  return {
-    total_count: buckets.reduce((s, b) => s + b.restaurants.length, 0),
-    buckets,
-  }
-})()
 
 const EMPTY_RESULT: TierMapResult = {
   total_count: 0,
@@ -425,37 +237,25 @@ export function getEmptyTierMap(): TierMapResult {
 }
 
 /**
- * 与首页食鉴图同源：手动示例 + dev 下未登录且无数据时自动示例，否则用真实聚合数据（含模拟提交）。
+ * 与首页食鉴图同源：使用真实聚合数据（含本地模拟提交）。
  * 档位详情页等子路由应使用此 hook，才能保证与食鉴图互通。
  */
 export function useDisplayedTierMap() {
-  const manualShowDemo = useTierMapDemoStore((s: TierMapDemoStore) => s.manualShowDemo)
-  const userReady = useAuthStore((s) => !!s.user)
   const tierMapShowsAllChina = useCityStore((s) => s.tierMapShowsAllChina)
   const cityId = useCityStore((s) => s.cityId)
 
   const query = useTierMap()
   const mergedData = query.data ?? EMPTY_RESULT
-  const hasPracticeData = mergedData.total_count > 0
-
-  const showingDemo =
-    manualShowDemo ||
-    (!userReady && import.meta.env.DEV && !hasPracticeData)
-
-  const baseMap: TierMapResult = showingDemo ? MOCK_TIER_MAP : mergedData
-
   const map = useMemo(() => {
-    if (showingDemo) return baseMap
-    return applyTierMapCityScope(baseMap, {
+    return applyTierMapCityScope(mergedData, {
       showAllChina: tierMapShowsAllChina,
       cityId,
     })
-  }, [baseMap, showingDemo, tierMapShowsAllChina, cityId])
+  }, [mergedData, tierMapShowsAllChina, cityId])
 
   return {
     ...query,
     map,
-    showingDemo,
   }
 }
 

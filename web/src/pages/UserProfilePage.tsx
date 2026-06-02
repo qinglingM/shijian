@@ -8,6 +8,7 @@ import { useFollowMutation } from '@/features/social/useFollowMutation'
 import { useFollowStatus } from '@/features/social/useFollowStatus'
 import { useCityStore } from '@/features/city-picker/cityStore'
 import { TIER_LABEL, type Tier } from '@/lib/db'
+import { useRequireLogin } from '@/features/auth/useRequireLogin'
 
 interface ProfileSummary {
   id: string
@@ -76,6 +77,7 @@ export function UserProfilePage() {
   const targetUserId = profileQ.data?.id ?? null
   const followQ = useFollowStatus(targetUserId)
   const followMut = useFollowMutation(targetUserId)
+  const requireLogin = useRequireLogin()
 
   const reviewsQ = useQuery({
     queryKey: ['user-profile-reviews', targetUserId, cityId, cityFilter, tierFilter],
@@ -152,7 +154,10 @@ export function UserProfilePage() {
             {!isOwner ? (
               <button
                 type="button"
-                onClick={() => followMut.mutate(followQ.data?.following ?? false)}
+                onClick={() => {
+                  if (!requireLogin()) return
+                  followMut.mutate(followQ.data?.following ?? false)
+                }}
                 className="shrink-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm"
               >
                 {followQ.data?.following ? '取关' : '关注'}

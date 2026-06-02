@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, KeyRound, LogOut } from 'lucide-react'
-import { BackHeader } from '@/components/layout/AppLayout'
+import { ChevronLeft, ChevronRight, KeyRound, LogOut } from 'lucide-react'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { isRegisteredUser } from '@/features/auth/useRequireLogin'
 
 export function MeSettingsPage() {
   const navigate = useNavigate()
@@ -27,8 +27,9 @@ export function MeSettingsPage() {
         if (error) console.warn('[shijian] signOut(local):', error.message)
       }
       const { data: sessionData } = await sb.auth.getSession()
-      if (!sessionData.session) {
-        setSession(null)
+      if (!isRegisteredUser(sessionData.session?.user ?? null)) {
+        setSession(sessionData.session)
+        navigate('/map', { replace: true })
         return
       }
       setSignOutError('退出失败，请稍后重试。')
@@ -39,48 +40,63 @@ export function MeSettingsPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <BackHeader title="登录设置" backTo="/me" />
-
-      {signOutError ? (
-        <p className="mx-4 mt-4 rounded-xl bg-orange-50 px-3 py-2 text-[11px] leading-5 text-orange-950">
-          {signOutError}
-        </p>
-      ) : null}
-
-      <section className="mt-4 mx-4 rounded-2xl border border-neutral-100 overflow-hidden bg-white">
+      <header
+        className="flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3"
+        style={{ minHeight: 'calc(3.5625rem + var(--safe-top))', paddingTop: 'var(--safe-top)' }}
+      >
         <button
           type="button"
-          onClick={() => navigate('/auth?mode=forgot&redirect=/me')}
-          className="flex items-start gap-3 w-full px-4 py-3 active:bg-neutral-50"
+          onClick={() => navigate('/me')}
+          className="flex min-h-[44px] min-w-[44px] -ml-1 items-center justify-center rounded-lg text-neutral-500 active:bg-neutral-100"
+          aria-label="返回"
         >
-          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700">
-            <KeyRound size={18} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium leading-5 text-neutral-900">设置密码</p>
-            <p className="mt-0.5 text-[11px] leading-4 text-neutral-500">通过手机验证码设置或重置登录密码</p>
-          </div>
-          <ChevronRight size={15} className="mt-1 shrink-0 text-neutral-400" />
+          <ChevronLeft size={20} />
         </button>
+        <h1 className="ml-3 flex-1 truncate text-base font-medium">登录设置</h1>
+      </header>
 
-      </section>
+      <div className="pt-4">
+        {signOutError ? (
+          <p className="mx-4 rounded-xl bg-orange-50 px-3 py-2 text-[11px] leading-5 text-orange-950">
+            {signOutError}
+          </p>
+        ) : null}
 
-      {isSupabaseConfigured && userId ? (
-        <section className="mt-4 mx-4 rounded-2xl border border-neutral-100 overflow-hidden bg-white">
+        <section className="mx-4 rounded-2xl border border-neutral-100 overflow-hidden bg-white">
           <button
             type="button"
-            onClick={() => setShowLogoutConfirm(true)}
-            disabled={signingOut}
-            className="flex items-center justify-center w-full py-3 text-sm text-rose-500 active:bg-neutral-50 disabled:opacity-50"
+            onClick={() => navigate('/auth?mode=forgot&redirect=/me')}
+            className="flex items-start gap-3 w-full px-4 py-3 active:bg-neutral-50"
           >
-            <LogOut size={16} className="mr-1.5" />
-            {signingOut ? '退出中…' : '退出登录'}
+            <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-700">
+              <KeyRound size={18} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium leading-5 text-neutral-900">设置密码</p>
+              <p className="mt-0.5 text-[11px] leading-4 text-neutral-500">通过手机验证码设置或重置登录密码</p>
+            </div>
+            <ChevronRight size={15} className="mt-1 shrink-0 text-neutral-400" />
           </button>
+
         </section>
-      ) : null}
+
+        {isSupabaseConfigured && userId ? (
+          <section className="mt-4 mx-4 rounded-2xl border border-neutral-100 overflow-hidden bg-white">
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              disabled={signingOut}
+              className="flex items-center justify-center w-full py-3 text-sm text-rose-500 active:bg-neutral-50 disabled:opacity-50"
+            >
+              <LogOut size={16} className="mr-1.5" />
+              {signingOut ? '退出中…' : '退出登录'}
+            </button>
+          </section>
+        ) : null}
+      </div>
 
       {showLogoutConfirm ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 pb-28 sm:items-center sm:pb-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div
             role="dialog"
             aria-labelledby="logout-confirm-title"
