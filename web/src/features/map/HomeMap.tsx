@@ -657,7 +657,7 @@ export function HomeMap() {
   return (
     <div className="relative h-full w-full overflow-hidden">
       {/* Toolbar + Filter panel */}
-      <div className="absolute top-0 left-0 right-0 z-[999]">
+      <div className="absolute top-0 left-0 right-0 z-[999] pt-[env(safe-area-inset-top)]">
         <div className="relative bg-white">
           <SearchBar
             onOpenPoi={handleOpenPoi}
