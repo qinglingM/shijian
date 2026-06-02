@@ -138,6 +138,9 @@ importers:
       jimp:
         specifier: ^1.6.1
         version: 1.6.1
+      pngjs:
+        specifier: ^7.0.0
+        version: 7.0.0
       supabase:
         specifier: ^2.101.0
         version: 2.101.0
