@@ -188,7 +188,8 @@ export function AppLayout() {
 
 export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack }: { title: string; backTo?: string; rightSlot?: React.ReactNode; centerTitle?: boolean; onBack?: () => void }) {
   const navigate = useNavigate()
-  const shellClass = 'flex h-[calc(3.5625rem+env(safe-area-inset-top))] shrink-0 items-center border-b border-neutral-200 bg-white px-4 pt-[env(safe-area-inset-top)] pb-3'
+  const shellClass = 'flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3'
+  const shellStyle = { height: 'calc(3.5625rem + var(--safe-top))', paddingTop: 'var(--safe-top)' }
   const fixedShellClass = `${shellClass} fixed left-1/2 top-0 z-40 w-full max-w-md -translate-x-1/2 lg:max-w-3xl`
   const btn = (
     <button
@@ -210,8 +211,8 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
   if (centerTitle) {
     return (
       <>
-        <div className={shellClass} aria-hidden />
-        <header className={fixedShellClass}>
+        <div className={shellClass} style={shellStyle} aria-hidden />
+        <header className={fixedShellClass} style={shellStyle}>
           <div className="absolute left-4">{btn}</div>
           <h1 className="flex-1 text-center text-base font-medium">{title}</h1>
           {rightSlot ? (
@@ -223,8 +224,8 @@ export function BackHeader({ title, backTo = '/', rightSlot, centerTitle, onBack
   }
   return (
     <>
-      <div className={shellClass} aria-hidden />
-      <header className={fixedShellClass}>
+      <div className={shellClass} style={shellStyle} aria-hidden />
+      <header className={fixedShellClass} style={shellStyle}>
         {btn}
         <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
         {rightSlot ? (

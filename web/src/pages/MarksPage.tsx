@@ -82,7 +82,7 @@ export function MarksPage() {
       <BackHeader title="我的标记" backTo="/me" />
 
       {/* 标签页切换栏 */}
-      <div className="sticky top-[calc(3.5625rem+env(safe-area-inset-top))] z-10 flex border-b border-neutral-200 bg-white">
+      <div className="sticky z-10 flex border-b border-neutral-200 bg-white" style={{ top: 'calc(3.5625rem + var(--safe-top))' }}>
         {(
           [
             { key: 'want', label: '未鉴定标记', count: want.length },

@@ -171,7 +171,8 @@ export function CityPickerSheet({
         role="dialog"
         aria-modal="true"
         aria-label="选择城市"
-        className="fixed inset-x-0 bottom-0 top-[max(6vh,env(safe-area-inset-top))] z-50 mx-auto flex max-h-[min(94dvh,100svh)] max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl"
+        className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[min(94dvh,100svh)] max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl"
+        style={{ top: 'max(6vh, var(--safe-top))' }}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 px-4 py-3">
           <div>
@@ -390,7 +391,7 @@ export function CityPickerSheet({
           </div>
 
           {!needle && listReady && latinLettersUsed.size > 1 ? (
-            <aside className="pointer-events-auto absolute right-1.5 bottom-16 top-[calc(9rem+env(safe-area-inset-bottom))] z-[2] flex w-5 flex-col justify-between overflow-y-auto py-2 text-[9px] font-bold leading-tight text-orange-950/95">
+            <aside className="pointer-events-auto absolute right-1.5 bottom-16 z-[2] flex w-5 flex-col justify-between overflow-y-auto py-2 text-[9px] font-bold leading-tight text-orange-950/95" style={{ top: 'calc(9rem + env(safe-area-inset-bottom, 0px))' }}>
               {INDEX_LETTERS.map((letter) => {
                 const has = latinLettersUsed.has(letter)
                 return (

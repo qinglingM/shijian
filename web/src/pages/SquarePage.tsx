@@ -221,7 +221,7 @@ export function SquarePage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white pt-[env(safe-area-inset-top)]">
+    <div className="flex min-h-0 flex-1 flex-col bg-white" style={{ paddingTop: 'var(--safe-top)' }}>
       {/* Toolbar wrapper (for absolute filter panel) */}
       <div className="relative bg-white">
         {/* Search + Sort bar */}

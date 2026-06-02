@@ -157,7 +157,7 @@ export function HomePage() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0">
-      <div className="relative bg-neutral-100 pt-[env(safe-area-inset-top)]">
+      <div className="relative bg-neutral-100" style={{ paddingTop: 'var(--safe-top)' }}>
         {/* Header with filters + search + view toggle */}
         <header className="flex items-center justify-between px-4 py-0.5">
           <h1 className="text-lg font-semibold tracking-tight text-neutral-900">我的食鉴图</h1>
