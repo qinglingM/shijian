@@ -3,19 +3,32 @@
 	"appName": "食鉴",
 	"webDir": "dist",
 	"plugins": {
-		"App": {
-			"disableBackButtonHandler": true
-		},
 		"StatusBar": {
 			"style": "LIGHT",
 			"backgroundColor": "#ffffff",
 			"overlaysWebView": true
+		},
+		"Keyboard": {
+			"resize": "none",
+			"resizeOnFullScreen": true
+		},
+		"SplashScreen": {
+			"launchShowDuration": 0,
+			"backgroundColor": "#F5F5F0",
+			"showSpinner": false,
+			"androidSpinnerStyle": "small",
+			"iosSpinnerStyle": "small",
+			"splashFullScreen": true,
+			"splashImmersive": true,
+			"layoutName": "launch_screen",
+			"useDialog": false
 		}
 	},
 	"packageClassList": [
 		"AppPlugin",
 		"HapticsPlugin",
 		"KeyboardPlugin",
+		"SplashScreenPlugin",
 		"StatusBarPlugin"
 	]
 }

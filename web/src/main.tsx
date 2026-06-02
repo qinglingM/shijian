@@ -12,9 +12,10 @@ async function initSafeAreaVars() {
   try {
     const { StatusBar } = await import('@capacitor/status-bar')
     const info = await StatusBar.getInfo()
-    // Android 的 StatusBar height 通常是实际像素值
-    // iOS 返回的是刘海屏的安全区域高度
-    const safeTop = info.height ?? 0
+    // Android 状态栏是半透明覆盖在 WebView 上，不需要 padding
+    // iOS 是挖空安全区域，必须留出空间
+    const isAndroid = Capacitor.getPlatform() === 'android'
+    const safeTop = isAndroid ? 0 : (info.height ?? 0)
     document.documentElement.style.setProperty('--safe-top', `${safeTop}px`)
   } catch {
     // StatusBar 插件不可用时回退到 CSS env()
@@ -23,6 +24,17 @@ async function initSafeAreaVars() {
 }
 initSafeAreaVars()
 
+// 应用加载完成后隐藏 Splash Screen
+async function hideSplashScreen() {
+  if (!Capacitor.isNativePlatform()) return
+  try {
+    const { SplashScreen } = await import('@capacitor/splash-screen')
+    await SplashScreen.hide()
+  } catch {
+    // SplashScreen 插件不可用时忽略
+  }
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppProviders>
@@ -30,3 +42,10 @@ createRoot(document.getElementById('root')!).render(
     </AppProviders>
   </StrictMode>,
 )
+
+// 在 React 渲染完成后隐藏 Splash Screen
+window.addEventListener('load', () => {
+  requestAnimationFrame(() => {
+    hideSplashScreen()
+  })
+})

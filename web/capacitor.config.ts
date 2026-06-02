@@ -14,6 +14,17 @@ const config: CapacitorConfig = {
       resize: 'none',
       resizeOnFullScreen: true,
     },
+    SplashScreen: {
+      launchShowDuration: 0,
+      backgroundColor: '#F5F5F0',
+      showSpinner: false,
+      androidSpinnerStyle: 'small',
+      iosSpinnerStyle: 'small',
+      splashFullScreen: true,
+      splashImmersive: true,
+      layoutName: 'launch_screen',
+      useDialog: false,
+    },
   },
 };
 
