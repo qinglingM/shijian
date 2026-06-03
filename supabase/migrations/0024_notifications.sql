@@ -77,9 +77,10 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- 在 handle_new_user trigger 之后添加欢迎通知 trigger
+-- 绑定到 profiles 表，确保 profiles 记录已存在后再创建欢迎通知
 drop trigger if exists trigger_welcome_notification on auth.users;
+drop trigger if exists trigger_welcome_notification on profiles;
 create trigger trigger_welcome_notification
-  after insert on auth.users
+  after insert on profiles
   for each row
   execute function create_welcome_notification();
