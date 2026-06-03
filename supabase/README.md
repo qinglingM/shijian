@@ -40,7 +40,19 @@ supabase/
 | 9 | `migrations/0011_handle_new_user_phone_auth.sql` | 手机号注册时同步 `profiles.phone` |
 | 10 | `migrations/0012_phone_binding_exempt_mobiles.sql` | 手机号豁免白名单 |
 | 11 | `migrations/0013_profiles_detail_fields.sql` | 性别、星座、家乡、生日 |
-| 12 | `seed.sql`                              | 基础数据 |
+| 12 | `migrations/0014_avatars_storage_bucket.sql` | 头像存储 bucket |
+| 13 | `migrations/0014_user_follows_and_profile_visibility.sql` | 用户关注系统 |
+| 14 | `migrations/0015_posts_feed.sql` | 广场帖子与统一投票 |
+| 15 | `migrations/0016_sync_categories_with_amap.sql` | 与高德分类同步 |
+| 16 | `migrations/0017_shijian_category_system.sql` | 食鉴分类体系 |
+| 17 | `migrations/0018_performance_composite_indexes.sql` | 性能复合索引 |
+| 18 | `migrations/0019_dish_name_max_length.sql` | 菜名长度限制 |
+| 19 | `migrations/0020_mark_poi_rpc.sql` | 标记 POI RPC |
+| 20 | `migrations/0021_restaurant_discovery_state.sql` | 餐厅发现状态 |
+| 21 | `migrations/0022_disable_anonymous.sql` | 禁用匿名用户 |
+| 22 | `migrations/0023_restaurant_feedback.sql` | 餐厅反馈 |
+| 23 | `migrations/0024_notifications.sql` | 通知系统 + 新用户欢迎信 |
+| 24 | `seed.sql`                              | 基础数据 |
 
 每次粘贴后点 **Run**。如果出现错误，把错误信息告诉我。
 

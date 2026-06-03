@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   Award,
+  Bell,
   Bookmark,
   ChevronRight,
   FileText,
@@ -43,6 +44,7 @@ interface MeSummary {
   followingCount: number
   youpinCount: number
   recentActivities: MeActivityItem[]
+  unreadNotificationsCount: number
 }
 
 interface MarkRestaurantRow {
@@ -67,6 +69,7 @@ export function MePage() {
         followingResult,
         voteResult,
         recentPracticeResult,
+        unreadNotificationsResult,
       ] = await Promise.all([
         supabase
           .from('profiles')
@@ -109,6 +112,11 @@ export function MePage() {
           .eq('is_active', true)
           .order('created_at', { ascending: false })
           .limit(3),
+        supabase
+          .from('notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId!)
+          .eq('is_read', false),
       ])
 
       if (profileResult.error) throw profileResult.error
@@ -118,6 +126,7 @@ export function MePage() {
       if (followingResult.error) throw followingResult.error
       if (voteResult.error) throw voteResult.error
       if (recentPracticeResult.error) throw recentPracticeResult.error
+      if (unreadNotificationsResult.error) throw unreadNotificationsResult.error
 
       const markedRestaurantIds = [
         ...new Set(((markResult.data ?? []) as MarkRestaurantRow[]).map((row) => row.restaurant_id)),
@@ -174,6 +183,7 @@ export function MePage() {
         followingCount: followingResult.count ?? 0,
         youpinCount: voteResult.count ?? 0,
         recentActivities,
+        unreadNotificationsCount: unreadNotificationsResult.count ?? 0,
       }
     },
   })
@@ -188,7 +198,19 @@ export function MePage() {
 
   return (
     <div className="bg-white px-5 py-5 overflow-y-auto" style={{ paddingTop: 'max(var(--safe-top), 1.25rem)' }}>
-      <h1 className="mb-4 text-lg font-semibold text-neutral-900">个人中心</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-lg font-semibold text-neutral-900">个人中心</h1>
+        <Link
+          to="/me/notifications"
+          className="relative p-2 rounded-lg active:bg-neutral-100"
+          aria-label="通知"
+        >
+          <Bell size={22} className="text-neutral-700" />
+          {(data?.unreadNotificationsCount ?? 0) > 0 && (
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+          )}
+        </Link>
+      </div>
       <section className="relative overflow-hidden rounded-3xl border border-orange-200 bg-white p-4 shadow-sm shadow-orange-500/10">
         <div className="pointer-events-none absolute -top-16 -right-12 z-0 size-36 rounded-full border-[18px] border-pink-200/50" />
         <div className="pointer-events-none absolute -bottom-20 -left-16 z-0 size-44 rounded-full border-[22px] border-orange-200/45" />
