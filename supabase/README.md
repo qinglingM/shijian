@@ -115,6 +115,25 @@ VITE_FIXTURE_PASSWORD=你的测试密码
 supabase functions deploy submit-practice
 ```
 
+## POI 搜索代理函数部署
+
+`poi-search` 代理高德 POI 搜索请求，AMAP_KEY 存储在服务端环境变量中，不暴露在前端 bundle 里。
+
+```powershell
+supabase functions deploy poi-search
+```
+
+部署后在 Supabase Dashboard → Edge Functions → `poi-search` → Settings 中添加环境变量：
+
+- `AMAP_KEY`：你的高德 Web 服务 Key
+
+前端 `.env.local` 配置：
+
+```dotenv
+VITE_POI_PROVIDER=edge
+VITE_SUPABASE_FUNCTIONS_URL=https://jpdnnfbxcgdjhpwcchqd.supabase.co/functions/v1
+```
+
 ## 手机号登录函数部署
 
 `sms-otp` 承担登录、短信验证码、找回密码流程，调用时用户通常还没有登录，因此不能依赖平台入口的 JWT 校验。仓库已在 `config.toml` 中将该函数配置为 `verify_jwt = false`；函数内部负责手机号/IP 限流、OTP 校验和账号规范化。

@@ -2,3 +2,6 @@ project_id = "jpdnnfbxcgdjhpwcchqd"
 
 [functions.sms-otp]
 verify_jwt = false
+
+[functions.poi-search]
+verify_jwt = false
