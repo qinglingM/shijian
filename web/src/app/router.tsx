@@ -25,6 +25,7 @@ import { AuthPage } from '@/pages/AuthPage'
 import { MeProfileEditPage } from '@/pages/MeProfileEditPage'
 import { LegalDocPage } from '@/pages/LegalDocPage'
 import { SharePlaygroundPage } from '@/pages/SharePlaygroundPage'
+import { PracticeRecordsPage } from '@/pages/PracticeRecordsPage'
 export function AppRouter() {
   return (
     <Routes>
@@ -100,6 +101,7 @@ export function AppRouter() {
         <Route path="/me/marks" element={<MarksPage />} />
         <Route path="/me/bole" element={<BolePage />} />
         <Route path="/me/titles" element={<RequireAuth><MeTitlesPage /></RequireAuth>} />
+        <Route path="/me/practices" element={<RequireAuth><PracticeRecordsPage /></RequireAuth>} />
         <Route path="/me/settings" element={<RequireAuth><MeSettingsPage /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/map" replace />} />
       </Route>

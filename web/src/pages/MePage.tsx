@@ -3,6 +3,7 @@ import {
   Award,
   Bookmark,
   ChevronRight,
+  FileText,
   KeyRound,
   UserRound,
   UsersRound,
@@ -52,7 +53,7 @@ export function MePage() {
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)
   const userId = isRegisteredUser(user) ? user.id : null
-  const { data, isLoading } = useQuery<MeSummary>({
+  const { data } = useQuery<MeSummary>({
     queryKey: ['me-summary', userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -232,35 +233,14 @@ export function MePage() {
         </div>
       </section>
 
-      <section className="mt-4 rounded-2xl border border-dashed border-neutral-200 px-4 py-3.5">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-neutral-800">近期动态</p>
-          <span className="text-[11px] text-neutral-400">最近 3 条</span>
-        </div>
-
-        {isLoading ? (
-          <p className="mt-3 text-xs text-neutral-400">加载中…</p>
-        ) : (data?.recentActivities.length ?? 0) > 0 ? (
-          <div className="mt-2.5 space-y-1.5">
-            {data!.recentActivities.map((item) => (
-              <Link
-                key={item.id}
-                to={`/restaurants/${item.restaurantId}`}
-                className="block rounded-xl border border-neutral-100 bg-white px-3 py-2 active:bg-neutral-50"
-              >
-                <p className="text-xs font-medium text-neutral-800">
-                  在「{item.restaurantName}」完成了 {tierLabel(item.tier)} 食鉴
-                </p>
-                <p className="mt-1 text-[11px] text-neutral-400">{formatRelativeTime(item.createdAt)}</p>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-2.5 text-xs leading-5 text-neutral-400">暂无动态，去完成一次食鉴就会出现在这里。</p>
-        )}
-      </section>
-
       <section className="mt-4 rounded-2xl border border-neutral-100 overflow-hidden">
+        <FeatureCard
+          to="/me/practices"
+          icon={<FileText size={18} />}
+          title="评价记录"
+          desc={`${data?.practiceCount ?? 0} 条实践记录`}
+        />
+        <div className="border-b border-neutral-100" />
         <FeatureCard
           to="/me/marks"
           icon={<Bookmark size={18} />}
@@ -285,8 +265,8 @@ export function MePage() {
         <FeatureCard
           to="/me/settings"
           icon={<KeyRound size={18} />}
-          title="登录设置"
-          desc="密码设置与退出登录"
+          title="应用设置"
+          desc="隐私政策、用户协议与账号管理"
         />
       </section>
     </div>
@@ -339,37 +319,4 @@ function FeatureCard({
   )
 
   return to ? <Link to={to}>{content}</Link> : content
-}
-
-function tierLabel(tier: string) {
-  const map: Record<string, string> = {
-    boom: '夯爆了',
-    hang: '夯',
-    top: '顶级',
-    upper: '人上人',
-    npc: 'NPC',
-    bad: '拉完了',
-  }
-  return map[tier] ?? tier
-}
-
-function formatRelativeTime(dateString: string) {
-  const time = new Date(dateString).getTime()
-  if (Number.isNaN(time)) return '刚刚'
-
-  const diffMs = Date.now() - time
-  const minute = 60_000
-  const hour = 3_600_000
-  const day = 86_400_000
-
-  if (diffMs < hour) {
-    const mins = Math.max(1, Math.floor(diffMs / minute))
-    return `${mins} 分钟前`
-  }
-  if (diffMs < day) {
-    const hours = Math.max(1, Math.floor(diffMs / hour))
-    return `${hours} 小时前`
-  }
-  const days = Math.max(1, Math.floor(diffMs / day))
-  return `${days} 天前`
 }
