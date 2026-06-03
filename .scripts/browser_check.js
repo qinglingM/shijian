@@ -24,13 +24,13 @@ const h = require('C:/Users/Administrator/.openclaw/skills/browser-automation/in
       console.warn  = (...a) => { window.__logs.push(['warn',  a.map(String).join(' ')]); origWarn(...a); };
       window.addEventListener('error', e => window.__logs.push(['win-error', e.message]));
       window.addEventListener('unhandledrejection', e => window.__logs.push(['rejection', String(e.reason && e.reason.message || e.reason)]));
-      // Test direct fetch to supabase
+      // Test direct fetch to supabase (using placeholder credentials - replace with your own for testing)
       window.__test_supabase = async () => {
         try {
-          const r = await fetch('https://jpdnnfbxcgdjhpwcchqd.supabase.co/auth/v1/token?grant_type=password', {
+          const r = await fetch('https://YOUR_SUPABASE_PROJECT.supabase.co/auth/v1/token?grant_type=password', {
             method: 'POST',
-            headers: { apikey: 'sb_publishable_fFqF2gk7FRN5hXoIrBWG-Q_6Dx8zWaL', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: '770638046@qq.com', password: 'Nidhogg131313' }),
+            headers: { apikey: 'YOUR_SUPABASE_ANON_KEY', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'test@example.com', password: 'YOUR_TEST_PASSWORD' }),
           });
           return r.status + ': ' + (await r.text()).slice(0, 100);
         } catch (e) {

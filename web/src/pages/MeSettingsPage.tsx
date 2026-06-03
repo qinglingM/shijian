@@ -26,6 +26,11 @@ export function MeSettingsPage() {
         ;({ error } = await sb.auth.signOut({ scope: 'local' }))
         if (error) console.warn('[shijian] signOut(local):', error.message)
       }
+      // Clear all app-specific localStorage data
+      localStorage.removeItem('shijian:practice-draft')
+      localStorage.removeItem('shijian-rq-cache')
+      localStorage.removeItem('shijian:simulated-practices')
+      localStorage.removeItem('shijian:city')
       const { data: sessionData } = await sb.auth.getSession()
       if (!isRegisteredUser(sessionData.session?.user ?? null)) {
         setSession(sessionData.session)
