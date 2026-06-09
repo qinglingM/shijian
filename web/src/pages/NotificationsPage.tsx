@@ -1,11 +1,41 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, Component } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Mail, MailOpen } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { getSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { isRegisteredUser } from '@/features/auth/useRequireLogin'
+
+class SafeMarkdown extends Component<{ content: string }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  render() {
+    if (this.state.hasError) {
+      return <div className="whitespace-pre-wrap">{this.props.content}</div>
+    }
+    return <ReactMarkdown>{this.props.content}</ReactMarkdown>
+  }
+}
+
+function stripMarkdown(text: string): string {
+  if (!text) return ''
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/_(.+?)_/g, '$1')
+    .replace(/^### /gm, '')
+    .replace(/^## /gm, '')
+    .replace(/^# /gm, '')
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[(.+?)\]\(.*?\)/g, '$1')
+    .replace(/> /gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
 
 interface NotificationRow {
   id: string
@@ -104,7 +134,7 @@ export function NotificationsPage() {
               <span className="text-xs text-neutral-400">{formatDate(selectedNotification.created_at)}</span>
             </div>
             <div className="text-[14px] leading-7 text-neutral-700 [&>h1]:text-2xl [&>h1]:font-bold [&>h1]:mb-6 [&>h1]:mt-8 [&>h1]:text-neutral-900 [&>h2]:text-[17px] [&>h2]:font-bold [&>h2]:mb-4 [&>h2]:mt-8 [&>h2]:text-neutral-900 [&>p]:mb-4 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:mb-4 [&>ul>li]:mb-2 [&>strong]:font-semibold [&>strong]:text-neutral-900 [&>blockquote]:border-l-4 [&>blockquote]:border-orange-200 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-neutral-600 [&>hr]:my-6 [&>hr]:border-neutral-200">
-              <ReactMarkdown>{selectedNotification.content}</ReactMarkdown>
+              <SafeMarkdown content={selectedNotification.content} />
             </div>
           </article>
         </div>
@@ -142,7 +172,7 @@ export function NotificationsPage() {
                         </span>
                       </div>
                       <p className="text-xs text-neutral-500 mt-1 line-clamp-2">
-                        {notification.content.slice(0, 80)}...
+                        {stripMarkdown(notification.content).slice(0, 80)}...
                       </p>
                     </div>
                   </div>
