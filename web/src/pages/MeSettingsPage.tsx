@@ -92,7 +92,7 @@ export function MeSettingsPage() {
   return (
     <div className="min-h-screen bg-neutral-50">
       <header
-        className="flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3"
+        className="sticky top-0 z-40 flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3"
         style={{ minHeight: 'calc(3.5625rem + var(--safe-top))', paddingTop: 'var(--safe-top)' }}
       >
         <button

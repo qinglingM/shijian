@@ -5,7 +5,7 @@ import { ChevronLeft, Mail, MailOpen } from 'lucide-react'
 import { getSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { isRegisteredUser } from '@/features/auth/useRequireLogin'
-import { renderMarkdown, stripMarkdown } from '@/lib/markdown'
+import { stripMarkdown } from '@/lib/markdown'
 
 interface NotificationRow {
   id: string
@@ -67,7 +67,7 @@ export function NotificationsPage() {
   return (
     <div className="min-h-screen bg-neutral-50">
       <header
-        className="flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3"
+        className="sticky top-0 z-40 flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3"
         style={{ minHeight: 'calc(3.5625rem + var(--safe-top))', paddingTop: 'var(--safe-top)' }}
       >
         <button
@@ -103,8 +103,8 @@ export function NotificationsPage() {
               )}
               <span className="text-xs text-neutral-400">{formatDate(selectedNotification.created_at)}</span>
             </div>
-            <div className="text-[14px] leading-7 text-neutral-700 [&>p]:mb-4 [&>strong]:font-semibold [&>strong]:text-neutral-900">
-              {renderMarkdown(selectedNotification.content)}
+            <div className="whitespace-pre-wrap text-[14px] leading-7 text-neutral-700">
+              {selectedNotification.content}
             </div>
           </article>
         </div>
