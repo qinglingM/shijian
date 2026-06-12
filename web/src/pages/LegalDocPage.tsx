@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import ReactMarkdown from 'react-markdown'
 import { BackHeader } from '@/components/layout/AppLayout'
+import { renderMarkdown } from '@/lib/markdown'
 
 const DOC_TITLES: Record<string, string> = {
   terms: '用户协议',
@@ -31,7 +31,7 @@ export function LegalDocPage() {
       <BackHeader title={title} onBack={() => navigate(-1)} />
       <article className="px-5 py-6">
         <div className="text-[14px] leading-7 text-neutral-700 [&>h1]:text-2xl [&>h1]:font-bold [&>h1]:mb-6 [&>h1]:mt-8 [&>h1]:text-neutral-900 [&>h2]:text-[17px] [&>h2]:font-bold [&>h2]:mb-4 [&>h2]:mt-8 [&>h2]:text-neutral-900 [&>p]:mb-4 [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:mb-4 [&>ul>li]:mb-2 [&>strong]:font-semibold [&>strong]:text-neutral-900">
-          <ReactMarkdown>{content}</ReactMarkdown>
+          {renderMarkdown(content)}
         </div>
       </article>
     </div>
