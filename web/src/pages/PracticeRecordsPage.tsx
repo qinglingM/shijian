@@ -169,19 +169,27 @@ export function PracticeRecordsPage() {
             <div key={record.id} className="rounded-2xl border border-neutral-100 overflow-hidden bg-white">
               {/* 餐厅头部 */}
               <div className="flex items-start gap-3 p-3">
-                {record.restaurants?.cover_image_url ? (
-                  <img
-                    src={record.restaurants.cover_image_url}
-                    alt={record.restaurants.display_name}
-                    className="w-16 h-16 rounded-xl object-cover shrink-0"
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-xl bg-neutral-100 flex items-center justify-center shrink-0">
-                    <span className="text-2xl">🍽️</span>
-                  </div>
-                )}
+                <div
+                  className="w-16 h-16 rounded-xl overflow-hidden shrink-0 cursor-pointer"
+                  onClick={() => record.restaurants && navigate(`/restaurants/${record.restaurant_id}`)}
+                >
+                  {record.restaurants?.cover_image_url ? (
+                    <img
+                      src={record.restaurants.cover_image_url}
+                      alt={record.restaurants.display_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-neutral-100 flex items-center justify-center">
+                      <span className="text-2xl">🍽️</span>
+                    </div>
+                  )}
+                </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-neutral-900 truncate">
+                  <p
+                    className="text-sm font-medium text-neutral-900 truncate cursor-pointer active:text-orange-600"
+                    onClick={() => record.restaurants && navigate(`/restaurants/${record.restaurant_id}`)}
+                  >
                     {record.restaurants?.display_name ?? '未知门店'}
                   </p>
                   <p className="text-xs text-neutral-500 mt-0.5">{tierLabel(record.tier)}</p>
@@ -192,19 +200,12 @@ export function PracticeRecordsPage() {
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => setActionMenu({ type: 'practice', recordId: record.id })}
+                    onClick={() => setActionMenu(actionMenu?.recordId === record.id ? null : { type: 'practice', recordId: record.id })}
                     className="p-1.5 rounded-lg active:bg-neutral-100"
                     aria-label="更多操作"
                   >
                     <MoreVertical size={16} className="text-neutral-400" />
                   </button>
-                  {actionMenu?.type === 'practice' && actionMenu.recordId === record.id && (
-                    <PracticeActionMenu
-                      isPublic={record.is_public}
-                      onToggle={() => setConfirmAction({ type: 'toggle', recordId: record.id, currentPublic: record.is_public })}
-                      onDelete={() => setConfirmAction({ type: 'delete', recordId: record.id })}
-                    />
-                  )}
                 </div>
               </div>
 
@@ -213,27 +214,29 @@ export function PracticeRecordsPage() {
                 <div className="border-t border-neutral-100">
                   {record.dish_reviews.filter((d) => d.is_active !== false).map((review) => (
                     <div key={review.id} className="flex items-start gap-3 px-3 py-2.5 border-b border-neutral-50 last:border-b-0">
-                      {review.dishes?.cover_image_url ? (
-                        <img
-                          src={review.dishes.cover_image_url}
-                          alt={review.dishes.name}
-                          className="w-10 h-10 rounded-lg object-cover shrink-0"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-neutral-50 flex items-center justify-center shrink-0">
-                          <span className="text-lg">🍜</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {review.score !== null && review.score !== undefined && (
+                          <span className="text-[10px] font-medium text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded shrink-0">
+                            {review.score}分
+                          </span>
+                        )}
+                        {review.dishes?.cover_image_url ? (
+                          <img
+                            src={review.dishes.cover_image_url}
+                            alt={review.dishes.name}
+                            className="w-10 h-10 rounded-lg object-cover shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-neutral-50 flex items-center justify-center shrink-0">
+                            <span className="text-lg">🍜</span>
+                          </div>
+                        )}
+                      </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <p className="text-xs font-medium text-neutral-900 truncate">
                             {review.dishes?.name ?? '未知菜品'}
                           </p>
-                          {review.score !== null && review.score !== undefined && (
-                            <span className="text-[10px] font-medium text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">
-                              {review.score}分
-                            </span>
-                          )}
                           {!review.is_public && (
                             <span className="text-[10px] text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded">
                               私密
@@ -247,19 +250,12 @@ export function PracticeRecordsPage() {
                       <div className="relative">
                         <button
                           type="button"
-                          onClick={() => setActionMenu({ type: 'dish', recordId: record.id, dishId: review.id })}
+                          onClick={() => setActionMenu(actionMenu?.dishId === review.id ? null : { type: 'dish', recordId: record.id, dishId: review.id })}
                           className="p-1 rounded-lg active:bg-neutral-100"
                           aria-label="更多操作"
                         >
                           <MoreVertical size={14} className="text-neutral-400" />
                         </button>
-                        {actionMenu?.type === 'dish' && actionMenu.dishId === review.id && (
-                          <DishActionMenu
-                            isPublic={review.is_public}
-                            onToggle={() => setConfirmAction({ type: 'toggle', recordId: record.id, dishId: review.id, currentPublic: review.is_public })}
-                            onDelete={() => setConfirmAction({ type: 'delete', recordId: record.id, dishId: review.id })}
-                          />
-                        )}
                       </div>
                     </div>
                   ))}
@@ -276,9 +272,38 @@ export function PracticeRecordsPage() {
         )}
       </div>
 
+      {/* 操作菜单浮层 - 点击外部关闭 */}
+      {actionMenu && (
+        <>
+          <div className="fixed inset-0 z-50" onClick={() => setActionMenu(null)} />
+          {actionMenu.type === 'practice' ? (
+            practices?.filter((r) => r.id === actionMenu.recordId).map((record) => (
+              <div key={record.id} className="fixed z-50" style={{ top: 'var(--menu-top, 5rem)', right: '1rem' }}>
+                <PracticeActionMenu
+                  isPublic={record.is_public}
+                  onToggle={() => setConfirmAction({ type: 'toggle', recordId: record.id, currentPublic: record.is_public })}
+                  onDelete={() => setConfirmAction({ type: 'delete', recordId: record.id })}
+                />
+              </div>
+            ))
+          ) : (() => {
+            const dishReview = practices?.flatMap((r) => r.dish_reviews).find((d) => d.id === actionMenu.dishId)
+            return dishReview ? (
+              <div className="fixed z-50" style={{ top: 'var(--menu-top, 8rem)', right: '1rem' }}>
+                <DishActionMenu
+                  isPublic={dishReview.is_public}
+                  onToggle={() => setConfirmAction({ type: 'toggle', recordId: actionMenu.recordId, dishId: dishReview.id, currentPublic: dishReview.is_public })}
+                  onDelete={() => setConfirmAction({ type: 'delete', recordId: actionMenu.recordId, dishId: dishReview.id })}
+                />
+              </div>
+            ) : null
+          })()}
+        </>
+      )}
+
       {/* 确认操作弹窗 */}
       {confirmAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
             {confirmAction.type === 'toggle' ? (
               <>
@@ -355,7 +380,7 @@ function PracticeActionMenu({
   onDelete: () => void
 }) {
   return (
-    <div className="absolute right-0 top-8 z-40 w-36 rounded-xl border border-neutral-200 bg-white shadow-lg overflow-hidden">
+    <div className="w-36 rounded-xl border border-neutral-200 bg-white shadow-lg overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
@@ -387,7 +412,7 @@ function DishActionMenu({
   onDelete: () => void
 }) {
   return (
-    <div className="absolute right-0 top-6 z-40 w-36 rounded-xl border border-neutral-200 bg-white shadow-lg overflow-hidden">
+    <div className="w-36 rounded-xl border border-neutral-200 bg-white shadow-lg overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
