@@ -90,9 +90,9 @@ export function MeSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-full bg-neutral-50">
       <header
-        className="sticky top-0 z-40 flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3"
+        className="fixed top-0 inset-x-0 z-40 flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3"
         style={{ minHeight: 'calc(3.5625rem + var(--safe-top))', paddingTop: 'var(--safe-top)' }}
       >
         <button
@@ -105,6 +105,7 @@ export function MeSettingsPage() {
         </button>
         <h1 className="ml-3 flex-1 truncate text-base font-medium">应用设置</h1>
       </header>
+      <div style={{ height: 'calc(3.5625rem + var(--safe-top))' }} />
 
       <div className="pt-4">
         {signOutError ? (

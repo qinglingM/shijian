@@ -65,9 +65,9 @@ export function NotificationsPage() {
   const unreadCount = notifications?.filter((n) => !n.is_read).length ?? 0
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-full bg-neutral-50">
       <header
-        className="sticky top-0 z-40 flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3"
+        className="fixed top-0 inset-x-0 z-40 flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3"
         style={{ minHeight: 'calc(3.5625rem + var(--safe-top))', paddingTop: 'var(--safe-top)' }}
       >
         <button
@@ -91,6 +91,7 @@ export function NotificationsPage() {
           <span className="text-xs text-neutral-400">{unreadCount} 条未读</span>
         )}
       </header>
+      <div style={{ height: 'calc(3.5625rem + var(--safe-top))' }} />
 
       {selectedNotification ? (
         <div className="bg-white">

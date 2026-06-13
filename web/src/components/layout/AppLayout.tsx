@@ -196,8 +196,9 @@ export function AppLayout() {
 export function BackHeader({ title, backTo, rightSlot, centerTitle, onBack }: { title: string; backTo?: string; rightSlot?: React.ReactNode; centerTitle?: boolean; onBack?: () => void }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const shellClass = 'sticky top-0 z-40 flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3'
+  const shellClass = 'fixed top-0 inset-x-0 z-40 flex shrink-0 items-center border-b border-neutral-200 bg-white px-4 pb-3'
   const shellStyle = { minHeight: 'calc(3.5625rem + var(--safe-top))', paddingTop: 'var(--safe-top)' }
+  const spacerStyle = { height: 'calc(3.5625rem + var(--safe-top))' }
   const btn = (
     <button
       type="button"
@@ -218,23 +219,29 @@ export function BackHeader({ title, backTo, rightSlot, centerTitle, onBack }: { 
   )
   if (centerTitle) {
     return (
-      <header className={shellClass} style={shellStyle}>
-        <div className="absolute left-4">{btn}</div>
-        <h1 className="flex-1 text-center text-base font-medium">{title}</h1>
-        {rightSlot ? (
-          <div className="absolute right-4 flex shrink-0 items-center gap-1">{rightSlot}</div>
-        ) : null}
-      </header>
+      <>
+        <header className={shellClass} style={shellStyle}>
+          <div className="absolute left-4">{btn}</div>
+          <h1 className="flex-1 text-center text-base font-medium">{title}</h1>
+          {rightSlot ? (
+            <div className="absolute right-4 flex shrink-0 items-center gap-1">{rightSlot}</div>
+          ) : null}
+        </header>
+        <div style={spacerStyle} />
+      </>
     )
   }
   return (
-    <header className={shellClass} style={shellStyle}>
-      {btn}
-      <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
-      {rightSlot ? (
-        <div className="flex shrink-0 items-center gap-1">{rightSlot}</div>
-      ) : null}
-    </header>
+    <>
+      <header className={shellClass} style={shellStyle}>
+        {btn}
+        <h1 className="ml-3 flex-1 truncate text-base font-medium">{title}</h1>
+        {rightSlot ? (
+          <div className="flex shrink-0 items-center gap-1">{rightSlot}</div>
+        ) : null}
+      </header>
+      <div style={spacerStyle} />
+    </>
   )
 }
 
