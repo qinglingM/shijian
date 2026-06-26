@@ -125,7 +125,6 @@ shijian/
 | 0021 | restaurant_discovery_state | 餐厅发现状态 |
 | 0022 | disable_anonymous | 禁用匿名用户 |
 | 0023 | restaurant_feedback | 餐厅反馈 |
-| 0099 | seed_100_reviews | 种子数据：100 条模拟评价 |
 
 ## 本地开发
 

@@ -58,7 +58,7 @@ supabase/
 
 > **注**：当前仓库的迁移目录没有 `0006` / `0007` 文件；请以实际存在的 SQL 文件为准顺序执行。
 
-> `0013_profiles_detail_fields.sql` 与 `0013_set_auth_password_for_phone_137.sql` 使用了相同编号前缀。其中 `0013_set_auth_password_for_phone_137.sql` 是个人调试脚本，包含针对指定手机号的密码哈希写入逻辑，不属于推荐基础迁移。生产环境请不要直接执行，或执行后立即改密并移除敏感历史。
+> `0013_profiles_detail_fields.sql` 与 `0013_set_auth_password_for_phone_137.sql`（已删除）使用了相同编号前缀。`0013_set_auth_password_for_phone_137.sql` 包含明文密码，已在仓库中移除。
 
 > 全部执行迁移与 seed 后，**Table Editor** 里应当能看到 19 张业务表/查表（不含 Supabase Auth 自带表）。
 
