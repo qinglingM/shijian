@@ -260,7 +260,7 @@ export function MePage() {
           to="/me/practices"
           icon={<FileText size={18} />}
           title="评价记录"
-          desc={`${data?.practiceCount ?? 0} 条实践记录`}
+          desc={`${data?.practiceCount ?? 0} 条食鉴记录`}
         />
         <div className="border-b border-neutral-100" />
         <FeatureCard

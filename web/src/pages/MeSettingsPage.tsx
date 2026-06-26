@@ -247,7 +247,7 @@ export function MeSettingsPage() {
               </p>
               <ul className="text-xs leading-5 text-rose-700 mt-1 ml-4 list-disc">
                 <li>个人资料与头像</li>
-                <li>所有实践记录和菜品评价</li>
+                <li>所有食鉴记录和菜品评价</li>
                 <li>标记、投票、关注关系</li>
                 <li>广场帖子与上传的图片</li>
               </ul>

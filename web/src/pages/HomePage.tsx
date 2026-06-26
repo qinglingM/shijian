@@ -276,7 +276,7 @@ export function HomePage() {
         <p className="px-4 pb-2 text-center text-[12px] text-neutral-500">
           你已在食鉴创下了{' '}
           <span className="font-semibold text-orange-600">{map.total_count}</span>
-          {' '}条实践记录
+          {' '}条食鉴记录
         </p>
       </div>
 

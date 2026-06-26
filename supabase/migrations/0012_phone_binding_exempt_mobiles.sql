@@ -16,9 +16,10 @@ comment on table public.phone_binding_exempt_mobiles is
 
 alter table public.phone_binding_exempt_mobiles enable row level security;
 
-insert into public.phone_binding_exempt_mobiles (phone_e164, notes) values
-  ('+8613718550959', '用户指定白名单手机')
-on conflict (phone_e164) do nothing;
+-- 上线前已删除测试号码，不再白名单任何手机号
+-- insert into public.phone_binding_exempt_mobiles (phone_e164, notes) values
+--   ('+8613718550959', '用户指定白名单手机')
+-- on conflict (phone_e164) do nothing;
 
 create or replace function public.handle_new_user()
 returns trigger
