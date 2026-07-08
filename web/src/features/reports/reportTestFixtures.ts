@@ -5,6 +5,18 @@ import type { StoreReviewItem } from '@/features/restaurants/useStoreReviewsByRe
 const ENABLE_REPORT_TEST_FIXTURES =
   !import.meta.env.PROD || import.meta.env.VITE_ENABLE_REPORT_TEST_FIXTURES === 'true'
 
+const REPORT_TEST_IMAGE_DATA_URL =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+      <rect width="240" height="240" rx="24" fill="#fff7ed"/>
+      <rect x="22" y="22" width="196" height="196" rx="18" fill="#fdba74"/>
+      <circle cx="86" cy="86" r="22" fill="#ffffff" fill-opacity="0.9"/>
+      <path d="M44 172 92 120l30 32 26-24 48 44H44Z" fill="#ffffff" fill-opacity="0.92"/>
+      <text x="120" y="208" text-anchor="middle" font-size="20" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" fill="#7c2d12">举报测试图</text>
+    </svg>`,
+  )
+
 const STORE_FIXTURE_IDS = [
   '11111111-1111-4111-8111-111111111111',
   '22222222-2222-4222-8222-222222222222',
@@ -79,7 +91,7 @@ export function withRestaurantDishReviewTestFixtures(list: RestaurantDishReviewI
       titleRarity: 'common',
       score: 9,
       comment: '假菜评一：主要验证菜评举报、返回关闭、以及图片与文字的区分流程。',
-      image_url: 'https://picsum.photos/seed/report-fixture-dish-a/240/240',
+      image_url: REPORT_TEST_IMAGE_DATA_URL,
       created_at: '2026-07-08T19:36:00+08:00',
       youpin_count: 5,
       yebang_count: 0,
@@ -107,7 +119,7 @@ export function withRestaurantDishReviewTestFixtures(list: RestaurantDishReviewI
       titleRarity: null,
       score: 7,
       comment: '假菜评三：点右上角举报后，不应该再意外跳去菜品详情。',
-      image_url: 'https://picsum.photos/seed/report-fixture-dish-c/240/240',
+      image_url: REPORT_TEST_IMAGE_DATA_URL,
       created_at: '2026-07-08T19:24:00+08:00',
       youpin_count: 3,
       yebang_count: 0,
@@ -127,7 +139,7 @@ export function withDishReviewTestFixtures(list: DishReviewFeedItem[]): DishRevi
       reviewer_nickname: '测试吃客甲',
       score: 9,
       comment: '假菜评一：主要验证菜评举报、返回关闭、以及图片与文字的区分流程。',
-      image_url: 'https://picsum.photos/seed/report-fixture-dish-a/240/240',
+      image_url: REPORT_TEST_IMAGE_DATA_URL,
       created_at: '2026-07-08T19:36:00+08:00',
       youpin_count: 5,
       yebang_count: 0,
@@ -151,7 +163,7 @@ export function withDishReviewTestFixtures(list: DishReviewFeedItem[]): DishRevi
       reviewer_nickname: '测试吃客丙',
       score: 7,
       comment: '假菜评三：点右上角举报后，不应该再意外跳去菜品详情。',
-      image_url: 'https://picsum.photos/seed/report-fixture-dish-c/240/240',
+      image_url: REPORT_TEST_IMAGE_DATA_URL,
       created_at: '2026-07-08T19:24:00+08:00',
       youpin_count: 3,
       yebang_count: 0,

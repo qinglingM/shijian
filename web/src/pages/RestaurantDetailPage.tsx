@@ -789,6 +789,12 @@ function filterAndSortStoreReviews(
   return sorted
 }
 
+function shouldRenderCollapsedHiddenPlaceholder(hiddenFlags: boolean[], index: number) {
+  if (!hiddenFlags[index]) return false
+  if (index === 0) return true
+  return !hiddenFlags[index - 1]
+}
+
 function formatBoleText(bole: RestaurantBoleView) {
   const nickname = bole.nickname?.trim() || '食鉴用户'
   if (bole.created_from === 'manual') {
@@ -848,6 +854,10 @@ function StoreTab({
     const order = new Map(storeSortRef.current.map((id, i) => [id, i]))
     return [...sorted].sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999))
   }, [displayReviews, tierFilter, sortMode, newestFirst, compoundHighNetFirst])
+  const hiddenReviewFlags = useMemo(
+    () => filteredSorted.map((r) => Boolean(hiddenTargets.practice_record?.[r.id])),
+    [filteredSorted, hiddenTargets.practice_record],
+  )
 
   if (loading) {
     return <p className="py-14 text-center text-sm text-neutral-400">载入店铺匿名评价…</p>
@@ -973,7 +983,7 @@ function StoreTab({
       ) : null}
 
       <ul className="space-y-3">
-      {filteredSorted.map((r) => {
+      {filteredSorted.map((r, index) => {
         const votingThis =
           voteMut.isPending && voteMut.variables?.practiceRecordId === r.id
         const reviewHidden = Boolean(hiddenTargets.practice_record?.[r.id])
@@ -990,6 +1000,9 @@ function StoreTab({
         const busy = votingThis
 
         if (reviewHidden) {
+          if (!shouldRenderCollapsedHiddenPlaceholder(hiddenReviewFlags, index)) {
+            return null
+          }
           return (
             <li key={r.id}>
               <HiddenReportedPlaceholder compact />
@@ -1344,6 +1357,7 @@ function DishTabFeed({
       dishName: string
       dishId: string
       topReview: RestaurantDishReviewItem
+      allReviewsHidden: boolean
       coverUrl: string | null
       reviewCount: number
       avgScore: number | null
@@ -1366,10 +1380,12 @@ function DishTabFeed({
       const totalYoupin = reviews.reduce((s, r) => s + r.youpin_count, 0)
 
       // Lock topReview by dishId: only pick on first data load, stable across votes
+      const visibleReviews = reviews.filter((r) => !hiddenTargets.dish_review?.[r.id])
+      const reviewPool = visibleReviews.length > 0 ? visibleReviews : reviews
       const lockedId = topReviewRef.current[dishId]
-      const lockedReview = lockedId ? reviews.find(r => r.id === lockedId) : null
+      const lockedReview = lockedId ? reviewPool.find(r => r.id === lockedId) : null
       const topReview = lockedReview ?? (() => {
-        const picked = [...reviews].sort((a, b) => {
+        const picked = [...reviewPool].sort((a, b) => {
           const net = (b.youpin_count - b.yebang_count) - (a.youpin_count - a.yebang_count)
           if (net !== 0) return net
           const scoreDiff = (b.score ?? -1) - (a.score ?? -1)
@@ -1380,7 +1396,7 @@ function DishTabFeed({
         return picked
       })()
 
-      entries.push({ dishName, dishId, topReview, coverUrl, reviewCount: reviews.length, avgScore, totalYoupin })
+      entries.push({ dishName, dishId, topReview, allReviewsHidden: visibleReviews.length === 0, coverUrl, reviewCount: reviews.length, avgScore, totalYoupin })
     }
 
     if (sort === 'score') {
@@ -1435,7 +1451,7 @@ function DishTabFeed({
               const r = entry.topReview
               const votingThis =
                 voteMut.isPending && voteMut.variables?.dishReviewId === r.id
-              const reviewHidden = Boolean(hiddenTargets.dish_review?.[r.id])
+              const reviewHidden = entry.allReviewsHidden
               const imageHidden = Boolean(hiddenTargets.dish_review_image?.[r.id])
               function onTap(which: 'youpin' | 'yebang') {
                 if (!requireLogin()) return
@@ -1450,14 +1466,6 @@ function DishTabFeed({
                   <Utensils className="size-4" aria-hidden />
                 </div>
               )
-
-              if (reviewHidden) {
-                return (
-                  <li key={entry.dishId}>
-                    <HiddenReportedPlaceholder compact />
-                  </li>
-                )
-              }
 
               return (
                 <li
@@ -1528,9 +1536,13 @@ function DishTabFeed({
                         </Link>
                       </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[14px] leading-6 font-bold text-neutral-800 ">
-                        {r.comment?.trim() || '（未填写菜品锐评）'}
-                      </p>
+                      {reviewHidden ? (
+                        <HiddenReportedPlaceholder compact className="py-5" />
+                      ) : (
+                        <p className="text-[14px] leading-6 font-bold text-neutral-800 ">
+                          {r.comment?.trim() || '（未填写菜品锐评）'}
+                        </p>
+                      )}
                       <div className="mt-1">
                         <span className="text-[11px] font-semibold text-sky-700">
                           @{r.reviewer_nickname}<UserTitleBadge name={r.titleName} rarity={r.titleRarity} />

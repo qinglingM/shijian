@@ -24,6 +24,12 @@ function isLikelyReviewImage(url: string | null) {
   return !avatarHints.some((k) => u.includes(k))
 }
 
+function shouldRenderCollapsedHiddenPlaceholder(hiddenFlags: boolean[], index: number) {
+  if (!hiddenFlags[index]) return false
+  if (index === 0) return true
+  return !hiddenFlags[index - 1]
+}
+
 export function DishDetailPage() {
   const { id: rawId } = useParams()
   const id = rawId ?? null
@@ -74,6 +80,11 @@ export function DishDetailPage() {
       )
     return withImages[0]?.image_url ?? dish?.cover_image_url ?? null
   }, [reviewsQ.data, dish?.cover_image_url])
+
+  const hiddenReviewFlags = useMemo(
+    () => sortedReviews.map((rv) => Boolean(hiddenTargets.dish_review?.[rv.id])),
+    [hiddenTargets.dish_review, sortedReviews],
+  )
 
   if (!id) return <Navigate to="/" replace />
 
@@ -219,7 +230,7 @@ export function DishDetailPage() {
                 <ReviewSortBar value={sort} onChange={setSort} />
               </div>
               <ul className="space-y-3">
-                {sortedReviews.map((rv) => {
+                {sortedReviews.map((rv, index) => {
                 const votingThis =
                   voteMut.isPending && voteMut.variables?.dishReviewId === rv.id
                 const reviewHidden = Boolean(hiddenTargets.dish_review?.[rv.id])
@@ -235,6 +246,9 @@ export function DishDetailPage() {
                   : null
 
                 if (reviewHidden) {
+                  if (!shouldRenderCollapsedHiddenPlaceholder(hiddenReviewFlags, index)) {
+                    return null
+                  }
                   return (
                     <li key={rv.id}>
                       <HiddenReportedPlaceholder compact />
