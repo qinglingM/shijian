@@ -6,8 +6,11 @@ import { useDishReviewsByDish } from '@/features/dishes/useDishReviewsByDish'
 import { isRestaurantUuid, useRestaurant } from '@/features/restaurants/useRestaurant'
 import { useDishReviewVoteMutation } from '@/features/restaurants/useDishReviewVoteMutation'
 import { intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
+import { ContentReportMenuButton } from '@/features/reports/ContentReportMenuButton'
+import { HiddenReportedPlaceholder } from '@/features/reports/HiddenReportedPlaceholder'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useReportedContentStore } from '@/stores/reportedContentStore'
 import { useRequireLogin } from '@/features/auth/useRequireLogin'
 const dateFmt = new Intl.DateTimeFormat('zh-CN', {
   dateStyle: 'medium',
@@ -30,6 +33,7 @@ export function DishDetailPage() {
   const reviewsQ = useDishReviewsByDish(isUuid ? id : null)
   const restaurantQ = useRestaurant(dish?.restaurant_id ?? null)
   const user = useAuthStore((s) => s.user)
+  const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
   const requireLogin = useRequireLogin()
   const voteMut = useDishReviewVoteMutation(dish?.restaurant_id ?? null)
 
@@ -216,6 +220,8 @@ export function DishDetailPage() {
                 {sortedReviews.map((rv) => {
                 const votingThis =
                   voteMut.isPending && voteMut.variables?.dishReviewId === rv.id
+                const reviewHidden = Boolean(hiddenTargets.dish_review?.[rv.id])
+                const imageHidden = Boolean(hiddenTargets.dish_review_image?.[rv.id])
                 function onTap(which: 'youpin' | 'yebang') {
                   if (!requireLogin()) return
                   const next = intentAfterVoteTap(rv.my_vote, which)
@@ -226,6 +232,14 @@ export function DishDetailPage() {
                   ? rv.image_url
                   : null
 
+                if (reviewHidden) {
+                  return (
+                    <li key={rv.id}>
+                      <HiddenReportedPlaceholder compact />
+                    </li>
+                  )
+                }
+
                 return (
                   <li
                     key={rv.id}
@@ -235,20 +249,63 @@ export function DishDetailPage() {
                       <span className="text-[11px] font-semibold text-sky-700">
                         {rv.reviewer_nickname}
                       </span>
-                      <span className="shrink-0 text-[10px] text-neutral-400">
-                        {dateFmt.format(new Date(rv.created_at))}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span className="text-[10px] text-neutral-400">
+                          {dateFmt.format(new Date(rv.created_at))}
+                        </span>
+                        <ContentReportMenuButton
+                          iconSize={14}
+                          buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
+                          items={[
+                            {
+                              key: `dish-review:${rv.id}`,
+                              label: '举报评价',
+                              dialogTitle: '菜品评价',
+                              targetType: 'dish_review',
+                              targetId: rv.id,
+                              snapshot: {
+                                dish_id: id,
+                                reviewer_nickname: rv.reviewer_nickname,
+                                created_at: rv.created_at,
+                                score: rv.score,
+                                comment: rv.comment,
+                                image_url: rv.image_url,
+                              },
+                            },
+                            ...(reviewImageUrl
+                              ? [{
+                                  key: `dish-review-image:${rv.id}`,
+                                  label: '举报图片',
+                                  dialogTitle: '菜品图片',
+                                  targetType: 'dish_review_image' as const,
+                                  targetId: rv.id,
+                                  snapshot: {
+                                    dish_id: id,
+                                    reviewer_nickname: rv.reviewer_nickname,
+                                    created_at: rv.created_at,
+                                    image_url: rv.image_url,
+                                    comment: rv.comment,
+                                  },
+                                }]
+                              : []),
+                          ]}
+                        />
+                      </div>
                     </div>
                     <div className="mt-[9px] flex items-start gap-2">
                       <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['“'] [&::after]:content-['”']">
                         {rv.comment?.trim() || '（未填写菜品锐评）'}
                       </p>
-                      {reviewImageUrl ? (
+                      {reviewImageUrl && !imageHidden ? (
                         <img
                           src={reviewImageUrl}
                           alt=""
                           className="size-16 shrink-0 rounded-xl object-cover ring-1 ring-neutral-200/80"
                         />
+                      ) : reviewImageUrl && imageHidden ? (
+                        <div className="w-16 shrink-0">
+                          <HiddenReportedPlaceholder compact className="px-2 py-3" />
+                        </div>
                       ) : null}
                       <span className="shrink-0 pt-0.5">
                         <span className="text-[28px] font-black italic leading-none text-sky-600">

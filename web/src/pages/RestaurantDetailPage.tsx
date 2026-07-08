@@ -32,9 +32,12 @@ import { useRestaurantBole, type RestaurantBoleView } from '@/features/restauran
 import { useRestaurantGuidanceSummary } from '@/features/restaurants/useRestaurantGuidanceSummary'
 import { useRestaurantMarkStatus } from '@/features/marks/useRestaurantMarkStatus'
 import { useInsertMarkMutation, useDeleteMarkMutation, useMarkPoiMutation } from '@/features/marks/useRestaurantMarkMutations'
+import { ContentReportMenuButton } from '@/features/reports/ContentReportMenuButton'
+import { HiddenReportedPlaceholder } from '@/features/reports/HiddenReportedPlaceholder'
 import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, averageTierFloor, type Tier } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useReportedContentStore } from '@/stores/reportedContentStore'
 import { useRequireLogin } from '@/features/auth/useRequireLogin'
 import { usePracticeDraft } from '@/stores/practiceDraft'
 import type { PoiCandidate, PoiSource } from '@/lib/poi/types'
@@ -86,6 +89,7 @@ export function RestaurantDetailPage() {
   const boleQ = useRestaurantBole(governanceRid)
   const guidanceQ = useRestaurantGuidanceSummary(governanceRid)
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
+  const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
   const requireLogin = useRequireLogin()
   const navigate = useNavigate()
   const setPoiDraft = usePracticeDraft((s) => s.setPoi)
@@ -226,6 +230,8 @@ export function RestaurantDetailPage() {
 
 
   const dishFeed: RestaurantDishReviewItem[] = dishRQ.data ?? []
+  const restaurantHidden = Boolean(isUuid && id && hiddenTargets.restaurant?.[id])
+  const restaurantImageHidden = Boolean(isUuid && id && hiddenTargets.restaurant_image?.[id])
 
   const fallbackPoi =
     !poi && isPoiRoute && routePoiSource && poiId
@@ -440,72 +446,117 @@ export function RestaurantDetailPage() {
       <div className="min-h-[calc(100vh-3rem)] bg-white pb-8">
         {detailKnown ? (
           <section className="border-b border-neutral-100 px-4 pt-4 pb-4">
-            <div
-              className={`relative flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm shadow-black/[0.04] ${
-                emptyReviews
-                  ? 'border border-orange-100'
-                  : headerTierFallback
-                    ? ''
-                    : 'border-2 border-neutral-200/80'
-              }`}
-              style={
-                emptyReviews
-                  ? undefined
-                  : headerTierFallback
-                    ? {
-                        borderColor: TIER_COLOR_VAR[headerTierFallback],
-                        borderWidth: '2px',
-                        borderBottomWidth: '4px',
-                      }
-                    : undefined
-              }
-            >
-              <div className="flex gap-4">
-                <div
-                  className="relative mt-1 h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-xl bg-neutral-100"
-                  style={!emptyReviews && headerTierFallback ? {
-                    border: '1px solid',
-                    borderColor: TIER_COLOR_VAR[headerTierFallback],
-                    borderBottomWidth: '2px',
-                  } : undefined}
-                >
-                  {coverUrl ? (
-                    <img src={coverUrl} alt="" className="size-full object-cover" />
-                  ) : (
-                    <div className="flex size-full items-center justify-center bg-neutral-100 text-center text-xs font-semibold tracking-widest text-neutral-500">
-                      {(title.slice(0, 4).replace(/\s/g, '') || '门店').slice(0, 4)}
-                    </div>
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h1 className="text-[16px] font-black leading-snug tracking-tight text-neutral-950">
-                        {title}
-                      </h1>
-                      {categoryText ? (
-                        <p className="mt-0.5 text-[12px] font-semibold text-neutral-700">{categoryText}</p>
-                      ) : null}
-                      {addressText || cityDistrictText ? (
-                        <p className="pt-0.5 text-[12px] leading-snug text-neutral-500">{[cityDistrictText, addressText].filter(Boolean).join(' · ')}</p>
-                      ) : isUuid ? (
-                        <p className="pt-0.5 text-[12px] text-neutral-400">暂未录入城市与地址</p>
-                      ) : null}
-                    </div>
-
-                    <HeaderTierCard
-                      storeTier={headerTierFallback}
-                      myTier={myTier}
-                      hasExistingReview={hasExistingReview}
-                      loading={storeTierLoading}
-                      storeEmptyLabel="暂无店评"
+            {restaurantHidden ? (
+              <HiddenReportedPlaceholder />
+            ) : (
+              <div
+                className={`relative flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm shadow-black/[0.04] ${
+                  emptyReviews
+                    ? 'border border-orange-100'
+                    : headerTierFallback
+                      ? ''
+                      : 'border-2 border-neutral-200/80'
+                }`}
+                style={
+                  emptyReviews
+                    ? undefined
+                    : headerTierFallback
+                      ? {
+                          borderColor: TIER_COLOR_VAR[headerTierFallback],
+                          borderWidth: '2px',
+                          borderBottomWidth: '4px',
+                        }
+                      : undefined
+                }
+              >
+                {isUuid && id ? (
+                  <div className="absolute right-3 top-3 z-[2]">
+                    <ContentReportMenuButton
+                      items={[
+                        {
+                          key: `restaurant:${id}`,
+                          label: '举报内容',
+                          dialogTitle: '店铺信息',
+                          targetType: 'restaurant',
+                          targetId: id,
+                          snapshot: {
+                            restaurant_id: id,
+                            display_name: title,
+                            category_text: categoryText,
+                            address_text: addressText,
+                            city_district_text: cityDistrictText,
+                            cover_image_url: coverUrl,
+                          },
+                        },
+                        ...(coverUrl
+                          ? [{
+                              key: `restaurant-image:${id}`,
+                              label: '举报图片',
+                              dialogTitle: '店铺封面图',
+                              targetType: 'restaurant_image' as const,
+                              targetId: id,
+                              snapshot: {
+                                restaurant_id: id,
+                                display_name: title,
+                                cover_image_url: coverUrl,
+                              },
+                            }]
+                          : []),
+                      ]}
                     />
                   </div>
-                </div>
-              </div>
+                ) : null}
+                <div className="flex gap-4 pr-8">
+                  <div
+                    className="relative mt-1 h-[6.5rem] w-[6.5rem] shrink-0 overflow-hidden rounded-xl bg-neutral-100"
+                    style={!emptyReviews && headerTierFallback ? {
+                      border: '1px solid',
+                      borderColor: TIER_COLOR_VAR[headerTierFallback],
+                      borderBottomWidth: '2px',
+                    } : undefined}
+                  >
+                    {coverUrl && !restaurantImageHidden ? (
+                      <img src={coverUrl} alt="" className="size-full object-cover" />
+                    ) : coverUrl && restaurantImageHidden ? (
+                      <div className="p-1">
+                        <HiddenReportedPlaceholder compact className="h-full px-2 py-4" />
+                      </div>
+                    ) : (
+                      <div className="flex size-full items-center justify-center bg-neutral-100 text-center text-xs font-semibold tracking-widest text-neutral-500">
+                        {(title.slice(0, 4).replace(/\s/g, '') || '门店').slice(0, 4)}
+                      </div>
+                    )}
+                  </div>
 
-            </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <h1 className="text-[16px] font-black leading-snug tracking-tight text-neutral-950">
+                          {title}
+                        </h1>
+                        {categoryText ? (
+                          <p className="mt-0.5 text-[12px] font-semibold text-neutral-700">{categoryText}</p>
+                        ) : null}
+                        {addressText || cityDistrictText ? (
+                          <p className="pt-0.5 text-[12px] leading-snug text-neutral-500">{[cityDistrictText, addressText].filter(Boolean).join(' · ')}</p>
+                        ) : isUuid ? (
+                          <p className="pt-0.5 text-[12px] text-neutral-400">暂未录入城市与地址</p>
+                        ) : null}
+                      </div>
+
+                      <HeaderTierCard
+                        storeTier={headerTierFallback}
+                        myTier={myTier}
+                        hasExistingReview={hasExistingReview}
+                        loading={storeTierLoading}
+                        storeEmptyLabel="暂无店评"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            )}
           </section>
         ) : null}
 
@@ -806,6 +857,7 @@ function StoreTab({
   emptyReviews?: boolean
 }) {
   const user = useAuthStore((s) => s.user)
+  const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
   const requireLogin = useRequireLogin()
   const voteMut = useStoreReviewVoteMutation(restaurantId)
   const storeSortRef = useRef<string[]>([])
@@ -960,6 +1012,7 @@ function StoreTab({
       {filteredSorted.map((r) => {
         const votingThis =
           voteMut.isPending && voteMut.variables?.practiceRecordId === r.id
+        const reviewHidden = Boolean(hiddenTargets.practice_record?.[r.id])
 
         function onTap(which: 'youpin' | 'yebang') {
           if (!requireLogin()) return
@@ -971,6 +1024,14 @@ function StoreTab({
 
         const guestBlocked = !user
         const busy = votingThis
+
+        if (reviewHidden) {
+          return (
+            <li key={r.id}>
+              <HiddenReportedPlaceholder compact />
+            </li>
+          )
+        }
 
         return (
           <li
@@ -1000,13 +1061,37 @@ function StoreTab({
                       <div className="min-w-0 flex-1 flex items-center gap-0.5">
                       <span className="truncate text-[13px] font-bold text-sky-700">{r.nickname}</span>
                       <UserTitleBadge name={r.titleName} rarity={r.titleRarity} />
-                  </div>
-                    <span
-                      className="shrink-0 text-[13px] font-black tracking-tight"
-                      style={{ color: tierInk(r.tier) }}
-                    >
-                      {TIER_LABEL[r.tier]}
-                    </span>
+                   </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <span
+                        className="text-[13px] font-black tracking-tight"
+                        style={{ color: tierInk(r.tier) }}
+                      >
+                        {TIER_LABEL[r.tier]}
+                      </span>
+                      <ContentReportMenuButton
+                        iconSize={14}
+                        buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
+                        items={[
+                          {
+                            key: `practice-record:${r.id}`,
+                            label: '举报评价',
+                            dialogTitle: '店铺评价',
+                            targetType: 'practice_record',
+                            targetId: r.id,
+                            snapshot: {
+                              practice_record_id: r.id,
+                              user_id: r.user_id,
+                              nickname: r.nickname,
+                              title_name: r.titleName,
+                              tier: r.tier,
+                              store_comment: r.store_comment,
+                              created_at: r.created_at,
+                            },
+                          },
+                        ]}
+                      />
+                    </div>
                   </div>
                   <p className="mt-1.5 text-[14px] leading-relaxed font-bold text-neutral-800 ">
                     {r.store_comment?.trim() || '（未填写店铺锐评）'}
@@ -1273,6 +1358,7 @@ function DishTabFeed({
 }) {
   const navigate = useNavigate()
   const requireLogin = useRequireLogin()
+  const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
   const voteMut = useDishReviewVoteMutation(restaurantId)
   const [sort, setSort] = useState<'hot' | 'score'>('hot')
   const dishSortRef = useRef<string[]>([])
@@ -1381,6 +1467,8 @@ function DishTabFeed({
               const r = entry.topReview
               const votingThis =
                 voteMut.isPending && voteMut.variables?.dishReviewId === r.id
+              const reviewHidden = Boolean(hiddenTargets.dish_review?.[r.id])
+              const imageHidden = Boolean(hiddenTargets.dish_review_image?.[r.id])
               function onTap(which: 'youpin' | 'yebang') {
                 if (!requireLogin()) return
                 const next = intentAfterVoteTap(r.my_vote, which)
@@ -1395,6 +1483,14 @@ function DishTabFeed({
                 </div>
               )
 
+              if (reviewHidden) {
+                return (
+                  <li key={entry.dishId}>
+                    <HiddenReportedPlaceholder compact />
+                  </li>
+                )
+              }
+
               return (
                 <li
                   key={entry.dishId}
@@ -1405,8 +1501,47 @@ function DishTabFeed({
                     <span className="min-w-0 truncate text-[13px] font-bold leading-tight text-orange-700">
                       {entry.dishName}
                     </span>
-                    <span className="ml-auto shrink-0 text-[10px] text-neutral-400">
-                      {dateFmt.format(new Date(r.created_at))}
+                    <span className="ml-auto flex shrink-0 items-center gap-1 text-[10px] text-neutral-400">
+                      <span>{dateFmt.format(new Date(r.created_at))}</span>
+                      <ContentReportMenuButton
+                        iconSize={14}
+                        buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
+                        items={[
+                          {
+                            key: `dish-review:${r.id}`,
+                            label: '举报评价',
+                            dialogTitle: '菜品评价',
+                            targetType: 'dish_review',
+                            targetId: r.id,
+                            snapshot: {
+                              dish_id: r.dish_id,
+                              dish_name: entry.dishName,
+                              reviewer_nickname: r.reviewer_nickname,
+                              created_at: r.created_at,
+                              score: r.score,
+                              comment: r.comment,
+                              image_url: r.image_url,
+                            },
+                          },
+                          ...(r.image_url
+                            ? [{
+                                key: `dish-review-image:${r.id}`,
+                                label: '举报图片',
+                                dialogTitle: '菜品图片',
+                                targetType: 'dish_review_image' as const,
+                                targetId: r.id,
+                                snapshot: {
+                                  dish_id: r.dish_id,
+                                  dish_name: entry.dishName,
+                                  reviewer_nickname: r.reviewer_nickname,
+                                  created_at: r.created_at,
+                                  image_url: r.image_url,
+                                  comment: r.comment,
+                                },
+                              }]
+                            : []),
+                        ]}
+                      />
                     </span>
                   </span>
                   <div className="flex items-start gap-3">
@@ -1417,9 +1552,13 @@ function DishTabFeed({
                         className="flex size-16 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-100"
                         aria-label={`查看菜品 ${entry.dishName}`}
                       >
-                        {dishImg}
-                      </Link>
-                    </div>
+                          {entry.coverUrl && imageHidden ? (
+                            <HiddenReportedPlaceholder compact className="h-full px-2 py-4" />
+                          ) : (
+                            dishImg
+                          )}
+                        </Link>
+                      </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-[14px] leading-6 font-bold text-neutral-800 ">
                         {r.comment?.trim() || '（未填写菜品锐评）'}

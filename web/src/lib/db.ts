@@ -18,6 +18,21 @@ export type RestaurantStatus = 'active' | 'pending' | 'merged' | 'hidden'
 export type DishStatus = 'active' | 'merged' | 'hidden'
 export type VoteType = 'youpin' | 'yebang'
 export type VoteTarget = 'store_review' | 'dish_review'
+export type ContentReportTarget =
+  | 'practice_record'
+  | 'dish_review'
+  | 'dish_review_image'
+  | 'restaurant'
+  | 'restaurant_image'
+export type ContentReportReason =
+  | 'abuse'
+  | 'porn'
+  | 'illegal'
+  | 'false_info'
+  | 'spam'
+  | 'infringement'
+  | 'other'
+export type ContentReportStatus = 'pending' | 'resolved_hidden' | 'resolved_ignore'
 export type AliasSource = 'user' | 'merge' | 'system'
 export type ImageTargetType = 'restaurant' | 'dish' | 'dish_review' | 'profile'
 export type ImageStatus = 'active' | 'hidden' | 'deleted'
@@ -323,5 +338,20 @@ export interface ImageAssetRow {
   target_type: ImageTargetType | null
   target_id: string | null
   status: ImageStatus
+  created_at: string
+}
+
+export interface ContentReportRow {
+  id: string
+  reporter_user_id: string
+  target_type: ContentReportTarget
+  target_id: string
+  reason_code: ContentReportReason
+  description: string | null
+  status: ContentReportStatus
+  snapshot: Record<string, unknown>
+  reviewed_at: string | null
+  reviewed_by: string | null
+  review_note: string | null
   created_at: string
 }
