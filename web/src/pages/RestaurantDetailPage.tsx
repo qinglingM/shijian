@@ -378,15 +378,14 @@ export function RestaurantDetailPage() {
           : null
 
     let willReplace = false
+    let hydratedPayload: Awaited<ReturnType<typeof fetchExistingPracticeHydration>> = null
     if (viewerId && targetRestaurantId) {
-      const { data, error } = await getSupabase()
-        .from('practice_records')
-        .select('id')
-        .eq('user_id', viewerId)
-        .eq('restaurant_id', targetRestaurantId)
-        .eq('is_active', true)
-        .maybeSingle()
-      if (!error) willReplace = !!data
+      try {
+        hydratedPayload = await fetchExistingPracticeHydration(viewerId, targetRestaurantId)
+        willReplace = hydratedPayload !== null
+      } catch (e) {
+        console.warn('[shijian] hydrate practice draft failed:', e)
+      }
     }
 
     if (practicePoi) {
@@ -415,14 +414,7 @@ export function RestaurantDetailPage() {
       return
     }
 
-    if (willReplace && viewerId && targetRestaurantId) {
-      try {
-        const payload = await fetchExistingPracticeHydration(viewerId, targetRestaurantId)
-        if (payload) applyHydratedDraft(payload)
-      } catch (e) {
-        console.warn('[shijian] hydrate practice draft failed:', e)
-      }
-    }
+    if (hydratedPayload) applyHydratedDraft(hydratedPayload)
 
     setReturnTo(location.pathname)
 

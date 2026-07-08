@@ -6,7 +6,7 @@ import {
 import type { Tier } from '@/lib/db'
 import { SUPABASE_URL } from '@/lib/env'
 import { AUTH_LAX_DEV, ensureLaxDevAuthenticated } from '@/lib/laxDevAuth'
-import { getSupabase } from '@/lib/supabase'
+import { getSupabase, translateStorageError } from '@/lib/supabase'
 import type { PoiCandidate } from '@/lib/poi'
 import type { DraftDishReview, ManualRestaurantInfo } from '@/stores/practiceDraft'
 
@@ -147,7 +147,7 @@ export async function submitPractice(
         serverText = error.message
       }
       throw new Error(
-        `submit-practice 返回 HTTP ${error.context.status}${serverText ? `：${serverText}` : ''}\n若为 401，说明当前 Supabase session 的 JWT 未被服务端接受，请重新登录；若为 404，多为函数未部署；若为 500，请看 Dashboard → Edge Functions → 日志里的 service_role / 运行时错误。`,
+        `submit-practice 返回 HTTP ${error.context.status}${serverText ? `：${translateStorageError(serverText)}` : ''}\n若为 401，说明当前 Supabase session 的 JWT 未被服务端接受，请重新登录；若为 404，多为函数未部署；若为 500，请看 Dashboard → Edge Functions → 日志里的 service_role / 运行时错误。`,
       )
     }
     throw error

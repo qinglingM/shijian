@@ -41,15 +41,17 @@ export function ContentReportDialog({
   }, [open])
 
   const safeTargets = targets.filter((item) => item.targetId)
-  if (!open || safeTargets.length === 0) return null
-  const currentTarget = safeTargets[Math.min(targetIndex, safeTargets.length - 1)]
+  const resolvedTargetType: ContentReportTarget = safeTargets[Math.min(targetIndex, safeTargets.length - 1)]?.targetType ?? 'dish_review'
 
-  const currentReasons = useMemo(() => getReportReasons(currentTarget.targetType), [currentTarget.targetType])
+  const currentReasons = useMemo(() => getReportReasons(resolvedTargetType), [resolvedTargetType])
 
   const selectedReason = useMemo(
     () => currentReasons.find((item) => item.code === reasonCode),
     [reasonCode, currentReasons],
   )
+
+  if (!open || safeTargets.length === 0) return null
+  const currentTarget = safeTargets[Math.min(targetIndex, safeTargets.length - 1)]
 
   async function handleSubmit() {
     const trimmed = description.trim()

@@ -5,7 +5,7 @@ import { Camera, ChevronDown } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { ImageCropDialog } from '@/components/image/ImageCropDialog'
 import type { ProfileRow } from '@/lib/db'
-import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
+import { getSupabase, isSupabaseConfigured, translateStorageError } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useProfilePrivacyMutation } from '@/features/profile/useProfilePrivacyMutation'
 import { useCities } from '@/features/city-picker/useCities'
@@ -352,7 +352,7 @@ function AvatarUpload({
       await queryClient.invalidateQueries({ queryKey: ['me-profile-edit'] })
       closeCropDialog()
     } catch (e) {
-      setError(e instanceof Error ? e.message : '上传失败，请重试')
+      setError(e instanceof Error ? translateStorageError(e.message) : '上传失败，请重试')
       setPreview(null)
       throw e
     } finally {

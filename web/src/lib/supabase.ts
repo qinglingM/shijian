@@ -32,4 +32,22 @@ export function getSupabase(): SupabaseClient {
   return _client
 }
 
+const STORAGE_ERROR_TRANSLATIONS: Record<string, string> = {
+  'quota': '存储空间不足，请检查 Supabase 项目配额或联系管理员',
+  'Quota': '存储空间不足，请检查 Supabase 项目配额或联系管理员',
+  'The resource already exists': '文件已存在',
+  'Payload too large': '文件大小超过限制（最大 5MB）',
+  'Bucket not found': '存储桶未找到，请检查配置',
+  'row-level security': '权限不足，无法上传',
+  'permission denied': '权限不足，无法上传',
+  'new row violates': '权限不足，无法上传',
+}
+
+export function translateStorageError(message: string): string {
+  for (const [key, chinese] of Object.entries(STORAGE_ERROR_TRANSLATIONS)) {
+    if (message.includes(key)) return chinese
+  }
+  return message
+}
+
 export { isSupabaseConfigured }
