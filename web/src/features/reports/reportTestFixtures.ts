@@ -2,7 +2,8 @@ import type { DishReviewFeedItem } from '@/features/dishes/useDishReviewsByDish'
 import type { RestaurantDishReviewItem } from '@/features/restaurants/useRestaurantDishReviews'
 import type { StoreReviewItem } from '@/features/restaurants/useStoreReviewsByRestaurant'
 
-const ENABLE_REPORT_TEST_FIXTURES = !import.meta.env.PROD
+const ENABLE_REPORT_TEST_FIXTURES =
+  !import.meta.env.PROD || import.meta.env.VITE_ENABLE_REPORT_TEST_FIXTURES === 'true'
 
 const STORE_FIXTURE_IDS = [
   '11111111-1111-4111-8111-111111111111',

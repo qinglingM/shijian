@@ -4,6 +4,7 @@ type ImportMetaEnv = {
   readonly VITE_SUPABASE_FUNCTIONS_URL?: string
   readonly VITE_POI_PROVIDER?: 'mock' | 'amap' | 'edge'
   readonly VITE_AMAP_KEY?: string
+  readonly VITE_ENABLE_REPORT_TEST_FIXTURES?: string
 }
 
 const env = import.meta.env as ImportMetaEnv
