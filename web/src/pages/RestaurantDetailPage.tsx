@@ -663,8 +663,10 @@ export function RestaurantDetailPage() {
         </div>
       </div>
       {showReportedToast ? (
-        <div className="fixed left-1/2 top-4 z-[100] -translate-x-1/2 rounded-2xl bg-green-50 px-5 py-3 text-sm font-medium text-green-800 shadow-lg ring-1 ring-green-200/60">
-          已收到举报并隐藏该内容
+        <div className="fixed left-1/2 top-0 z-[100] -translate-x-1/2 pt-[calc(var(--safe-top)+0.5rem)] px-5 pb-3 text-sm font-medium text-green-800">
+          <div className="rounded-2xl bg-green-50 px-5 py-3 shadow-lg ring-1 ring-green-200/60">
+            已收到举报并隐藏该内容
+          </div>
         </div>
       ) : null}
       <ContentReportDialog
