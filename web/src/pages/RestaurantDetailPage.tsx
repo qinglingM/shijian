@@ -32,7 +32,8 @@ import { useRestaurantBole, type RestaurantBoleView } from '@/features/restauran
 import { useRestaurantGuidanceSummary } from '@/features/restaurants/useRestaurantGuidanceSummary'
 import { useRestaurantMarkStatus } from '@/features/marks/useRestaurantMarkStatus'
 import { useInsertMarkMutation, useDeleteMarkMutation, useMarkPoiMutation } from '@/features/marks/useRestaurantMarkMutations'
-import { ContentReportMenuButton } from '@/features/reports/ContentReportMenuButton'
+import { ContentReportDialog } from '@/features/reports/ContentReportDialog'
+import { ContentReportMenuButton, type ContentReportMenuPayload } from '@/features/reports/ContentReportMenuButton'
 import { HiddenReportedPlaceholder } from '@/features/reports/HiddenReportedPlaceholder'
 import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, averageTierFloor, type Tier } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
@@ -91,6 +92,7 @@ export function RestaurantDetailPage() {
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
   const requireLogin = useRequireLogin()
   const navigate = useNavigate()
+  const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
   const setPoiDraft = usePracticeDraft((s) => s.setPoi)
   const setExistingRestaurantDraft = usePracticeDraft((s) => s.setExistingRestaurant)
   const setReturnTo = usePracticeDraft((s) => s.setReturnTo)
@@ -639,12 +641,14 @@ export function RestaurantDetailPage() {
               loading={Boolean(isUuid && storeRQ.isPending)}
               reviews={storeList}
               emptyReviews={emptyReviews}
+              onOpenReport={setReportPayload}
             />
           ) : (
             <DishTabFeed
               restaurantId={isUuid ? id ?? null : null}
               dishFeedPending={Boolean(isUuid && dishRQ.isPending)}
               dishReviews={dishFeed}
+              onOpenReport={setReportPayload}
             />
           )}
         </div>
@@ -659,6 +663,12 @@ export function RestaurantDetailPage() {
           </button>
         </div>
       </div>
+      <ContentReportDialog
+        open={!!reportPayload}
+        title={reportPayload?.title ?? '内容'}
+        onClose={() => setReportPayload(null)}
+        targets={reportPayload?.targets ?? []}
+      />
     </>
   )
 }
@@ -802,11 +812,13 @@ function StoreTab({
   loading,
   restaurantId,
   emptyReviews,
+  onOpenReport,
 }: {
   reviews: StoreReviewItem[]
   loading: boolean
   restaurantId: string | null
   emptyReviews?: boolean
+  onOpenReport: (payload: ContentReportMenuPayload) => void
 }) {
   const user = useAuthStore((s) => s.user)
   const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
@@ -1024,24 +1036,26 @@ function StoreTab({
                       <ContentReportMenuButton
                         iconSize={14}
                         buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
-                        items={[
-                          {
-                            key: `practice-record:${r.id}`,
-                            label: '举报评价',
-                            dialogTitle: '店铺评价',
-                            targetType: 'practice_record',
-                            targetId: r.id,
-                            snapshot: {
-                              practice_record_id: r.id,
-                              user_id: r.user_id,
-                              nickname: r.nickname,
-                              title_name: r.titleName,
-                              tier: r.tier,
-                              store_comment: r.store_comment,
-                              created_at: r.created_at,
+                        payload={{
+                          title: '店铺评价',
+                          targets: [
+                            {
+                              label: '评价内容',
+                              targetType: 'practice_record',
+                              targetId: r.id,
+                              snapshot: {
+                                practice_record_id: r.id,
+                                user_id: r.user_id,
+                                nickname: r.nickname,
+                                title_name: r.titleName,
+                                tier: r.tier,
+                                store_comment: r.store_comment,
+                                created_at: r.created_at,
+                              },
                             },
-                          },
-                        ]}
+                          ],
+                        }}
+                        onOpenReport={onOpenReport}
                       />
                     </div>
                   </div>
@@ -1303,10 +1317,12 @@ function DishTabFeed({
   restaurantId,
   dishReviews,
   dishFeedPending,
+  onOpenReport,
 }: {
   restaurantId: string | null
   dishReviews: RestaurantDishReviewItem[]
   dishFeedPending: boolean
+  onOpenReport: (payload: ContentReportMenuPayload) => void
 }) {
   const navigate = useNavigate()
   const requireLogin = useRequireLogin()
@@ -1458,41 +1474,41 @@ function DishTabFeed({
                       <ContentReportMenuButton
                         iconSize={14}
                         buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
-                        items={[
-                          {
-                            key: `dish-review:${r.id}`,
-                            label: '举报评价',
-                            dialogTitle: '菜品评价',
-                            targetType: 'dish_review',
-                            targetId: r.id,
-                            snapshot: {
-                              dish_id: r.dish_id,
-                              dish_name: entry.dishName,
-                              reviewer_nickname: r.reviewer_nickname,
-                              created_at: r.created_at,
-                              score: r.score,
-                              comment: r.comment,
-                              image_url: r.image_url,
+                        payload={{
+                          title: '菜品评价',
+                          targets: [
+                            {
+                              label: '评价内容',
+                              targetType: 'dish_review',
+                              targetId: r.id,
+                              snapshot: {
+                                dish_id: r.dish_id,
+                                dish_name: entry.dishName,
+                                reviewer_nickname: r.reviewer_nickname,
+                                created_at: r.created_at,
+                                score: r.score,
+                                comment: r.comment,
+                                image_url: r.image_url,
+                              },
                             },
-                          },
-                          ...(r.image_url
-                            ? [{
-                                key: `dish-review-image:${r.id}`,
-                                label: '举报图片',
-                                dialogTitle: '菜品图片',
-                                targetType: 'dish_review_image' as const,
-                                targetId: r.id,
-                                snapshot: {
-                                  dish_id: r.dish_id,
-                                  dish_name: entry.dishName,
-                                  reviewer_nickname: r.reviewer_nickname,
-                                  created_at: r.created_at,
-                                  image_url: r.image_url,
-                                  comment: r.comment,
-                                },
-                              }]
-                            : []),
-                        ]}
+                            ...(r.image_url
+                              ? [{
+                                  label: '图片',
+                                  targetType: 'dish_review_image' as const,
+                                  targetId: r.id,
+                                  snapshot: {
+                                    dish_id: r.dish_id,
+                                    dish_name: entry.dishName,
+                                    reviewer_nickname: r.reviewer_nickname,
+                                    created_at: r.created_at,
+                                    image_url: r.image_url,
+                                    comment: r.comment,
+                                  },
+                                }]
+                              : []),
+                          ],
+                        }}
+                        onOpenReport={onOpenReport}
                       />
                     </span>
                   </span>

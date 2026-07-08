@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { DishRow, Tier, VoteType } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
+import { withRestaurantDishReviewTestFixtures } from '@/features/reports/reportTestFixtures'
 import { useAuthStore } from '@/stores/authStore'
 
 export interface RestaurantDishReviewItem {
@@ -159,7 +160,7 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
         })
       }
 
-      return out
+      return withRestaurantDishReviewTestFixtures(out)
     },
   })
 }

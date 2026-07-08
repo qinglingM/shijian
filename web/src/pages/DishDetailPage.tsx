@@ -6,7 +6,8 @@ import { useDishReviewsByDish } from '@/features/dishes/useDishReviewsByDish'
 import { isRestaurantUuid, useRestaurant } from '@/features/restaurants/useRestaurant'
 import { useDishReviewVoteMutation } from '@/features/restaurants/useDishReviewVoteMutation'
 import { intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
-import { ContentReportMenuButton } from '@/features/reports/ContentReportMenuButton'
+import { ContentReportDialog } from '@/features/reports/ContentReportDialog'
+import { ContentReportMenuButton, type ContentReportMenuPayload } from '@/features/reports/ContentReportMenuButton'
 import { HiddenReportedPlaceholder } from '@/features/reports/HiddenReportedPlaceholder'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -38,6 +39,7 @@ export function DishDetailPage() {
   const voteMut = useDishReviewVoteMutation(dish?.restaurant_id ?? null)
 
   const [sort, setSort] = useState<'latest' | 'hot' | 'score'>('hot')
+  const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
 
   const sortedReviews = useMemo(() => {
     const list = reviewsQ.data ?? []
@@ -256,39 +258,39 @@ export function DishDetailPage() {
                         <ContentReportMenuButton
                           iconSize={14}
                           buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
-                          items={[
-                            {
-                              key: `dish-review:${rv.id}`,
-                              label: '举报评价',
-                              dialogTitle: '菜品评价',
-                              targetType: 'dish_review',
-                              targetId: rv.id,
-                              snapshot: {
-                                dish_id: id,
-                                reviewer_nickname: rv.reviewer_nickname,
-                                created_at: rv.created_at,
-                                score: rv.score,
-                                comment: rv.comment,
-                                image_url: rv.image_url,
+                          payload={{
+                            title: '菜品评价',
+                            targets: [
+                              {
+                                label: '评价内容',
+                                targetType: 'dish_review',
+                                targetId: rv.id,
+                                snapshot: {
+                                  dish_id: id,
+                                  reviewer_nickname: rv.reviewer_nickname,
+                                  created_at: rv.created_at,
+                                  score: rv.score,
+                                  comment: rv.comment,
+                                  image_url: rv.image_url,
+                                },
                               },
-                            },
-                            ...(reviewImageUrl
-                              ? [{
-                                  key: `dish-review-image:${rv.id}`,
-                                  label: '举报图片',
-                                  dialogTitle: '菜品图片',
-                                  targetType: 'dish_review_image' as const,
-                                  targetId: rv.id,
-                                  snapshot: {
-                                    dish_id: id,
-                                    reviewer_nickname: rv.reviewer_nickname,
-                                    created_at: rv.created_at,
-                                    image_url: rv.image_url,
-                                    comment: rv.comment,
-                                  },
-                                }]
-                              : []),
-                          ]}
+                              ...(reviewImageUrl
+                                ? [{
+                                    label: '图片',
+                                    targetType: 'dish_review_image' as const,
+                                    targetId: rv.id,
+                                    snapshot: {
+                                      dish_id: id,
+                                      reviewer_nickname: rv.reviewer_nickname,
+                                      created_at: rv.created_at,
+                                      image_url: rv.image_url,
+                                      comment: rv.comment,
+                                    },
+                                  }]
+                                : []),
+                            ],
+                          }}
+                          onOpenReport={setReportPayload}
                         />
                       </div>
                     </div>
@@ -363,6 +365,12 @@ export function DishDetailPage() {
           )}
         </section>
       </div>
+      <ContentReportDialog
+        open={!!reportPayload}
+        title={reportPayload?.title ?? '内容'}
+        onClose={() => setReportPayload(null)}
+        targets={reportPayload?.targets ?? []}
+      />
     </>
   )
 }

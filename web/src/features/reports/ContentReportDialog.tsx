@@ -1,25 +1,33 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { ContentReportReason } from '@/lib/db'
+import type { ContentReportReason, ContentReportTarget } from '@/lib/db'
 import { blurOnEnterDone, useDialogKeyboardAvoidance } from '@/features/keyboard/useDialogKeyboardAvoidance'
 import { REPORT_REASON_OPTIONS } from '@/features/reports/reportConstants'
 import { useSubmitContentReportMutation, type SubmitContentReportInput } from '@/features/reports/useSubmitContentReportMutation'
+
+interface ReportTargetOption {
+  label: string
+  targetType: ContentReportTarget
+  targetId: string
+  snapshot: Record<string, unknown>
+}
 
 export function ContentReportDialog({
   open,
   title,
   onClose,
-  report,
+  targets,
   onReported,
 }: {
   open: boolean
   title: string
   onClose: () => void
-  report: Omit<SubmitContentReportInput, 'reasonCode' | 'description'> | null
+  targets: ReportTargetOption[]
   onReported?: () => void
 }) {
   const mutation = useSubmitContentReportMutation()
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const [reasonCode, setReasonCode] = useState<ContentReportReason>('abuse')
+  const [targetIndex, setTargetIndex] = useState(0)
   const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
   const { bottomInset, keyboardOpen, onFieldFocus } = useDialogKeyboardAvoidance(dialogRef, open)
@@ -27,6 +35,7 @@ export function ContentReportDialog({
   useEffect(() => {
     if (!open) return
     setReasonCode('abuse')
+    setTargetIndex(0)
     setDescription('')
     setError(null)
   }, [open])
@@ -36,8 +45,9 @@ export function ContentReportDialog({
     [reasonCode],
   )
 
-  if (!open || !report) return null
-  const currentReport = report
+  const safeTargets = targets.filter((item) => item.targetId)
+  if (!open || safeTargets.length === 0) return null
+  const currentTarget = safeTargets[Math.min(targetIndex, safeTargets.length - 1)]
 
   async function handleSubmit() {
     const trimmed = description.trim()
@@ -49,9 +59,9 @@ export function ContentReportDialog({
     setError(null)
     try {
       const payload: SubmitContentReportInput = {
-        targetType: currentReport.targetType,
-        targetId: currentReport.targetId,
-        snapshot: currentReport.snapshot,
+        targetType: currentTarget.targetType,
+        targetId: currentTarget.targetId,
+        snapshot: currentTarget.snapshot,
         reasonCode,
         description: trimmed,
       }
@@ -78,6 +88,24 @@ export function ContentReportDialog({
         <div className="w-full max-w-sm rounded-3xl bg-white px-5 py-5 shadow-xl" style={{ maxHeight: 'calc(100dvh - var(--safe-top) - 2rem)' }}>
           <h2 className="text-base font-semibold text-neutral-900">举报{title}</h2>
           <p className="mt-1 text-xs leading-5 text-neutral-500">提交后，该内容会先对你折叠隐藏，平台会收到举报并进行处理。</p>
+
+          {safeTargets.length > 1 ? (
+            <div className="mt-4">
+              <label className="text-xs font-medium text-neutral-700">举报对象</label>
+              <div className="mt-1.5 grid grid-cols-2 gap-2">
+                {safeTargets.map((item, index) => (
+                  <button
+                    key={`${item.targetType}:${item.targetId}`}
+                    type="button"
+                    onClick={() => setTargetIndex(index)}
+                    className={`rounded-2xl border px-3 py-2 text-sm transition-colors ${index === targetIndex ? 'border-orange-300 bg-orange-50 text-orange-900' : 'border-neutral-200 text-neutral-700'}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-4 space-y-2">
             {REPORT_REASON_OPTIONS.map((item) => (

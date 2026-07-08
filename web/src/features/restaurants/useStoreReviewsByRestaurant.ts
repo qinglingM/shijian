@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { Tier } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
+import { withStoreReviewTestFixtures } from '@/features/reports/reportTestFixtures'
 import { useAuthStore } from '@/stores/authStore'
 import type { VoteType } from '@/lib/db'
 
@@ -107,7 +108,7 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
         if (viewerId && v.user_id === viewerId) mineVote.set(v.target_id, v.vote_type)
       }
 
-      return prs.map((r) => {
+      const items = prs.map((r) => {
         const profile = profileMap.get(r.user_id) ?? null
         return {
           id: r.id,
@@ -124,6 +125,7 @@ export function useStoreReviewsByRestaurant(restaurantId: string | null) {
           my_vote: mineVote.get(r.id) ?? null,
         }
       })
+      return withStoreReviewTestFixtures(items)
     },
   })
 }
