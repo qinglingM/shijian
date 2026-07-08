@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ContentReportReason } from '@/lib/db'
+import { blurOnEnterDone, useDialogKeyboardAvoidance } from '@/features/keyboard/useDialogKeyboardAvoidance'
 import { REPORT_REASON_OPTIONS } from '@/features/reports/reportConstants'
 import { useSubmitContentReportMutation, type SubmitContentReportInput } from '@/features/reports/useSubmitContentReportMutation'
 
@@ -17,9 +18,11 @@ export function ContentReportDialog({
   onReported?: () => void
 }) {
   const mutation = useSubmitContentReportMutation()
+  const dialogRef = useRef<HTMLDivElement | null>(null)
   const [reasonCode, setReasonCode] = useState<ContentReportReason>('abuse')
   const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const { bottomInset, keyboardOpen, onFieldFocus } = useDialogKeyboardAvoidance(dialogRef, open)
 
   useEffect(() => {
     if (!open) return
@@ -65,8 +68,14 @@ export function ContentReportDialog({
   return (
     <>
       <button type="button" className="fixed inset-0 z-[70] bg-black/40" aria-label="关闭举报弹窗" onClick={onClose} />
-      <div className="fixed inset-0 z-[71] flex items-center justify-center p-4">
-        <div className="w-full max-w-sm rounded-3xl bg-white px-5 py-5 shadow-xl">
+      <div
+        ref={(node) => {
+          dialogRef.current = node
+        }}
+        className={`fixed inset-0 z-[71] flex justify-center overflow-y-auto px-4 pt-4 ${keyboardOpen ? 'items-end' : 'items-center'}`}
+        style={{ paddingBottom: `calc(1rem + ${bottomInset}px)` }}
+      >
+        <div className="w-full max-w-sm rounded-3xl bg-white px-5 py-5 shadow-xl" style={{ maxHeight: 'calc(100dvh - var(--safe-top) - 2rem)' }}>
           <h2 className="text-base font-semibold text-neutral-900">举报{title}</h2>
           <p className="mt-1 text-xs leading-5 text-neutral-500">提交后，该内容会先对你折叠隐藏，平台会收到举报并进行处理。</p>
 
@@ -97,8 +106,11 @@ export function ContentReportDialog({
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onFocus={onFieldFocus}
+              onKeyDown={blurOnEnterDone}
               rows={4}
               placeholder="补充你看到的问题，方便平台判断"
+              enterKeyHint="done"
               className="mt-1.5 w-full resize-none rounded-2xl border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-orange-300"
             />
           </div>

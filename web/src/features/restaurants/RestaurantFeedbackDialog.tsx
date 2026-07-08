@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
+import { blurOnEnterDone, useDialogKeyboardAvoidance } from '@/features/keyboard/useDialogKeyboardAvoidance'
 
 type FeedbackType = 'error_info' | 'duplicate'
 
@@ -25,6 +26,7 @@ export function RestaurantFeedbackDialog({ open, onClose, restaurantId, restaura
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
+  const { bottomInset, keyboardOpen, onFieldFocus } = useDialogKeyboardAvoidance(dialogRef, open)
 
   useEffect(() => {
     if (!open) return
@@ -82,8 +84,16 @@ export function RestaurantFeedbackDialog({ open, onClose, restaurantId, restaura
   return (
     <>
       <button type="button" aria-label="关闭" className="fixed inset-0 z-40 cursor-default bg-black/40" onClick={onClose} />
-      <div ref={dialogRef} role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none" onTouchStart={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
-        <div className="pointer-events-auto w-full max-w-sm rounded-2xl bg-white shadow-xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        className={`fixed inset-0 z-50 flex justify-center overflow-y-auto px-4 pt-6 pointer-events-none ${keyboardOpen ? 'items-end' : 'items-center'}`}
+        style={{ paddingBottom: `calc(1.5rem + ${bottomInset}px)` }}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+      >
+        <div className="pointer-events-auto w-full max-w-sm rounded-2xl bg-white shadow-xl" style={{ maxHeight: 'calc(100dvh - var(--safe-top) - 3rem)' }}>
           <div className="px-5 pt-5 pb-2">
             <h2 className="text-[17px] font-semibold text-neutral-900">反馈</h2>
             <p className="mt-1 text-[12px] text-neutral-500">店铺：{restaurantName}</p>
@@ -110,13 +120,13 @@ export function RestaurantFeedbackDialog({ open, onClose, restaurantId, restaura
                 </div>
                 <div>
                   <label className="text-xs font-medium text-neutral-700">问题描述</label>
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="请详细描述你遇到的问题…"
+                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} onFocus={onFieldFocus} onKeyDown={blurOnEnterDone} enterKeyHint="done" placeholder="请详细描述你遇到的问题…"
                     className="mt-1.5 w-full rounded-xl border border-neutral-200 px-3 py-2 text-xs outline-none placeholder:text-neutral-400 focus:border-orange-300 min-h-[80px] resize-none"
                   />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-neutral-700">联系方式 <span className="text-neutral-400">（选填）</span></label>
-                  <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="手机号或微信，方便我们联系你"
+                  <input value={contact} onChange={(e) => setContact(e.target.value)} onFocus={onFieldFocus} onKeyDown={blurOnEnterDone} enterKeyHint="done" placeholder="手机号或微信，方便我们联系你"
                     className="mt-1.5 w-full rounded-xl border border-neutral-200 px-3 py-2 text-xs outline-none placeholder:text-neutral-400 focus:border-orange-300"
                   />
                 </div>
