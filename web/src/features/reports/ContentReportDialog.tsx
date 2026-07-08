@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ContentReportReason, ContentReportTarget } from '@/lib/db'
 import { blurOnEnterDone, useDialogKeyboardAvoidance } from '@/features/keyboard/useDialogKeyboardAvoidance'
-import { REPORT_REASON_OPTIONS } from '@/features/reports/reportConstants'
+import { getReportReasons } from '@/features/reports/reportConstants'
 import { useSubmitContentReportMutation, type SubmitContentReportInput } from '@/features/reports/useSubmitContentReportMutation'
 
 interface ReportTargetOption {
@@ -40,14 +40,16 @@ export function ContentReportDialog({
     setError(null)
   }, [open])
 
-  const selectedReason = useMemo(
-    () => REPORT_REASON_OPTIONS.find((item) => item.code === reasonCode),
-    [reasonCode],
-  )
-
   const safeTargets = targets.filter((item) => item.targetId)
   if (!open || safeTargets.length === 0) return null
   const currentTarget = safeTargets[Math.min(targetIndex, safeTargets.length - 1)]
+
+  const currentReasons = useMemo(() => getReportReasons(currentTarget.targetType), [currentTarget.targetType])
+
+  const selectedReason = useMemo(
+    () => currentReasons.find((item) => item.code === reasonCode),
+    [reasonCode, currentReasons],
+  )
 
   async function handleSubmit() {
     const trimmed = description.trim()
@@ -108,7 +110,7 @@ export function ContentReportDialog({
           ) : null}
 
           <div className="mt-4 space-y-2">
-            {REPORT_REASON_OPTIONS.map((item) => (
+            {currentReasons.map((item) => (
               <label
                 key={item.code}
                 className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-3 text-sm transition-colors ${reasonCode === item.code ? 'border-orange-300 bg-orange-50 text-orange-900' : 'border-neutral-200 text-neutral-700'}`}

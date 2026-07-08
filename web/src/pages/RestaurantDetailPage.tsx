@@ -34,7 +34,6 @@ import { useRestaurantMarkStatus } from '@/features/marks/useRestaurantMarkStatu
 import { useInsertMarkMutation, useDeleteMarkMutation, useMarkPoiMutation } from '@/features/marks/useRestaurantMarkMutations'
 import { ContentReportDialog } from '@/features/reports/ContentReportDialog'
 import { ContentReportMenuButton, type ContentReportMenuPayload } from '@/features/reports/ContentReportMenuButton'
-import { HiddenReportedPlaceholder } from '@/features/reports/HiddenReportedPlaceholder'
 import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, averageTierFloor, type Tier } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -93,6 +92,14 @@ export function RestaurantDetailPage() {
   const requireLogin = useRequireLogin()
   const navigate = useNavigate()
   const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
+  const [showReportedToast, setShowReportedToast] = useState(false)
+
+  useEffect(() => {
+    if (!showReportedToast) return
+    const timer = setTimeout(() => setShowReportedToast(false), 3000)
+    return () => clearTimeout(timer)
+  }, [showReportedToast])
+
   const setPoiDraft = usePracticeDraft((s) => s.setPoi)
   const setExistingRestaurantDraft = usePracticeDraft((s) => s.setExistingRestaurant)
   const setReturnTo = usePracticeDraft((s) => s.setReturnTo)
@@ -663,11 +670,17 @@ export function RestaurantDetailPage() {
           </button>
         </div>
       </div>
+      {showReportedToast ? (
+        <div className="fixed left-1/2 top-4 z-[100] -translate-x-1/2 rounded-2xl bg-green-50 px-5 py-3 text-sm font-medium text-green-800 shadow-lg ring-1 ring-green-200/60">
+          已收到举报并隐藏该内容
+        </div>
+      ) : null}
       <ContentReportDialog
         open={!!reportPayload}
         title={reportPayload?.title ?? '内容'}
         onClose={() => setReportPayload(null)}
         targets={reportPayload?.targets ?? []}
+        onReported={() => setShowReportedToast(true)}
       />
     </>
   )
@@ -789,12 +802,6 @@ function filterAndSortStoreReviews(
   return sorted
 }
 
-function shouldRenderCollapsedHiddenPlaceholder(hiddenFlags: boolean[], index: number) {
-  if (!hiddenFlags[index]) return false
-  if (index === 0) return true
-  return !hiddenFlags[index - 1]
-}
-
 function formatBoleText(bole: RestaurantBoleView) {
   const nickname = bole.nickname?.trim() || '食鉴用户'
   if (bole.created_from === 'manual') {
@@ -854,10 +861,6 @@ function StoreTab({
     const order = new Map(storeSortRef.current.map((id, i) => [id, i]))
     return [...sorted].sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999))
   }, [displayReviews, tierFilter, sortMode, newestFirst, compoundHighNetFirst])
-  const hiddenReviewFlags = useMemo(
-    () => filteredSorted.map((r) => Boolean(hiddenTargets.practice_record?.[r.id])),
-    [filteredSorted, hiddenTargets.practice_record],
-  )
 
   if (loading) {
     return <p className="py-14 text-center text-sm text-neutral-400">载入店铺匿名评价…</p>
@@ -983,7 +986,7 @@ function StoreTab({
       ) : null}
 
       <ul className="space-y-3">
-      {filteredSorted.map((r, index) => {
+      {filteredSorted.map((r) => {
         const votingThis =
           voteMut.isPending && voteMut.variables?.practiceRecordId === r.id
         const reviewHidden = Boolean(hiddenTargets.practice_record?.[r.id])
@@ -999,16 +1002,7 @@ function StoreTab({
         const guestBlocked = !user
         const busy = votingThis
 
-        if (reviewHidden) {
-          if (!shouldRenderCollapsedHiddenPlaceholder(hiddenReviewFlags, index)) {
-            return null
-          }
-          return (
-            <li key={r.id}>
-              <HiddenReportedPlaceholder compact />
-            </li>
-          )
-        }
+        if (reviewHidden) return null
 
         return (
           <li
@@ -1380,7 +1374,7 @@ function DishTabFeed({
       const totalYoupin = reviews.reduce((s, r) => s + r.youpin_count, 0)
 
       // Lock topReview by dishId: only pick on first data load, stable across votes
-      const visibleReviews = reviews.filter((r) => !hiddenTargets.dish_review?.[r.id])
+      const visibleReviews = reviews.filter((r) => !hiddenTargets.dish_review?.[r.id] && !hiddenTargets.dish_review_image?.[r.id])
       const reviewPool = visibleReviews.length > 0 ? visibleReviews : reviews
       const lockedId = topReviewRef.current[dishId]
       const lockedReview = lockedId ? reviewPool.find(r => r.id === lockedId) : null
@@ -1449,10 +1443,10 @@ function DishTabFeed({
           <ul className="mt-3 space-y-3">
             {groupedDisplays.map((entry) => {
               const r = entry.topReview
+              if (entry.allReviewsHidden) return null
+
               const votingThis =
                 voteMut.isPending && voteMut.variables?.dishReviewId === r.id
-              const reviewHidden = entry.allReviewsHidden
-              const imageHidden = Boolean(hiddenTargets.dish_review_image?.[r.id])
               function onTap(which: 'youpin' | 'yebang') {
                 if (!requireLogin()) return
                 const next = intentAfterVoteTap(r.my_vote, which)
@@ -1528,21 +1522,13 @@ function DishTabFeed({
                         className="flex size-16 items-center justify-center overflow-hidden rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-100"
                         aria-label={`查看菜品 ${entry.dishName}`}
                       >
-                          {entry.coverUrl && imageHidden ? (
-                            <HiddenReportedPlaceholder compact className="h-full px-2 py-4" />
-                          ) : (
-                            dishImg
-                          )}
-                        </Link>
-                      </div>
+                        {dishImg}
+                      </Link>
+                    </div>
                     <div className="min-w-0 flex-1">
-                      {reviewHidden ? (
-                        <HiddenReportedPlaceholder compact className="py-5" />
-                      ) : (
-                        <p className="text-[14px] leading-6 font-bold text-neutral-800 ">
-                          {r.comment?.trim() || '（未填写菜品锐评）'}
-                        </p>
-                      )}
+                      <p className="text-[14px] leading-6 font-bold text-neutral-800 ">
+                        {r.comment?.trim() || '（未填写菜品锐评）'}
+                      </p>
                       <div className="mt-1">
                         <span className="text-[11px] font-semibold text-sky-700">
                           @{r.reviewer_nickname}<UserTitleBadge name={r.titleName} rarity={r.titleRarity} />

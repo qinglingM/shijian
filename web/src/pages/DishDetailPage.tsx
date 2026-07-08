@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { useDishDetail } from '@/features/dishes/useDishDetail'
@@ -8,7 +8,6 @@ import { useDishReviewVoteMutation } from '@/features/restaurants/useDishReviewV
 import { intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
 import { ContentReportDialog } from '@/features/reports/ContentReportDialog'
 import { ContentReportMenuButton, type ContentReportMenuPayload } from '@/features/reports/ContentReportMenuButton'
-import { HiddenReportedPlaceholder } from '@/features/reports/HiddenReportedPlaceholder'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useReportedContentStore } from '@/stores/reportedContentStore'
@@ -22,12 +21,6 @@ function isLikelyReviewImage(url: string | null) {
   const u = url.toLowerCase()
   const avatarHints = ['avatar', 'profile', 'user', 'head', 'portrait']
   return !avatarHints.some((k) => u.includes(k))
-}
-
-function shouldRenderCollapsedHiddenPlaceholder(hiddenFlags: boolean[], index: number) {
-  if (!hiddenFlags[index]) return false
-  if (index === 0) return true
-  return !hiddenFlags[index - 1]
 }
 
 export function DishDetailPage() {
@@ -46,6 +39,13 @@ export function DishDetailPage() {
 
   const [sort, setSort] = useState<'latest' | 'hot' | 'score'>('hot')
   const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
+  const [showReportedToast, setShowReportedToast] = useState(false)
+
+  useEffect(() => {
+    if (!showReportedToast) return
+    const timer = setTimeout(() => setShowReportedToast(false), 3000)
+    return () => clearTimeout(timer)
+  }, [showReportedToast])
 
   const sortedReviews = useMemo(() => {
     const list = reviewsQ.data ?? []
@@ -80,11 +80,6 @@ export function DishDetailPage() {
       )
     return withImages[0]?.image_url ?? dish?.cover_image_url ?? null
   }, [reviewsQ.data, dish?.cover_image_url])
-
-  const hiddenReviewFlags = useMemo(
-    () => sortedReviews.map((rv) => Boolean(hiddenTargets.dish_review?.[rv.id])),
-    [hiddenTargets.dish_review, sortedReviews],
-  )
 
   if (!id) return <Navigate to="/" replace />
 
@@ -230,11 +225,10 @@ export function DishDetailPage() {
                 <ReviewSortBar value={sort} onChange={setSort} />
               </div>
               <ul className="space-y-3">
-                {sortedReviews.map((rv, index) => {
+                {sortedReviews.map((rv) => {
                 const votingThis =
                   voteMut.isPending && voteMut.variables?.dishReviewId === rv.id
-                const reviewHidden = Boolean(hiddenTargets.dish_review?.[rv.id])
-                const imageHidden = Boolean(hiddenTargets.dish_review_image?.[rv.id])
+                const reviewHidden = Boolean(hiddenTargets.dish_review?.[rv.id] || hiddenTargets.dish_review_image?.[rv.id])
                 function onTap(which: 'youpin' | 'yebang') {
                   if (!requireLogin()) return
                   const next = intentAfterVoteTap(rv.my_vote, which)
@@ -245,16 +239,7 @@ export function DishDetailPage() {
                   ? rv.image_url
                   : null
 
-                if (reviewHidden) {
-                  if (!shouldRenderCollapsedHiddenPlaceholder(hiddenReviewFlags, index)) {
-                    return null
-                  }
-                  return (
-                    <li key={rv.id}>
-                      <HiddenReportedPlaceholder compact />
-                    </li>
-                  )
-                }
+                if (reviewHidden) return null
 
                 return (
                   <li
@@ -312,16 +297,12 @@ export function DishDetailPage() {
                       <p className="min-w-0 flex-1 text-[14px] leading-6 font-bold text-neutral-800 [&::before]:content-['“'] [&::after]:content-['”']">
                         {rv.comment?.trim() || '（未填写菜品锐评）'}
                       </p>
-                      {reviewImageUrl && !imageHidden ? (
+                      {reviewImageUrl ? (
                         <img
                           src={reviewImageUrl}
                           alt=""
                           className="size-16 shrink-0 rounded-xl object-cover ring-1 ring-neutral-200/80"
                         />
-                      ) : reviewImageUrl && imageHidden ? (
-                        <div className="w-16 shrink-0">
-                          <HiddenReportedPlaceholder compact className="px-2 py-3" />
-                        </div>
                       ) : null}
                       <span className="shrink-0 pt-0.5">
                         <span className="text-[28px] font-black italic leading-none text-sky-600">
@@ -379,11 +360,17 @@ export function DishDetailPage() {
           )}
         </section>
       </div>
+      {showReportedToast ? (
+        <div className="fixed left-1/2 top-4 z-[100] -translate-x-1/2 rounded-2xl bg-green-50 px-5 py-3 text-sm font-medium text-green-800 shadow-lg ring-1 ring-green-200/60">
+          已收到举报并隐藏该内容
+        </div>
+      ) : null}
       <ContentReportDialog
         open={!!reportPayload}
         title={reportPayload?.title ?? '内容'}
         onClose={() => setReportPayload(null)}
         targets={reportPayload?.targets ?? []}
+        onReported={() => setShowReportedToast(true)}
       />
     </>
   )
