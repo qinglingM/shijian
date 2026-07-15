@@ -8,6 +8,7 @@ import { useDishReviewVoteMutation } from '@/features/restaurants/useDishReviewV
 import { intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
 import { ContentReportDialog } from '@/features/reports/ContentReportDialog'
 import { ContentReportMenuButton, type ContentReportMenuPayload } from '@/features/reports/ContentReportMenuButton'
+import { filterVisibleDishReviews, isDishReviewHidden } from '@/features/reports/reportedContentSelectors'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { useReportedContentStore } from '@/stores/reportedContentStore'
@@ -41,6 +42,11 @@ export function DishDetailPage() {
   const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
   const [showReportedToast, setShowReportedToast] = useState(false)
 
+  const visibleReviews = useMemo(
+    () => filterVisibleDishReviews(reviewsQ.data ?? [], hiddenTargets),
+    [hiddenTargets, reviewsQ.data],
+  )
+
   useEffect(() => {
     if (!showReportedToast) return
     const timer = setTimeout(() => setShowReportedToast(false), 3000)
@@ -48,7 +54,7 @@ export function DishDetailPage() {
   }, [showReportedToast])
 
   const sortedReviews = useMemo(() => {
-    const list = reviewsQ.data ?? []
+    const list = visibleReviews
     const copy = [...list]
     if (sort === 'latest') {
       copy.sort((a, b) => b.created_at.localeCompare(a.created_at))
@@ -66,10 +72,10 @@ export function DishDetailPage() {
       })
     }
     return copy
-  }, [reviewsQ.data, sort])
+  }, [sort, visibleReviews])
 
   const bestCoverUrl = useMemo(() => {
-    const reviews = reviewsQ.data
+    const reviews = visibleReviews
     if (!reviews || reviews.length === 0) return dish?.cover_image_url ?? null
     const withImages = reviews
       .filter((r) => r.image_url && isLikelyReviewImage(r.image_url))
@@ -79,7 +85,7 @@ export function DishDetailPage() {
           (a.youpin_count - a.yebang_count),
       )
     return withImages[0]?.image_url ?? dish?.cover_image_url ?? null
-  }, [reviewsQ.data, dish?.cover_image_url])
+  }, [visibleReviews, dish?.cover_image_url])
 
   if (!id) return <Navigate to="/" replace />
 
@@ -145,10 +151,18 @@ export function DishDetailPage() {
   if (!dish) return null
 
   const rr = restaurantQ.data
+  const scoredReviews = visibleReviews.filter((review) => review.score !== null)
   const avgText =
-    dish.avg_score !== null && dish.avg_score !== undefined
-      ? Number(dish.avg_score).toFixed(1)
-      : null
+    scoredReviews.length > 0
+      ? Number(
+          scoredReviews.reduce((sum, review) => sum + (review.score ?? 0), 0)
+          / scoredReviews.length,
+        ).toFixed(1)
+      : dish.avg_score !== null && dish.avg_score !== undefined
+        ? Number(dish.avg_score).toFixed(1)
+        : null
+  const topComment = visibleReviews.find((review) => review.comment?.trim())?.comment?.trim() ?? dish.top_comment
+  const reviewCount = visibleReviews.length
 
   return (
     <>
@@ -175,9 +189,9 @@ export function DishDetailPage() {
                 <h1 className="text-lg font-black leading-snug tracking-tight text-neutral-950">
                   {dish.name}
                 </h1>
-                {dish.top_comment ? (
+                {topComment ? (
                   <p className="mt-2 text-[13px] leading-relaxed text-neutral-600 line-clamp-2">
-                    {dish.top_comment}
+                    {topComment}
                   </p>
                 ) : null}
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-neutral-500">
@@ -206,7 +220,7 @@ export function DishDetailPage() {
                   <span className="text-sm font-semibold text-neutral-400">暂无均分</span>
                 )}
                 <p className="mt-1 text-[11px] text-neutral-400">
-                  {dish.review_count} 条收录
+                  {reviewCount} 条收录
                 </p>
               </div>
             </div>
@@ -216,7 +230,7 @@ export function DishDetailPage() {
         <section className="mt-8 px-4">
           {reviewsQ.isPending ? (
             <p className="py-10 text-center text-sm text-neutral-400">载入评价列表…</p>
-          ) : reviewsQ.data && reviewsQ.data.length > 0 ? (
+          ) : visibleReviews.length > 0 ? (
             <>
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-xs font-bold tracking-[0.2em] text-neutral-400 uppercase">
@@ -228,7 +242,7 @@ export function DishDetailPage() {
                 {sortedReviews.map((rv) => {
                 const votingThis =
                   voteMut.isPending && voteMut.variables?.dishReviewId === rv.id
-                const reviewHidden = Boolean(hiddenTargets.dish_review?.[rv.id] || hiddenTargets.dish_review_image?.[rv.id])
+                const reviewHidden = isDishReviewHidden(hiddenTargets, rv.id)
                 function onTap(which: 'youpin' | 'yebang') {
                   if (!requireLogin()) return
                   const next = intentAfterVoteTap(rv.my_vote, which)

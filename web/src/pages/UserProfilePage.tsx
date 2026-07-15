@@ -9,6 +9,8 @@ import { useFollowStatus } from '@/features/social/useFollowStatus'
 import { useCityStore } from '@/features/city-picker/cityStore'
 import { TIER_LABEL, type Tier } from '@/lib/db'
 import { useRequireLogin } from '@/features/auth/useRequireLogin'
+import { useReportedContentStore } from '@/stores/reportedContentStore'
+import { filterVisiblePracticeRecords } from '@/features/reports/reportedContentSelectors'
 
 interface ProfileSummary {
   id: string
@@ -54,6 +56,7 @@ export function UserProfilePage() {
   const params = useParams()
   const raw = params.slug ?? null
   const cityId = useCityStore((s) => s.cityId)
+  const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
   const [tierFilter, setTierFilter] = useState<Tier | 'all'>('all')
   const [cityFilter, setCityFilter] = useState<string | null>(null)
 
@@ -113,7 +116,10 @@ export function UserProfilePage() {
   })
 
   const profile = profileQ.data
-  const reviewItems = reviewsQ.data ?? []
+  const reviewItems = useMemo(
+    () => filterVisiblePracticeRecords((reviewsQ.data ?? []).map((item) => ({ ...item, id: item.practice_id })), hiddenTargets).map(({ id: _id, ...item }) => item),
+    [hiddenTargets, reviewsQ.data],
+  )
   const countsText = useMemo(() => {
     return `${followQ.data?.followers ?? 0} 粉丝 · ${followQ.data?.followingCount ?? 0} 关注`
   }, [followQ.data?.followers, followQ.data?.followingCount])

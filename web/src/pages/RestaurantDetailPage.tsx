@@ -34,6 +34,11 @@ import { useRestaurantMarkStatus } from '@/features/marks/useRestaurantMarkStatu
 import { useInsertMarkMutation, useDeleteMarkMutation, useMarkPoiMutation } from '@/features/marks/useRestaurantMarkMutations'
 import { ContentReportDialog } from '@/features/reports/ContentReportDialog'
 import { ContentReportMenuButton, type ContentReportMenuPayload } from '@/features/reports/ContentReportMenuButton'
+import {
+  filterVisibleDishReviews,
+  filterVisiblePracticeRecords,
+  isPracticeRecordHidden,
+} from '@/features/reports/reportedContentSelectors'
 import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, averageTierFloor, type Tier } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
@@ -91,6 +96,7 @@ export function RestaurantDetailPage() {
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
   const requireLogin = useRequireLogin()
   const navigate = useNavigate()
+  const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
   const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
   const [showReportedToast, setShowReportedToast] = useState(false)
 
@@ -145,7 +151,15 @@ export function RestaurantDetailPage() {
   const detailKnown = Boolean(isUuid && restaurantQ.data)
   const emptyReviews = isPoiRoute
 
-  const storeList = (storeRQ.data ?? []).filter(Boolean)
+  const storeList = useMemo(
+    () => filterVisiblePracticeRecords((storeRQ.data ?? []).filter(Boolean), hiddenTargets),
+    [hiddenTargets, storeRQ.data],
+  )
+
+  const dishFeed = useMemo<RestaurantDishReviewItem[]>(
+    () => filterVisibleDishReviews(dishRQ.data ?? [], hiddenTargets),
+    [dishRQ.data, hiddenTargets],
+  )
 
   const bestReview = useMemo(() => {
     if (!storeList.length) return null
@@ -169,7 +183,7 @@ export function RestaurantDetailPage() {
       ? poi.cover_image_url ?? null
       : null;
       
-    const dishFeedRaw = dishRQ.data ?? [];
+    const dishFeedRaw = dishFeed;
 
     let bestUrl = rawCoverUrl;
 
@@ -196,7 +210,7 @@ export function RestaurantDetailPage() {
     }
     
     return bestUrl;
-  }, [isUuid, restaurantQ.data, poi, dishRQ.data])
+  }, [dishFeed, isUuid, restaurantQ.data, poi])
 
   const awaitingBackend =
     isUuid &&
@@ -236,8 +250,6 @@ export function RestaurantDetailPage() {
     categoryText = poi.display_label?.trim() || null
   }
 
-
-  const dishFeed: RestaurantDishReviewItem[] = dishRQ.data ?? []
 
   const fallbackPoi =
     !poi && isPoiRoute && routePoiSource && poiId
@@ -983,7 +995,7 @@ function StoreTab({
       {filteredSorted.map((r) => {
         const votingThis =
           voteMut.isPending && voteMut.variables?.practiceRecordId === r.id
-        const reviewHidden = Boolean(hiddenTargets.practice_record?.[r.id])
+        const reviewHidden = isPracticeRecordHidden(hiddenTargets, r.id)
 
         function onTap(which: 'youpin' | 'yebang') {
           if (!requireLogin()) return
@@ -1368,7 +1380,7 @@ function DishTabFeed({
       const totalYoupin = reviews.reduce((s, r) => s + r.youpin_count, 0)
 
       // Lock topReview by dishId: only pick on first data load, stable across votes
-      const visibleReviews = reviews.filter((r) => !hiddenTargets.dish_review?.[r.id] && !hiddenTargets.dish_review_image?.[r.id])
+      const visibleReviews = filterVisibleDishReviews(reviews, hiddenTargets)
       const reviewPool = visibleReviews.length > 0 ? visibleReviews : reviews
       const lockedId = topReviewRef.current[dishId]
       const lockedReview = lockedId ? reviewPool.find(r => r.id === lockedId) : null

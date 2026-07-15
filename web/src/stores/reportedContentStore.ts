@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { ContentReportRow, ContentReportTarget } from '@/lib/db'
 
-type HiddenTargetsMap = Partial<Record<ContentReportTarget, Record<string, true>>>
+export type HiddenTargetsMap = Partial<Record<ContentReportTarget, Record<string, true>>>
 
 interface ReportedContentState {
   hiddenTargets: HiddenTargetsMap

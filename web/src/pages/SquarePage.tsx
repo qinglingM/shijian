@@ -7,8 +7,10 @@ import { TIER_ORDER, TIER_LABEL, TIER_COLOR_VAR, TIER_SOFT_VAR, type Tier, type 
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
 import { useTodayPracticeCount } from '@/features/square/useTodayPracticeCount'
 import { applyStoreReviewVoteClick, intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
+import { filterVisiblePracticeRecords } from '@/features/reports/reportedContentSelectors'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useReportedContentStore } from '@/stores/reportedContentStore'
 import { useCities } from '@/features/city-picker/useCities'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 import { useRequireLogin } from '@/features/auth/useRequireLogin'
@@ -67,6 +69,8 @@ export function SquarePage() {
     isRefetching,
   } = useSquareFeed()
   const feed = useMemo(() => infiniteData?.pages.flat() ?? [], [infiniteData])
+  const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
+  const visibleFeed = useMemo(() => filterVisiblePracticeRecords(feed, hiddenTargets), [feed, hiddenTargets])
   const { data: todayCount = 0 } = useTodayPracticeCount()
   const { data: allCities = [] } = useCities()
 
@@ -136,7 +140,7 @@ export function SquarePage() {
 
   // Filter + search + sort logic
   const filteredFeed = useMemo(() => {
-    let items = feed
+    let items = visibleFeed
 
     // Search
     const q = committedQuery.trim().toLowerCase()
@@ -177,7 +181,7 @@ export function SquarePage() {
     }
 
     return items
-  }, [feed, committedQuery, appliedProvince, appliedProvinceCities, appliedCity, appliedTiers, appliedCategory, sortMode])
+  }, [visibleFeed, committedQuery, appliedProvince, appliedProvinceCities, appliedCity, appliedTiers, appliedCategory, sortMode])
 
   const columns = useMemo(() => splitIntoMasonryColumns(filteredFeed), [filteredFeed])
 
