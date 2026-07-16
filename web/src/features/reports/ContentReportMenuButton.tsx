@@ -43,6 +43,7 @@ export function ContentReportMenuButton({
       <button
         type="button"
         onClick={(e) => {
+          e.preventDefault()
           e.stopPropagation()
           toggleMenu()
         }}
@@ -53,11 +54,25 @@ export function ContentReportMenuButton({
       </button>
       {menuOpen ? (
         <>
-          <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
-          <div className="absolute right-0 top-full z-30 mt-1 min-w-36 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg">
+          <div
+            className="fixed inset-0 z-20"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setMenuOpen(false)
+            }}
+          />
+          <div
+            className="absolute right-0 top-full z-30 mt-1 min-w-36 overflow-hidden rounded-xl border border-neutral-200 bg-white py-1 shadow-lg"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+          >
             <button
               type="button"
               onClick={(e) => {
+                e.preventDefault()
                 e.stopPropagation()
                 setMenuOpen(false)
                 onOpenReport(payload)

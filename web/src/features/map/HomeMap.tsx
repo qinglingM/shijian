@@ -484,7 +484,7 @@ function BottomSheet({
               <div style={{ gridArea: 'hot' }} className="flex items-center justify-self-start">
                 <span className="whitespace-nowrap text-[11px] font-semibold text-orange-500">热评</span>
               </div>
-              <div style={{ gridArea: 'meta' }} className="flex flex-col items-center justify-self-end gap-0.5">
+              <div style={{ gridArea: 'meta' }} className="-mr-0.5 flex flex-col items-end justify-self-end gap-0.5">
                 {reportPayload ? (
                   <div
                     onClick={(e) => {
