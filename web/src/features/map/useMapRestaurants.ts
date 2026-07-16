@@ -19,6 +19,8 @@ export interface MapRestaurant {
   tier: Tier | null
   top_reviewer_nickname: string | null
   top_reviewer_avatar_url: string | null
+  top_practice_record_id: string | null
+  top_reviewer_user_id: string | null
   top_store_comment: string | null
   review_tier: Tier | null
   review_youpin: number
@@ -144,6 +146,8 @@ export function useMapRestaurants() {
           tier: null,
           top_reviewer_nickname: null,
           top_reviewer_avatar_url: null,
+          top_practice_record_id: null,
+          top_reviewer_user_id: null,
           top_store_comment: null,
           review_tier: null,
           review_youpin: 0,
@@ -244,6 +248,8 @@ export function useMapRestaurants() {
           tier: averageTierFloor(tiersByRestaurant.get(r.id) ?? []),
           top_reviewer_nickname: top ? (profile ? profile.nickname : ANONYMOUS_REVIEWER) : null,
           top_reviewer_avatar_url: profile ? profile.avatar_url : null,
+          top_practice_record_id: top?.id ?? null,
+          top_reviewer_user_id: top?.user_id ?? null,
           titleName: titleMap.get(profile?.current_title_id ?? '')?.name ?? null,
           titleRarity: titleMap.get(profile?.current_title_id ?? '')?.rarity ?? null,
           top_store_comment: top?.store_comment ?? null,

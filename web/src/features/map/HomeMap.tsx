@@ -9,6 +9,8 @@ import { lookupExistingRestaurantByPoi, usePoiSearch } from '@/features/poi-sear
 import { useCityStore } from '@/features/city-picker/cityStore'
 import { useDebounce } from '@/lib/useDebounce'
 import { useMapRestaurants, type MapRestaurant } from './useMapRestaurants'
+import { ContentReportDialog } from '@/features/reports/ContentReportDialog'
+import { ContentReportMenuButton, type ContentReportMenuPayload } from '@/features/reports/ContentReportMenuButton'
 import { UserTitleBadge } from '@/components/UserTitleBadge'
 import { TIER_ORDER, TIER_LABEL, type Tier } from '@/lib/db'
 import type { PoiCandidate } from '@/lib/poi'
@@ -364,14 +366,40 @@ function TierChip({ tier, small }: { tier: Tier; small?: boolean }) {
 function BottomSheet({
   restaurant: r,
   exiting,
+  onOpenReport,
 }: {
   restaurant: MapRestaurant
   exiting?: boolean
+  onOpenReport: (payload: ContentReportMenuPayload) => void
 }) {
   const fullAddressLine = [r.city_name, r.district_name, r.address_text]
     .filter(Boolean)
     .join(' · ')
   const dateStr = r.review_created_at?.slice(0, 10)
+  const reportPayload = r.top_practice_record_id
+    ? {
+        title: '店铺评价',
+        targets: [
+          {
+            label: '评价内容',
+            targetType: 'practice_record' as const,
+            targetId: r.top_practice_record_id,
+            snapshot: {
+              practice_record_id: r.top_practice_record_id,
+              restaurant_id: r.id,
+              restaurant_name: r.display_name,
+              user_id: r.top_reviewer_user_id,
+              nickname: r.top_reviewer_nickname,
+              title_name: r.titleName,
+              tier: r.review_tier,
+              store_comment: r.top_store_comment,
+              created_at: r.review_created_at,
+              source: 'home_map_bottom_sheet',
+            },
+          },
+        ],
+      } satisfies ContentReportMenuPayload
+    : null
 
   return (
     <div
@@ -457,6 +485,21 @@ function BottomSheet({
                 <span className="whitespace-nowrap text-[11px] font-semibold text-orange-500">热评</span>
               </div>
               <div style={{ gridArea: 'meta' }} className="flex flex-col items-center justify-self-end gap-0.5">
+                {reportPayload ? (
+                  <div
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                  >
+                    <ContentReportMenuButton
+                      iconSize={14}
+                      buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
+                      payload={reportPayload}
+                      onOpenReport={onOpenReport}
+                    />
+                  </div>
+                ) : null}
                 {dateStr ? (
                   <span className="text-[11px] text-neutral-400 whitespace-nowrap">{dateStr}</span>
                 ) : null}
@@ -480,6 +523,8 @@ export function HomeMap() {
   const { data: restaurants = [], isLoading, error } = useMapRestaurants()
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
   const [exiting, setExiting] = useState(false)
+  const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
+  const [showReportedToast, setShowReportedToast] = useState(false)
   const [expandedCluster, setExpandedCluster] = useState<{
     centerLat: number
     centerLng: number
@@ -491,6 +536,12 @@ export function HomeMap() {
   const mapRef = useRef<L.Map | null>(null)
   const navigate = useNavigate()
   const superclusterRef = useRef<Supercluster | null>(null)
+
+  useEffect(() => {
+    if (!showReportedToast) return
+    const timer = setTimeout(() => setShowReportedToast(false), 3000)
+    return () => clearTimeout(timer)
+  }, [showReportedToast])
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false)
@@ -944,7 +995,23 @@ export function HomeMap() {
         )}
       </MapContainer>
 
-      {selected && <BottomSheet restaurant={selected} exiting={exiting} />}
+      {selected && <BottomSheet restaurant={selected} exiting={exiting} onOpenReport={setReportPayload} />}
+
+      {showReportedToast ? (
+        <div className="fixed left-1/2 top-0 z-[1000] -translate-x-1/2 px-5 pb-3 pt-[calc(var(--safe-top)+0.5rem)] text-sm font-medium text-green-800">
+          <div className="rounded-2xl bg-green-50 px-5 py-3 shadow-lg ring-1 ring-green-200/60">
+            已收到举报并隐藏该内容
+          </div>
+        </div>
+      ) : null}
+
+      <ContentReportDialog
+        open={!!reportPayload}
+        title={reportPayload?.title ?? '内容'}
+        onClose={() => setReportPayload(null)}
+        targets={reportPayload?.targets ?? []}
+        onReported={() => setShowReportedToast(true)}
+      />
 
       {restaurants.length === 0 && !isLoading && !error && (
         <div className="pointer-events-none absolute bottom-16 left-4 right-4 z-[400] rounded-2xl bg-white/95 px-4 py-3 text-center text-sm text-neutral-500 shadow-lg ring-1 ring-black/5">
