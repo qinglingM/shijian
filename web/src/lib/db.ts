@@ -309,6 +309,13 @@ export interface FollowRow {
   created_at: string
 }
 
+export interface UserBlockRow {
+  id: string
+  blocker_user_id: string
+  blocked_user_id: string
+  created_at: string
+}
+
 export interface RestaurantAliasRow {
   id: string
   restaurant_id: string

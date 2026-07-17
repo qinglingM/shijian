@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { ChevronRight, MapPin, UserRound } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
@@ -7,8 +7,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useFollowMutation } from '@/features/social/useFollowMutation'
 import { useFollowStatus } from '@/features/social/useFollowStatus'
 import { useCityStore } from '@/features/city-picker/cityStore'
+import { isUserBlocked } from '@/features/blocks/blockedUserSelectors'
 import { TIER_LABEL, type Tier } from '@/lib/db'
 import { useRequireLogin } from '@/features/auth/useRequireLogin'
+import { ContentReportDialog } from '@/features/reports/ContentReportDialog'
+import { ContentReportMenuButton, type ContentReportMenuPayload } from '@/features/reports/ContentReportMenuButton'
+import { useBlockedUsersStore } from '@/stores/blockedUsersStore'
 import { useReportedContentStore } from '@/stores/reportedContentStore'
 import { filterVisiblePracticeRecords } from '@/features/reports/reportedContentSelectors'
 
@@ -56,9 +60,18 @@ export function UserProfilePage() {
   const params = useParams()
   const raw = params.slug ?? null
   const cityId = useCityStore((s) => s.cityId)
+  const blockedUserIds = useBlockedUsersStore((s) => s.blockedUserIds)
   const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
   const [tierFilter, setTierFilter] = useState<Tier | 'all'>('all')
   const [cityFilter, setCityFilter] = useState<string | null>(null)
+  const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
+  const [showReportedToast, setShowReportedToast] = useState(false)
+
+  useEffect(() => {
+    if (!showReportedToast) return
+    const timer = setTimeout(() => setShowReportedToast(false), 3000)
+    return () => clearTimeout(timer)
+  }, [showReportedToast])
 
   const profileQ = useQuery({
     queryKey: ['user-profile', raw],
@@ -134,6 +147,7 @@ export function UserProfilePage() {
 
   const isOwner = followQ.data?.isSelf ?? false
   const isPrivate = !profile.is_profile_public && !isOwner
+  const isBlockedProfile = isUserBlocked(blockedUserIds, targetUserId)
   const activeTierLabel = tierFilter === 'all' ? '全部档位' : (TIER_LABEL[tierFilter] ?? '全部档位')
   const activeCityLabel = cityFilter ? '当前筛选城市' : cityId ? '当前城市' : '全部城市'
 
@@ -209,7 +223,11 @@ export function UserProfilePage() {
       </section>
 
       <section className="mt-4 px-4">
-        {isPrivate ? (
+        {isBlockedProfile ? (
+          <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm text-neutral-500">
+            你已屏蔽该用户，其公开内容对你不可见。
+          </div>
+        ) : isPrivate ? (
           <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-12 text-center text-sm text-neutral-500">
             该主页仅对自己可见。
           </div>
@@ -239,7 +257,42 @@ export function UserProfilePage() {
                         <h3 className="min-w-0 flex-1 truncate text-[15px] font-bold text-neutral-950">
                           {item.restaurant_name}
                         </h3>
-                        <ChevronRight className="mt-0.5 size-4 shrink-0 text-neutral-300" aria-hidden />
+                        <div className="flex shrink-0 items-center gap-1">
+                          <div
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                            }}
+                          >
+                            <ContentReportMenuButton
+                              iconSize={14}
+                              buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
+                              payload={{
+                                title: '店铺评价',
+                                targets: [
+                                  {
+                                    label: '评价内容',
+                                    targetType: 'practice_record',
+                                    targetId: item.practice_id,
+                                    snapshot: {
+                                      practice_record_id: item.practice_id,
+                                      restaurant_id: item.restaurant_id,
+                                      restaurant_name: item.restaurant_name,
+                                      user_id: targetUserId,
+                                      nickname: profile.nickname,
+                                      tier: item.tier,
+                                      store_comment: item.store_comment,
+                                      created_at: item.created_at,
+                                      source: 'user_profile_review',
+                                    },
+                                  },
+                                ],
+                              }}
+                              onOpenReport={setReportPayload}
+                            />
+                          </div>
+                          <ChevronRight className="mt-0.5 size-4 shrink-0 text-neutral-300" aria-hidden />
+                        </div>
                       </div>
                       <p className="mt-1 line-clamp-2 text-[13px] leading-5 text-neutral-600">
                         {item.store_comment || '这个评价还没有锐评。'}
@@ -260,6 +313,20 @@ export function UserProfilePage() {
           </div>
         )}
       </section>
+      {showReportedToast ? (
+        <div className="fixed left-1/2 top-0 z-[1000] -translate-x-1/2 px-5 pb-3 pt-[calc(var(--safe-top)+0.5rem)] text-sm font-medium text-green-800">
+          <div className="rounded-2xl bg-green-50 px-5 py-3 shadow-lg ring-1 ring-green-200/60">
+            已收到举报并隐藏该内容
+          </div>
+        </div>
+      ) : null}
+      <ContentReportDialog
+        open={!!reportPayload}
+        title={reportPayload?.title ?? '内容'}
+        onClose={() => setReportPayload(null)}
+        targets={reportPayload?.targets ?? []}
+        onReported={() => setShowReportedToast(true)}
+      />
     </div>
   )
 }

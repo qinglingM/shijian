@@ -6,6 +6,7 @@ import Supercluster from 'supercluster'
 import { Search, UtensilsCrossed, X } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { lookupExistingRestaurantByPoi, usePoiSearch } from '@/features/poi-search/usePoiSearch'
+import { filterVisibleItemsByBlockedUser } from '@/features/blocks/blockedUserSelectors'
 import { useCityStore } from '@/features/city-picker/cityStore'
 import { useDebounce } from '@/lib/useDebounce'
 import { useMapRestaurants, type MapRestaurant } from './useMapRestaurants'
@@ -16,6 +17,7 @@ import { TIER_ORDER, TIER_LABEL, type Tier } from '@/lib/db'
 import type { PoiCandidate } from '@/lib/poi'
 import { useCities } from '@/features/city-picker/useCities'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
+import { useBlockedUsersStore } from '@/stores/blockedUsersStore'
 
 const ChinaCenter: L.LatLngExpression = [35.86, 104.19]
 
@@ -521,6 +523,7 @@ function BottomSheet({
 
 export function HomeMap() {
   const { data: restaurants = [], isLoading, error } = useMapRestaurants()
+  const blockedUserIds = useBlockedUsersStore((s) => s.blockedUserIds)
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
   const [exiting, setExiting] = useState(false)
   const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
@@ -578,7 +581,7 @@ export function HomeMap() {
 
   const visibleRestaurants = useMemo(
     () => {
-      let filtered = restaurants
+      let filtered = filterVisibleItemsByBlockedUser(restaurants, blockedUserIds)
       if (appliedCity) filtered = filtered.filter(r => r.city_name === appliedCity)
       else if (appliedProvince) {
         filtered = filtered.filter(r => r.province_name === appliedProvince || (!!r.city_name && appliedProvinceCities.has(r.city_name)))
@@ -593,7 +596,7 @@ export function HomeMap() {
       }
       return filtered
     },
-    [restaurants, appliedProvince, appliedProvinceCities, appliedCity, appliedTiers, appliedCategory],
+    [blockedUserIds, restaurants, appliedProvince, appliedProvinceCities, appliedCity, appliedTiers, appliedCategory],
   )
 
   const clusters = useMemo(() => {
@@ -657,6 +660,12 @@ export function HomeMap() {
     clearTimeout(closeTimerRef.current)
     setExiting(false)
   }, [])
+
+  useEffect(() => {
+    if (!selected) return
+    if (!blockedUserIds[selected.top_reviewer_user_id ?? '']) return
+    dismiss()
+  }, [blockedUserIds, dismiss, selected])
 
   const handleSelect = useCallback((r: MapRestaurant) => {
     setExpandedCluster(null)

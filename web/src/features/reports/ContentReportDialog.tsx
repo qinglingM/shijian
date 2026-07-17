@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ContentReportReason, ContentReportTarget } from '@/lib/db'
+import { useAuthStore } from '@/stores/authStore'
 import { blurOnEnterDone, useDialogKeyboardAvoidance } from '@/features/keyboard/useDialogKeyboardAvoidance'
 import { getReportReasons } from '@/features/reports/reportConstants'
 import { useSubmitContentReportMutation, type SubmitContentReportInput } from '@/features/reports/useSubmitContentReportMutation'
@@ -25,10 +27,12 @@ export function ContentReportDialog({
   onReported?: () => void
 }) {
   const mutation = useSubmitContentReportMutation()
+  const viewerId = useAuthStore((s) => s.user?.id ?? null)
   const dialogRef = useRef<HTMLDivElement | null>(null)
   const [reasonCode, setReasonCode] = useState<ContentReportReason>('abuse')
   const [targetIndex, setTargetIndex] = useState(0)
   const [description, setDescription] = useState('')
+  const [blockUser, setBlockUser] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { bottomInset, keyboardOpen, onFieldFocus } = useDialogKeyboardAvoidance(dialogRef, open)
 
@@ -37,6 +41,7 @@ export function ContentReportDialog({
     setReasonCode('abuse')
     setTargetIndex(0)
     setDescription('')
+    setBlockUser(false)
     setError(null)
   }, [open])
 
@@ -52,6 +57,8 @@ export function ContentReportDialog({
 
   if (!open || safeTargets.length === 0) return null
   const currentTarget = safeTargets[Math.min(targetIndex, safeTargets.length - 1)]
+  const snapshotUserId = typeof currentTarget.snapshot.user_id === 'string' ? currentTarget.snapshot.user_id : null
+  const canBlockUser = Boolean(snapshotUserId && snapshotUserId !== viewerId)
 
   async function handleSubmit() {
     const trimmed = description.trim()
@@ -68,6 +75,8 @@ export function ContentReportDialog({
         snapshot: currentTarget.snapshot,
         reasonCode,
         description: trimmed,
+        blockUserId: snapshotUserId,
+        blockUser: canBlockUser && blockUser,
       }
       await mutation.mutateAsync({
         ...payload,
@@ -79,14 +88,14 @@ export function ContentReportDialog({
     }
   }
 
-  return (
+  const dialog = (
     <>
-      <button type="button" className="fixed inset-0 z-[70] bg-black/40" aria-label="关闭举报弹窗" onClick={onClose} />
+      <button type="button" className="fixed inset-0 z-[1200] bg-black/40" aria-label="关闭举报弹窗" onClick={onClose} />
       <div
         ref={(node) => {
           dialogRef.current = node
         }}
-        className={`fixed inset-0 z-[71] flex justify-center overflow-y-auto px-4 pt-4 ${keyboardOpen ? 'items-end' : 'items-center'}`}
+        className={`fixed inset-0 z-[1201] flex justify-center overflow-y-auto px-4 pt-4 ${keyboardOpen ? 'items-end' : 'items-center'}`}
         style={{ paddingBottom: `calc(1rem + ${bottomInset}px)` }}
       >
         <div className="w-full max-w-sm rounded-3xl bg-white px-5 py-5 shadow-xl" style={{ maxHeight: 'calc(100dvh - var(--safe-top) - 2rem)' }}>
@@ -147,6 +156,23 @@ export function ContentReportDialog({
             />
           </div>
 
+          {canBlockUser ? (
+            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-neutral-200 px-3 py-3 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={blockUser}
+                onChange={(e) => setBlockUser(e.target.checked)}
+                className="mt-0.5 size-4 accent-orange-500"
+              />
+              <span>
+                <span className="font-medium text-neutral-900">屏蔽该用户</span>
+                <span className="mt-1 block text-xs leading-5 text-neutral-500">
+                  屏蔽后，该用户发布的评价和相关公开内容将不再对你显示。
+                </span>
+              </span>
+            </label>
+          ) : null}
+
           {error ? <p className="mt-3 text-xs text-rose-600">{error}</p> : null}
 
           <div className="mt-5 flex gap-3">
@@ -171,4 +197,6 @@ export function ContentReportDialog({
       </div>
     </>
   )
+
+  return createPortal(dialog, document.body)
 }

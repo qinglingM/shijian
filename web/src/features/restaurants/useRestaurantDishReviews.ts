@@ -9,6 +9,7 @@ export interface RestaurantDishReviewItem {
   dish_id: string
   dish_name: string
   dish_cover_image_url: string | null
+  reviewer_user_id: string
   reviewer_nickname: string
   titleName: string | null
   titleRarity: string | null
@@ -146,6 +147,7 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
           dish_id: r.dish_id,
           dish_name: dishName,
           dish_cover_image_url: dishCover,
+          reviewer_user_id: pr.user_id,
           reviewer_nickname: profile ? profile.nickname : ANONYMOUS_REVIEWER,
           titleName: titleMap.get(profile?.current_title_id ?? '')?.name ?? null,
           titleRarity: titleMap.get(profile?.current_title_id ?? '')?.rarity ?? null,

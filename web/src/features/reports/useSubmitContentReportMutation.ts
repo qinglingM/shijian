@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import type { ContentReportReason, ContentReportTarget } from '@/lib/db'
 import { useAuthStore } from '@/stores/authStore'
+import { useBlockedUsersStore } from '@/stores/blockedUsersStore'
 import { useReportedContentStore } from '@/stores/reportedContentStore'
 
 export interface SubmitContentReportInput {
@@ -10,11 +11,14 @@ export interface SubmitContentReportInput {
   reasonCode: ContentReportReason
   description: string
   snapshot: Record<string, unknown>
+  blockUserId?: string | null
+  blockUser?: boolean
 }
 
 export function useSubmitContentReportMutation() {
   const userId = useAuthStore((s) => s.user?.id ?? null)
   const hideTarget = useReportedContentStore((s) => s.hideTarget)
+  const blockUser = useBlockedUsersStore((s) => s.blockUser)
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -32,10 +36,25 @@ export function useSubmitContentReportMutation() {
       })
 
       if (error && error.code !== '23505') throw error
+
+      if (input.blockUser && input.blockUserId && input.blockUserId !== userId) {
+        const { error: blockError } = await getSupabase().from('user_blocks').upsert({
+          blocker_user_id: userId,
+          blocked_user_id: input.blockUserId,
+        }, {
+          onConflict: 'blocker_user_id,blocked_user_id',
+        })
+        if (blockError) throw blockError
+      }
+
       return input
     },
     onSuccess: (input) => {
       hideTarget(input.targetType, input.targetId)
+      if (input.blockUser && input.blockUserId && input.blockUserId !== userId) {
+        blockUser(input.blockUserId)
+        void queryClient.invalidateQueries({ queryKey: ['my-blocked-users', userId] })
+      }
       void queryClient.invalidateQueries({ queryKey: ['my-content-reports', userId] })
     },
   })

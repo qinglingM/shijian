@@ -6,11 +6,13 @@ import { useDishReviewsByDish } from '@/features/dishes/useDishReviewsByDish'
 import { isRestaurantUuid, useRestaurant } from '@/features/restaurants/useRestaurant'
 import { useDishReviewVoteMutation } from '@/features/restaurants/useDishReviewVoteMutation'
 import { intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
+import { filterVisibleItemsByBlockedUser } from '@/features/blocks/blockedUserSelectors'
 import { ContentReportDialog } from '@/features/reports/ContentReportDialog'
 import { ContentReportMenuButton, type ContentReportMenuPayload } from '@/features/reports/ContentReportMenuButton'
 import { filterVisibleDishReviews, isDishReviewHidden } from '@/features/reports/reportedContentSelectors'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useBlockedUsersStore } from '@/stores/blockedUsersStore'
 import { useReportedContentStore } from '@/stores/reportedContentStore'
 import { useRequireLogin } from '@/features/auth/useRequireLogin'
 const dateFmt = new Intl.DateTimeFormat('zh-CN', {
@@ -34,6 +36,7 @@ export function DishDetailPage() {
   const reviewsQ = useDishReviewsByDish(isUuid ? id : null)
   const restaurantQ = useRestaurant(dish?.restaurant_id ?? null)
   const user = useAuthStore((s) => s.user)
+  const blockedUserIds = useBlockedUsersStore((s) => s.blockedUserIds)
   const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
   const requireLogin = useRequireLogin()
   const voteMut = useDishReviewVoteMutation(dish?.restaurant_id ?? null)
@@ -43,8 +46,8 @@ export function DishDetailPage() {
   const [showReportedToast, setShowReportedToast] = useState(false)
 
   const visibleReviews = useMemo(
-    () => filterVisibleDishReviews(reviewsQ.data ?? [], hiddenTargets),
-    [hiddenTargets, reviewsQ.data],
+    () => filterVisibleDishReviews(filterVisibleItemsByBlockedUser(reviewsQ.data ?? [], blockedUserIds), hiddenTargets),
+    [blockedUserIds, hiddenTargets, reviewsQ.data],
   )
 
   useEffect(() => {
@@ -280,6 +283,7 @@ export function DishDetailPage() {
                                 targetId: rv.id,
                                 snapshot: {
                                   dish_id: id,
+                                  user_id: rv.reviewer_user_id,
                                   reviewer_nickname: rv.reviewer_nickname,
                                   created_at: rv.created_at,
                                   score: rv.score,
@@ -289,14 +293,15 @@ export function DishDetailPage() {
                               },
                               ...(reviewImageUrl
                                 ? [{
-                                    label: '图片',
-                                    targetType: 'dish_review_image' as const,
-                                    targetId: rv.id,
-                                    snapshot: {
-                                      dish_id: id,
-                                      reviewer_nickname: rv.reviewer_nickname,
-                                      created_at: rv.created_at,
-                                      image_url: rv.image_url,
+                                     label: '图片',
+                                     targetType: 'dish_review_image' as const,
+                                     targetId: rv.id,
+                                     snapshot: {
+                                       dish_id: id,
+                                       user_id: rv.reviewer_user_id,
+                                       reviewer_nickname: rv.reviewer_nickname,
+                                       created_at: rv.created_at,
+                                       image_url: rv.image_url,
                                       comment: rv.comment,
                                     },
                                   }]

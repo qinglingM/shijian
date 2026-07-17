@@ -34,6 +34,7 @@ import { useRestaurantMarkStatus } from '@/features/marks/useRestaurantMarkStatu
 import { useInsertMarkMutation, useDeleteMarkMutation, useMarkPoiMutation } from '@/features/marks/useRestaurantMarkMutations'
 import { ContentReportDialog } from '@/features/reports/ContentReportDialog'
 import { ContentReportMenuButton, type ContentReportMenuPayload } from '@/features/reports/ContentReportMenuButton'
+import { filterVisibleItemsByBlockedUser } from '@/features/blocks/blockedUserSelectors'
 import {
   filterVisibleDishReviews,
   filterVisiblePracticeRecords,
@@ -42,6 +43,7 @@ import {
 import { TIER_COLOR_VAR, TIER_LABEL, TIER_ORDER, averageTierFloor, type Tier } from '@/lib/db'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useBlockedUsersStore } from '@/stores/blockedUsersStore'
 import { useReportedContentStore } from '@/stores/reportedContentStore'
 import { useRequireLogin } from '@/features/auth/useRequireLogin'
 import { usePracticeDraft } from '@/stores/practiceDraft'
@@ -94,6 +96,7 @@ export function RestaurantDetailPage() {
   const boleQ = useRestaurantBole(governanceRid)
   const guidanceQ = useRestaurantGuidanceSummary(governanceRid)
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
+  const blockedUserIds = useBlockedUsersStore((s) => s.blockedUserIds)
   const requireLogin = useRequireLogin()
   const navigate = useNavigate()
   const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
@@ -152,13 +155,13 @@ export function RestaurantDetailPage() {
   const emptyReviews = isPoiRoute
 
   const storeList = useMemo(
-    () => filterVisiblePracticeRecords((storeRQ.data ?? []).filter(Boolean), hiddenTargets),
-    [hiddenTargets, storeRQ.data],
+    () => filterVisiblePracticeRecords(filterVisibleItemsByBlockedUser((storeRQ.data ?? []).filter(Boolean), blockedUserIds), hiddenTargets),
+    [blockedUserIds, hiddenTargets, storeRQ.data],
   )
 
   const dishFeed = useMemo<RestaurantDishReviewItem[]>(
-    () => filterVisibleDishReviews(dishRQ.data ?? [], hiddenTargets),
-    [dishRQ.data, hiddenTargets],
+    () => filterVisibleDishReviews(filterVisibleItemsByBlockedUser(dishRQ.data ?? [], blockedUserIds), hiddenTargets),
+    [blockedUserIds, dishRQ.data, hiddenTargets],
   )
 
   const bestReview = useMemo(() => {
@@ -1487,29 +1490,31 @@ function DishTabFeed({
                           targets: [
                             {
                               label: '评价内容',
-                              targetType: 'dish_review',
-                              targetId: r.id,
-                              snapshot: {
-                                dish_id: r.dish_id,
-                                dish_name: entry.dishName,
-                                reviewer_nickname: r.reviewer_nickname,
-                                created_at: r.created_at,
-                                score: r.score,
+                               targetType: 'dish_review',
+                               targetId: r.id,
+                               snapshot: {
+                                 dish_id: r.dish_id,
+                                 dish_name: entry.dishName,
+                                 user_id: r.reviewer_user_id,
+                                 reviewer_nickname: r.reviewer_nickname,
+                                 created_at: r.created_at,
+                                 score: r.score,
                                 comment: r.comment,
                                 image_url: r.image_url,
                               },
                             },
                             ...(r.image_url
                               ? [{
-                                  label: '图片',
-                                  targetType: 'dish_review_image' as const,
-                                  targetId: r.id,
-                                  snapshot: {
-                                    dish_id: r.dish_id,
-                                    dish_name: entry.dishName,
-                                    reviewer_nickname: r.reviewer_nickname,
-                                    created_at: r.created_at,
-                                    image_url: r.image_url,
+                                   label: '图片',
+                                   targetType: 'dish_review_image' as const,
+                                   targetId: r.id,
+                                   snapshot: {
+                                     dish_id: r.dish_id,
+                                     dish_name: entry.dishName,
+                                     user_id: r.reviewer_user_id,
+                                     reviewer_nickname: r.reviewer_nickname,
+                                     created_at: r.created_at,
+                                     image_url: r.image_url,
                                     comment: r.comment,
                                   },
                                 }]

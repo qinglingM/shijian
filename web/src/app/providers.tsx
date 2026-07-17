@@ -4,6 +4,7 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import { useState, useEffect, type ReactNode } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { AuthBootstrap } from '@/app/AuthBootstrap'
+import { BlockedUsersBootstrap } from '@/features/blocks/BlockedUsersBootstrap'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AndroidBackHandler } from '@/components/layout/AndroidBackHandler'
 import { ReportedContentBootstrap } from '@/features/reports/ReportedContentBootstrap'
@@ -40,6 +41,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
       <BrowserRouter>
         <AndroidBackHandler />
         <AuthBootstrap>
+          <BlockedUsersBootstrap />
           <ReportedContentBootstrap />
           <ErrorBoundary>{children}</ErrorBoundary>
         </AuthBootstrap>

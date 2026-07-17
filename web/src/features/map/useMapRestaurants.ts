@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { averageTierFloor, type Tier } from '@/lib/db'
+import { useBlockedUsersStore } from '@/stores/blockedUsersStore'
 
 export interface MapRestaurant {
   id: string
@@ -68,8 +69,11 @@ interface VoteRow {
 const ANONYMOUS_REVIEWER = '匿名食客'
 
 export function useMapRestaurants() {
+  const blockedUserIds = useBlockedUsersStore((s) => s.blockedUserIds)
+  const blockedUserKey = Object.keys(blockedUserIds).sort().join(',')
+
   return useQuery<MapRestaurant[]>({
-    queryKey: ['map-restaurants'],
+    queryKey: ['map-restaurants', blockedUserKey],
     enabled: isSupabaseConfigured,
     staleTime: 60_000,
     queryFn: async () => {
@@ -126,7 +130,7 @@ export function useMapRestaurants() {
         .eq('is_active', true)
 
       if (e2) throw e2
-      const practices = (praw ?? []) as PracticeRow[]
+      const practices = ((praw ?? []) as PracticeRow[]).filter((practice) => !blockedUserIds[practice.user_id])
 
       if (!practices.length) {
         return restaurants.map((r) => ({

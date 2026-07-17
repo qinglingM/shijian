@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 export interface DishReviewFeedItem {
   id: string
+  reviewer_user_id: string
   reviewer_nickname: string
   created_at: string
   store_tier: Tier
@@ -116,6 +117,7 @@ export function useDishReviewsByDish(dishId: string | null) {
         const profile = profileMap.get(pr.user_id) ?? null
         items.push({
           id: r.id,
+          reviewer_user_id: pr.user_id,
           reviewer_nickname: profile ? profile.nickname : ANONYMOUS_REVIEWER,
           created_at: r.created_at,
           store_tier: pr.tier as Tier,
