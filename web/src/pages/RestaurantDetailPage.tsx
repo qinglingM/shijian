@@ -1,7 +1,7 @@
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X, Bookmark, BookmarkCheck } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ChevronDown, Flag, MapPin, Share2, Utensils, UserRound, X, Bookmark, BookmarkCheck, Trash2 } from 'lucide-react'
 import { BackHeader } from '@/components/layout/AppLayout'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 import { UserTitleBadge } from '@/components/UserTitleBadge'
@@ -48,10 +48,16 @@ import { useReportedContentStore } from '@/stores/reportedContentStore'
 import { useRequireLogin } from '@/features/auth/useRequireLogin'
 import { usePracticeDraft } from '@/stores/practiceDraft'
 import type { PoiCandidate, PoiSource } from '@/lib/poi/types'
+import { deletePracticeContent, invalidateAfterPracticeDelete } from '@/features/practice/deletePracticeContent'
 
 type TabKey = 'store' | 'dish'
 type RestaurantDetailLocationState = {
   poi?: PoiCandidate
+}
+
+type DeleteConfirmState = {
+  recordId: string
+  dishId?: string
 }
 
 const POI_SOURCES = new Set<PoiSource>(['amap', 'manual', 'tencent', 'baidu', 'apple'])
@@ -80,6 +86,7 @@ function compactDate(dateLike: string, digits: 'yyyyMMdd' | 'yyMMdd') {
 }
 
 export function RestaurantDetailPage() {
+  const queryClient = useQueryClient()
   const location = useLocation()
   const { id: rawId, source: poiSource, poiId } = useParams()
   const poiState = location.state as RestaurantDetailLocationState | null
@@ -102,12 +109,34 @@ export function RestaurantDetailPage() {
   const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
   const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
   const [showReportedToast, setShowReportedToast] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState | null>(null)
+  const [deletePending, setDeletePending] = useState(false)
+  useAndroidBackDismiss(!!deleteConfirm, () => {
+    if (!deletePending) setDeleteConfirm(null)
+  })
 
   useEffect(() => {
     if (!showReportedToast) return
     const timer = setTimeout(() => setShowReportedToast(false), 3000)
     return () => clearTimeout(timer)
   }, [showReportedToast])
+
+  async function handleConfirmDelete() {
+    if (!deleteConfirm || deletePending) return
+    setDeletePending(true)
+    try {
+      await deletePracticeContent(deleteConfirm)
+      await invalidateAfterPracticeDelete(queryClient, {
+        restaurantId: isUuid ? id ?? null : null,
+        userId: viewerId,
+      })
+      setDeleteConfirm(null)
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : '删除失败，请稍后重试')
+    } finally {
+      setDeletePending(false)
+    }
+  }
 
   const setPoiDraft = usePracticeDraft((s) => s.setPoi)
   const setExistingRestaurantDraft = usePracticeDraft((s) => s.setExistingRestaurant)
@@ -656,6 +685,7 @@ export function RestaurantDetailPage() {
               reviews={storeList}
               emptyReviews={emptyReviews}
               onOpenReport={setReportPayload}
+              onDeleteReview={(recordId) => setDeleteConfirm({ recordId })}
             />
           ) : (
             <DishTabFeed
@@ -663,6 +693,7 @@ export function RestaurantDetailPage() {
               dishFeedPending={Boolean(isUuid && dishRQ.isPending)}
               dishReviews={dishFeed}
               onOpenReport={setReportPayload}
+              onDeleteReview={(recordId, dishId) => setDeleteConfirm({ recordId, dishId })}
             />
           )}
         </div>
@@ -691,6 +722,51 @@ export function RestaurantDetailPage() {
         targets={reportPayload?.targets ?? []}
         onReported={() => setShowReportedToast(true)}
       />
+      {deleteConfirm ? (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-[1200] bg-black/40"
+            aria-label="关闭删除确认弹窗"
+            onClick={() => {
+              if (!deletePending) setDeleteConfirm(null)
+            }}
+          />
+          <div className="fixed inset-0 z-[1201] flex items-center justify-center px-4">
+            <div className="w-full max-w-sm rounded-3xl bg-white px-5 py-5 shadow-xl">
+              <div className="flex items-center gap-2 text-rose-600">
+                <Trash2 size={18} strokeWidth={1.8} />
+                <h2 className="text-base font-semibold text-neutral-900">
+                  {deleteConfirm.dishId ? '删除菜品评价？' : '删除店铺评价？'}
+                </h2>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-neutral-500">
+                {deleteConfirm.dishId
+                  ? '删除后不可恢复，关联的食鉴图也会一并删除。'
+                  : '删除后不可恢复，该店铺评价下的菜品评价和食鉴图也会一并删除。'}
+              </p>
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  disabled={deletePending}
+                  className="flex-1 rounded-2xl border border-neutral-200 py-3 text-sm font-medium text-neutral-700"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmDelete()}
+                  disabled={deletePending}
+                  className="flex-1 rounded-2xl bg-rose-500 py-3 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {deletePending ? '删除中…' : '确认删除'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
     </>
   )
 }
@@ -835,14 +911,17 @@ function StoreTab({
   restaurantId,
   emptyReviews,
   onOpenReport,
+  onDeleteReview,
 }: {
   reviews: StoreReviewItem[]
   loading: boolean
   restaurantId: string | null
   emptyReviews?: boolean
   onOpenReport: (payload: ContentReportMenuPayload) => void
+  onDeleteReview: (recordId: string) => void
 }) {
   const user = useAuthStore((s) => s.user)
+  const viewerId = user?.id ?? null
   const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
   const requireLogin = useRequireLogin()
   const voteMut = useStoreReviewVoteMutation(restaurantId)
@@ -1010,6 +1089,7 @@ function StoreTab({
 
         const guestBlocked = !user
         const busy = votingThis
+        const isMine = r.user_id === viewerId
 
         if (reviewHidden) return null
 
@@ -1049,30 +1129,44 @@ function StoreTab({
                       >
                         {TIER_LABEL[r.tier]}
                       </span>
-                      <ContentReportMenuButton
-                        iconSize={14}
-                        buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
-                        payload={{
-                          title: '店铺评价',
-                          targets: [
-                            {
-                              label: '评价内容',
-                              targetType: 'practice_record',
-                              targetId: r.id,
-                              snapshot: {
-                                practice_record_id: r.id,
-                                user_id: r.user_id,
-                                nickname: r.nickname,
-                                title_name: r.titleName,
-                                tier: r.tier,
-                                store_comment: r.store_comment,
-                                created_at: r.created_at,
+                      {isMine ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteReview(r.id)
+                          }}
+                          className="flex size-6 items-center justify-center rounded-full text-rose-500 active:bg-rose-50"
+                          aria-label="删除店铺评价"
+                        >
+                          <Trash2 size={14} strokeWidth={1.7} />
+                        </button>
+                      ) : (
+                        <ContentReportMenuButton
+                          iconSize={14}
+                          buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
+                          payload={{
+                            title: '店铺评价',
+                            targets: [
+                              {
+                                label: '评价内容',
+                                targetType: 'practice_record',
+                                targetId: r.id,
+                                snapshot: {
+                                  practice_record_id: r.id,
+                                  user_id: r.user_id,
+                                  nickname: r.nickname,
+                                  title_name: r.titleName,
+                                  tier: r.tier,
+                                  store_comment: r.store_comment,
+                                  created_at: r.created_at,
+                                },
                               },
-                            },
-                          ],
-                        }}
-                        onOpenReport={onOpenReport}
-                      />
+                            ],
+                          }}
+                          onOpenReport={onOpenReport}
+                        />
+                      )}
                     </div>
                   </div>
                   <p className="mt-1.5 text-[14px] leading-relaxed font-bold text-neutral-800 ">
@@ -1334,14 +1428,17 @@ function DishTabFeed({
   dishReviews,
   dishFeedPending,
   onOpenReport,
+  onDeleteReview,
 }: {
   restaurantId: string | null
   dishReviews: RestaurantDishReviewItem[]
   dishFeedPending: boolean
   onOpenReport: (payload: ContentReportMenuPayload) => void
+  onDeleteReview: (recordId: string, dishId: string) => void
 }) {
   const navigate = useNavigate()
   const requireLogin = useRequireLogin()
+  const viewerId = useAuthStore((s) => s.user?.id ?? null)
   const hiddenTargets = useReportedContentStore((s) => s.hiddenTargets)
   const voteMut = useDishReviewVoteMutation(restaurantId)
   const [sort, setSort] = useState<'hot' | 'score'>('hot')
@@ -1456,6 +1553,7 @@ function DishTabFeed({
 
               const votingThis =
                 voteMut.isPending && voteMut.variables?.dishReviewId === r.id
+              const isMine = r.reviewer_user_id === viewerId
               function onTap(which: 'youpin' | 'yebang') {
                 if (!requireLogin()) return
                 const next = intentAfterVoteTap(r.my_vote, which)
@@ -1482,47 +1580,61 @@ function DishTabFeed({
                     </span>
                     <span className="ml-auto flex shrink-0 items-center gap-1 text-[10px] text-neutral-400">
                       <span>{dateFmt.format(new Date(r.created_at))}</span>
-                      <ContentReportMenuButton
-                        iconSize={14}
-                        buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
-                        payload={{
-                          title: '菜品评价',
-                          targets: [
-                            {
-                              label: '评价内容',
-                               targetType: 'dish_review',
-                               targetId: r.id,
-                               snapshot: {
-                                 dish_id: r.dish_id,
-                                 dish_name: entry.dishName,
-                                 user_id: r.reviewer_user_id,
-                                 reviewer_nickname: r.reviewer_nickname,
-                                 created_at: r.created_at,
-                                 score: r.score,
-                                comment: r.comment,
-                                image_url: r.image_url,
+                      {isMine ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteReview(r.practice_record_id, r.id)
+                          }}
+                          className="flex size-6 items-center justify-center rounded-full text-rose-500 active:bg-rose-50"
+                          aria-label="删除菜品评价"
+                        >
+                          <Trash2 size={14} strokeWidth={1.7} />
+                        </button>
+                      ) : (
+                        <ContentReportMenuButton
+                          iconSize={14}
+                          buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
+                          payload={{
+                            title: '菜品评价',
+                            targets: [
+                              {
+                                label: '评价内容',
+                                targetType: 'dish_review',
+                                targetId: r.id,
+                                snapshot: {
+                                  dish_id: r.dish_id,
+                                  dish_name: entry.dishName,
+                                  user_id: r.reviewer_user_id,
+                                  reviewer_nickname: r.reviewer_nickname,
+                                  created_at: r.created_at,
+                                  score: r.score,
+                                  comment: r.comment,
+                                  image_url: r.image_url,
+                                },
                               },
-                            },
-                            ...(r.image_url
-                              ? [{
-                                   label: '图片',
-                                   targetType: 'dish_review_image' as const,
-                                   targetId: r.id,
-                                   snapshot: {
-                                     dish_id: r.dish_id,
-                                     dish_name: entry.dishName,
-                                     user_id: r.reviewer_user_id,
-                                     reviewer_nickname: r.reviewer_nickname,
-                                     created_at: r.created_at,
-                                     image_url: r.image_url,
-                                    comment: r.comment,
-                                  },
-                                }]
-                              : []),
-                          ],
-                        }}
-                        onOpenReport={onOpenReport}
-                      />
+                              ...(r.image_url
+                                ? [{
+                                    label: '图片',
+                                    targetType: 'dish_review_image' as const,
+                                    targetId: r.id,
+                                    snapshot: {
+                                      dish_id: r.dish_id,
+                                      dish_name: entry.dishName,
+                                      user_id: r.reviewer_user_id,
+                                      reviewer_nickname: r.reviewer_nickname,
+                                      created_at: r.created_at,
+                                      image_url: r.image_url,
+                                      comment: r.comment,
+                                    },
+                                  }]
+                                : []),
+                            ],
+                          }}
+                          onOpenReport={onOpenReport}
+                        />
+                      )}
                     </span>
                   </span>
                   <div className="flex items-start gap-3">

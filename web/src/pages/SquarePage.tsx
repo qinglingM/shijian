@@ -7,8 +7,6 @@ import { TIER_ORDER, TIER_LABEL, TIER_COLOR_VAR, TIER_SOFT_VAR, type Tier, type 
 import { useSquareFeed, type SquareFeedItem } from '@/features/square/useSquareFeed'
 import { useTodayPracticeCount } from '@/features/square/useTodayPracticeCount'
 import { applyStoreReviewVoteClick, intentAfterVoteTap } from '@/features/restaurants/storeReviewVotes'
-import { ContentReportDialog } from '@/features/reports/ContentReportDialog'
-import { ContentReportMenuButton, type ContentReportMenuPayload } from '@/features/reports/ContentReportMenuButton'
 import { filterVisibleItemsByBlockedUser } from '@/features/blocks/blockedUserSelectors'
 import { filterVisiblePracticeRecords } from '@/features/reports/reportedContentSelectors'
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase'
@@ -90,17 +88,8 @@ export function SquarePage() {
   const contentRef = useRef<HTMLElement>(null)
   const pullStartYRef = useRef<number | null>(null)
   const [pullDistance, setPullDistance] = useState(0)
-  const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
-  const [showReportedToast, setShowReportedToast] = useState(false)
-
   // Sort state
   const [sortMode, setSortMode] = useState<SortMode>('latest')
-
-  useEffect(() => {
-    if (!showReportedToast) return
-    const timer = setTimeout(() => setShowReportedToast(false), 3000)
-    return () => clearTimeout(timer)
-  }, [showReportedToast])
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false)
@@ -449,7 +438,7 @@ export function SquarePage() {
           {columns.map((col, idx) => (
             <div key={idx} className="space-y-3">
               {col.map((item) => (
-                <SquareCard key={item.id} item={item} onOpenReport={setReportPayload} />
+                <SquareCard key={item.id} item={item} />
               ))}
             </div>
           ))}
@@ -459,20 +448,6 @@ export function SquarePage() {
           <p className="py-4 text-center text-sm text-neutral-400">载入更多…</p>
         )}
       </section>
-      {showReportedToast ? (
-        <div className="fixed left-1/2 top-0 z-[1000] -translate-x-1/2 px-5 pb-3 pt-[calc(var(--safe-top)+0.5rem)] text-sm font-medium text-green-800">
-          <div className="rounded-2xl bg-green-50 px-5 py-3 shadow-lg ring-1 ring-green-200/60">
-            已收到举报并隐藏该内容
-          </div>
-        </div>
-      ) : null}
-      <ContentReportDialog
-        open={!!reportPayload}
-        title={reportPayload?.title ?? '内容'}
-        onClose={() => setReportPayload(null)}
-        targets={reportPayload?.targets ?? []}
-        onReported={() => setShowReportedToast(true)}
-      />
     </div>
   )
 }
@@ -508,31 +483,10 @@ function estimateCardHeight(item: SquareFeedItem) {
   return 2.1 - rank * 0.03
 }
 
-function SquareCard({ item, onOpenReport }: { item: SquareFeedItem; onOpenReport: (payload: ContentReportMenuPayload) => void }) {
+function SquareCard({ item }: { item: SquareFeedItem }) {
   const queryClient = useQueryClient()
   const viewerId = useAuthStore((s) => s.user?.id ?? null)
   const requireLogin = useRequireLogin()
-  const reportPayload: ContentReportMenuPayload = {
-    title: '店铺评价',
-    targets: [
-      {
-        label: '评价内容',
-        targetType: 'practice_record',
-        targetId: item.id,
-        snapshot: {
-          practice_record_id: item.id,
-          restaurant_id: item.restaurant_id,
-          restaurant_name: item.restaurant_name,
-          user_id: item.user_id,
-          nickname: item.nickname,
-          tier: item.tier,
-          store_comment: item.content,
-          created_at: item.created_at,
-          source: 'square_card',
-        },
-      },
-    ],
-  }
   const voteMut = useMutation({
     mutationFn: async (next: VoteType | null) => {
       if (!isSupabaseConfigured) throw new Error('暂无可用后端')
@@ -648,12 +602,6 @@ function SquareCard({ item, onOpenReport }: { item: SquareFeedItem; onOpenReport
             <p className={`truncate text-[10px] font-semibold ${item.titleName ? RARITY_TEXT[item.titleRarity ?? ''] ?? 'text-neutral-900' : 'text-neutral-900'}`}>{item.nickname}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <ContentReportMenuButton
-              iconSize={14}
-              buttonClassName="flex size-7 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
-              payload={reportPayload}
-              onOpenReport={onOpenReport}
-            />
             <button
               type="button"
               disabled={voteMut.isPending}

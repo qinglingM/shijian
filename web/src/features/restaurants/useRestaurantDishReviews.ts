@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 export interface RestaurantDishReviewItem {
   id: string
+  practice_record_id: string
   dish_id: string
   dish_name: string
   dish_cover_image_url: string | null
@@ -144,6 +145,7 @@ export function useRestaurantDishReviews(restaurantId: string | null) {
         const profile = profileMap.get(pr.user_id) ?? null
         out.push({
           id: r.id,
+          practice_record_id: r.practice_record_id,
           dish_id: r.dish_id,
           dish_name: dishName,
           dish_cover_image_url: dishCover,

@@ -6,6 +6,7 @@ import { getSupabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 import { isRegisteredUser } from '@/features/auth/useRequireLogin'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
+import { deletePracticeContent } from '@/features/practice/deletePracticeContent'
 
 interface PracticeRecordRow {
   id: string
@@ -110,31 +111,7 @@ export function PracticeRecordsPage() {
   async function handleDelete(recordId: string, dishId: string | undefined) {
     setActionLoading(true)
     try {
-      const supabase = getSupabase()
-      if (dishId) {
-        const { error } = await supabase
-          .from('dish_reviews')
-          .update({ is_active: false })
-          .eq('id', dishId)
-        if (error) throw error
-      } else {
-        const { data: reviews } = await supabase
-          .from('dish_reviews')
-          .select('id')
-          .eq('practice_record_id', recordId)
-          .eq('is_active', true)
-        if (reviews && reviews.length > 0) {
-          await supabase
-            .from('dish_reviews')
-            .update({ is_active: false })
-            .in('id', reviews.map((r) => r.id))
-        }
-        const { error } = await supabase
-          .from('practice_records')
-          .update({ is_active: false })
-          .eq('id', recordId)
-        if (error) throw error
-      }
+      await deletePracticeContent({ recordId, dishId })
       await queryClient.invalidateQueries({ queryKey: ['me-practices', userId] })
       await queryClient.invalidateQueries({ queryKey: ['me-summary', userId] })
     } finally {
