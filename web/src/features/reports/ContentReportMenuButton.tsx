@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Flag, MoreVertical } from 'lucide-react'
+import { Flag, MoreVertical, type LucideIcon } from 'lucide-react'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 import { useRequireLogin } from '@/features/auth/useRequireLogin'
 
@@ -13,16 +13,25 @@ export interface ContentReportMenuPayload {
   }>
 }
 
+export interface ContentReportMenuAction {
+  label: string
+  icon?: LucideIcon
+  iconClassName?: string
+  onClick: () => void
+}
+
 export function ContentReportMenuButton({
   payload,
+  actions,
   buttonClassName = 'flex size-7 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100',
   iconSize = 16,
   onOpenReport,
 }: {
-  payload: ContentReportMenuPayload
+  payload?: ContentReportMenuPayload
+  actions?: ContentReportMenuAction[]
   buttonClassName?: string
   iconSize?: number
-  onOpenReport: (payload: ContentReportMenuPayload) => void
+  onOpenReport?: (payload: ContentReportMenuPayload) => void
 }) {
   const requireLogin = useRequireLogin()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -30,8 +39,23 @@ export function ContentReportMenuButton({
 
   useAndroidBackDismiss(menuOpen, () => setMenuOpen(false))
 
-  const safeTargets = useMemo(() => payload.targets.filter((item) => item.targetId), [payload.targets])
-  if (safeTargets.length === 0) return null
+  const safeTargets = useMemo(() => payload?.targets.filter((item) => item.targetId) ?? [], [payload])
+  const menuActions = useMemo<ContentReportMenuAction[]>(() => {
+    if (actions && actions.length > 0) return actions
+    if (payload && onOpenReport && safeTargets.length > 0) {
+      return [
+        {
+          label: '举报',
+          icon: Flag,
+          iconClassName: 'text-neutral-400',
+          onClick: () => onOpenReport({ ...payload, targets: safeTargets }),
+        },
+      ]
+    }
+    return []
+  }, [actions, onOpenReport, payload, safeTargets])
+
+  if (menuActions.length === 0) return null
 
   function toggleMenu() {
     if (!requireLogin()) return
@@ -69,19 +93,25 @@ export function ContentReportMenuButton({
               e.stopPropagation()
             }}
           >
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setMenuOpen(false)
-                onOpenReport(payload)
-              }}
-              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-neutral-700 active:bg-neutral-50"
-            >
-              <Flag size={14} strokeWidth={1.6} className="text-neutral-400" />
-              举报
-            </button>
+            {menuActions.map((action) => {
+              const Icon = action.icon
+              return (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setMenuOpen(false)
+                    action.onClick()
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] text-neutral-700 active:bg-neutral-50"
+                >
+                  {Icon ? <Icon size={14} strokeWidth={1.6} className={action.iconClassName ?? 'text-neutral-400'} /> : null}
+                  {action.label}
+                </button>
+              )
+            })}
           </div>
         </>
       ) : null}

@@ -1,9 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { MapContainer, Marker, Polyline, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import Supercluster from 'supercluster'
-import { Search, UtensilsCrossed, X } from 'lucide-react'
+import { Search, Trash2, UtensilsCrossed, X } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { lookupExistingRestaurantByPoi, usePoiSearch } from '@/features/poi-search/usePoiSearch'
 import { filterVisibleItemsByBlockedUser } from '@/features/blocks/blockedUserSelectors'
@@ -18,8 +19,15 @@ import type { PoiCandidate } from '@/lib/poi'
 import { useCities } from '@/features/city-picker/useCities'
 import { useAndroidBackDismiss } from '@/components/layout/AndroidBackHandler'
 import { useBlockedUsersStore } from '@/stores/blockedUsersStore'
+import { useAuthStore } from '@/stores/authStore'
+import { deletePracticeContent, invalidateAfterPracticeDelete } from '@/features/practice/deletePracticeContent'
 
 const ChinaCenter: L.LatLngExpression = [35.86, 104.19]
+
+type DeleteConfirmState = {
+  recordId: string
+  restaurantId: string
+}
 
 // Hex values for Leaflet divIcon (CSS vars don't resolve outside React tree)
 function removeBracketContent(name: string): string {
@@ -369,15 +377,19 @@ function BottomSheet({
   restaurant: r,
   exiting,
   onOpenReport,
+  onDeleteReview,
 }: {
   restaurant: MapRestaurant
   exiting?: boolean
   onOpenReport: (payload: ContentReportMenuPayload) => void
+  onDeleteReview: (recordId: string, restaurantId: string) => void
 }) {
+  const viewerId = useAuthStore((s) => s.user?.id ?? null)
   const fullAddressLine = [r.city_name, r.district_name, r.address_text]
     .filter(Boolean)
     .join(' · ')
   const dateStr = r.review_created_at?.slice(0, 10)
+  const isMine = Boolean(r.top_reviewer_user_id && r.top_reviewer_user_id === viewerId)
   const reportPayload = r.top_practice_record_id
     ? {
         title: '店铺评价',
@@ -497,7 +509,15 @@ function BottomSheet({
                     <ContentReportMenuButton
                       iconSize={14}
                       buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
-                      payload={reportPayload}
+                      payload={isMine ? undefined : reportPayload}
+                      actions={isMine && r.top_practice_record_id ? [
+                        {
+                          label: '删除',
+                          icon: Trash2,
+                          iconClassName: 'text-rose-500',
+                          onClick: () => onDeleteReview(r.top_practice_record_id!, r.id),
+                        },
+                      ] : undefined}
                       onOpenReport={onOpenReport}
                     />
                   </div>
@@ -522,12 +542,16 @@ function BottomSheet({
 }
 
 export function HomeMap() {
+  const queryClient = useQueryClient()
   const { data: restaurants = [], isLoading, error } = useMapRestaurants()
   const blockedUserIds = useBlockedUsersStore((s) => s.blockedUserIds)
+  const viewerId = useAuthStore((s) => s.user?.id ?? null)
   const [selected, setSelected] = useState<MapRestaurant | null>(null)
   const [exiting, setExiting] = useState(false)
   const [reportPayload, setReportPayload] = useState<ContentReportMenuPayload | null>(null)
   const [showReportedToast, setShowReportedToast] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState | null>(null)
+  const [deletePending, setDeletePending] = useState(false)
   const [expandedCluster, setExpandedCluster] = useState<{
     centerLat: number
     centerLng: number
@@ -545,6 +569,28 @@ export function HomeMap() {
     const timer = setTimeout(() => setShowReportedToast(false), 3000)
     return () => clearTimeout(timer)
   }, [showReportedToast])
+
+  useAndroidBackDismiss(!!deleteConfirm, () => {
+    if (!deletePending) setDeleteConfirm(null)
+  })
+
+  async function handleConfirmDelete() {
+    if (!deleteConfirm || deletePending) return
+    setDeletePending(true)
+    try {
+      await deletePracticeContent({ recordId: deleteConfirm.recordId })
+      await invalidateAfterPracticeDelete(queryClient, {
+        restaurantId: deleteConfirm.restaurantId,
+        userId: viewerId,
+      })
+      setDeleteConfirm(null)
+      setSelected(null)
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : '删除失败，请稍后重试')
+    } finally {
+      setDeletePending(false)
+    }
+  }
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false)
@@ -1004,7 +1050,14 @@ export function HomeMap() {
         )}
       </MapContainer>
 
-      {selected && <BottomSheet restaurant={selected} exiting={exiting} onOpenReport={setReportPayload} />}
+      {selected && (
+        <BottomSheet
+          restaurant={selected}
+          exiting={exiting}
+          onOpenReport={setReportPayload}
+          onDeleteReview={(recordId, restaurantId) => setDeleteConfirm({ recordId, restaurantId })}
+        />
+      )}
 
       {showReportedToast ? (
         <div className="fixed left-1/2 top-0 z-[1000] -translate-x-1/2 px-5 pb-3 pt-[calc(var(--safe-top)+0.5rem)] text-sm font-medium text-green-800">
@@ -1021,6 +1074,48 @@ export function HomeMap() {
         targets={reportPayload?.targets ?? []}
         onReported={() => setShowReportedToast(true)}
       />
+
+      {deleteConfirm ? (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-[1200] bg-black/40"
+            aria-label="关闭删除确认弹窗"
+            onClick={() => {
+              if (!deletePending) setDeleteConfirm(null)
+            }}
+          />
+          <div className="fixed inset-0 z-[1201] flex items-center justify-center px-4">
+            <div className="w-full max-w-sm rounded-3xl bg-white px-5 py-5 shadow-xl">
+              <div className="flex items-center gap-2 text-rose-600">
+                <Trash2 size={18} strokeWidth={1.8} />
+                <h2 className="text-base font-semibold text-neutral-900">删除店铺评价？</h2>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-neutral-500">
+                删除后不可恢复，该店铺评价下的菜品评价和食鉴图也会一并删除。
+              </p>
+              <div className="mt-5 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  disabled={deletePending}
+                  className="flex-1 rounded-2xl border border-neutral-200 py-3 text-sm font-medium text-neutral-700"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleConfirmDelete()}
+                  disabled={deletePending}
+                  className="flex-1 rounded-2xl bg-rose-500 py-3 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {deletePending ? '删除中…' : '确认删除'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
 
       {restaurants.length === 0 && !isLoading && !error && (
         <div className="pointer-events-none absolute bottom-16 left-4 right-4 z-[400] rounded-2xl bg-white/95 px-4 py-3 text-center text-sm text-neutral-500 shadow-lg ring-1 ring-black/5">

@@ -1129,44 +1129,38 @@ function StoreTab({
                       >
                         {TIER_LABEL[r.tier]}
                       </span>
-                      {isMine ? (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDeleteReview(r.id)
-                          }}
-                          className="flex size-6 items-center justify-center rounded-full text-rose-500 active:bg-rose-50"
-                          aria-label="删除店铺评价"
-                        >
-                          <Trash2 size={14} strokeWidth={1.7} />
-                        </button>
-                      ) : (
-                        <ContentReportMenuButton
-                          iconSize={14}
-                          buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
-                          payload={{
-                            title: '店铺评价',
-                            targets: [
-                              {
-                                label: '评价内容',
-                                targetType: 'practice_record',
-                                targetId: r.id,
-                                snapshot: {
-                                  practice_record_id: r.id,
-                                  user_id: r.user_id,
-                                  nickname: r.nickname,
-                                  title_name: r.titleName,
-                                  tier: r.tier,
-                                  store_comment: r.store_comment,
-                                  created_at: r.created_at,
-                                },
+                      <ContentReportMenuButton
+                        iconSize={14}
+                        buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
+                        payload={isMine ? undefined : {
+                          title: '店铺评价',
+                          targets: [
+                            {
+                              label: '评价内容',
+                              targetType: 'practice_record',
+                              targetId: r.id,
+                              snapshot: {
+                                practice_record_id: r.id,
+                                user_id: r.user_id,
+                                nickname: r.nickname,
+                                title_name: r.titleName,
+                                tier: r.tier,
+                                store_comment: r.store_comment,
+                                created_at: r.created_at,
                               },
-                            ],
-                          }}
-                          onOpenReport={onOpenReport}
-                        />
-                      )}
+                            },
+                          ],
+                        }}
+                        actions={isMine ? [
+                          {
+                            label: '删除',
+                            icon: Trash2,
+                            iconClassName: 'text-rose-500',
+                            onClick: () => onDeleteReview(r.id),
+                          },
+                        ] : undefined}
+                        onOpenReport={onOpenReport}
+                      />
                     </div>
                   </div>
                   <p className="mt-1.5 text-[14px] leading-relaxed font-bold text-neutral-800 ">
@@ -1580,61 +1574,55 @@ function DishTabFeed({
                     </span>
                     <span className="ml-auto flex shrink-0 items-center gap-1 text-[10px] text-neutral-400">
                       <span>{dateFmt.format(new Date(r.created_at))}</span>
-                      {isMine ? (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDeleteReview(r.practice_record_id, r.id)
-                          }}
-                          className="flex size-6 items-center justify-center rounded-full text-rose-500 active:bg-rose-50"
-                          aria-label="删除菜品评价"
-                        >
-                          <Trash2 size={14} strokeWidth={1.7} />
-                        </button>
-                      ) : (
-                        <ContentReportMenuButton
-                          iconSize={14}
-                          buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
-                          payload={{
-                            title: '菜品评价',
-                            targets: [
-                              {
-                                label: '评价内容',
-                                targetType: 'dish_review',
-                                targetId: r.id,
-                                snapshot: {
-                                  dish_id: r.dish_id,
-                                  dish_name: entry.dishName,
-                                  user_id: r.reviewer_user_id,
-                                  reviewer_nickname: r.reviewer_nickname,
-                                  created_at: r.created_at,
-                                  score: r.score,
-                                  comment: r.comment,
-                                  image_url: r.image_url,
-                                },
+                      <ContentReportMenuButton
+                        iconSize={14}
+                        buttonClassName="flex size-6 items-center justify-center rounded-full text-neutral-400 active:bg-neutral-100"
+                        payload={isMine ? undefined : {
+                          title: '菜品评价',
+                          targets: [
+                            {
+                              label: '评价内容',
+                              targetType: 'dish_review',
+                              targetId: r.id,
+                              snapshot: {
+                                dish_id: r.dish_id,
+                                dish_name: entry.dishName,
+                                user_id: r.reviewer_user_id,
+                                reviewer_nickname: r.reviewer_nickname,
+                                created_at: r.created_at,
+                                score: r.score,
+                                comment: r.comment,
+                                image_url: r.image_url,
                               },
-                              ...(r.image_url
-                                ? [{
-                                    label: '图片',
-                                    targetType: 'dish_review_image' as const,
-                                    targetId: r.id,
-                                    snapshot: {
-                                      dish_id: r.dish_id,
-                                      dish_name: entry.dishName,
-                                      user_id: r.reviewer_user_id,
-                                      reviewer_nickname: r.reviewer_nickname,
-                                      created_at: r.created_at,
-                                      image_url: r.image_url,
-                                      comment: r.comment,
-                                    },
-                                  }]
-                                : []),
-                            ],
-                          }}
-                          onOpenReport={onOpenReport}
-                        />
-                      )}
+                            },
+                            ...(r.image_url
+                              ? [{
+                                  label: '图片',
+                                  targetType: 'dish_review_image' as const,
+                                  targetId: r.id,
+                                  snapshot: {
+                                    dish_id: r.dish_id,
+                                    dish_name: entry.dishName,
+                                    user_id: r.reviewer_user_id,
+                                    reviewer_nickname: r.reviewer_nickname,
+                                    created_at: r.created_at,
+                                    image_url: r.image_url,
+                                    comment: r.comment,
+                                  },
+                                }]
+                              : []),
+                          ],
+                        }}
+                        actions={isMine ? [
+                          {
+                            label: '删除',
+                            icon: Trash2,
+                            iconClassName: 'text-rose-500',
+                            onClick: () => onDeleteReview(r.practice_record_id, r.id),
+                          },
+                        ] : undefined}
+                        onOpenReport={onOpenReport}
+                      />
                     </span>
                   </span>
                   <div className="flex items-start gap-3">
